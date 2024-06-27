@@ -1,0 +1,220 @@
+import { ListView } from "std-widgets.slint";
+import { Theme, Icons } from "../../theme.slint";
+import { Store } from "../../store.slint";
+import { Logic } from "../../logic.slint";
+import { Util } from "../../util.slint";
+import { OkCancelDialogSetting, IconBtn, Head, Label, Tag, Link, NoDataImg, NoMessageImg, CenterLayout } from "../../base/widgets.slint";
+import { Theme } from "../../theme.slint";
+
+component FHead inherits Head {
+    callback scroll-to-top <=> ta.clicked;
+
+    is-show-divider: true;
+    icon: Icons.favorite-fill;
+    title: Logic.tr(Store.is-cn, "收藏夹");
+
+    ta := TouchArea { }
+
+    remove-all-icon := IconBtn {
+        icon: Icons.delete;
+
+        clicked => {
+            OkCancelDialogSetting.title-type = "warning";
+            OkCancelDialogSetting.title-text = Logic.tr(Store.is-cn, "警告");
+            OkCancelDialogSetting.body-text = Logic.tr(Store.is-cn, "是否删除全部？");
+            OkCancelDialogSetting.handle-type = "remove-all-favorite-entrys";
+        }
+    }
+}
+
+export component Entry inherits Rectangle {
+    in-out property title <=> title-txt.text;
+    in-out property pub-date-text <=> pub-date-txt.text;
+    in-out property <string> summary;
+    in-out property <string> author;
+    in-out property <string> tag-text;
+    in-out property <string> uuid;
+    in-out property <string> suuid;
+    in-out property <string> url;
+
+    background: Theme.base-background;
+    border-radius: Theme.border-radius;
+
+    drop-shadow-blur: Theme.padding * 2;
+    drop-shadow-color: Theme.base-background-drop-shadow;
+
+    VerticalLayout {
+        padding: Theme.padding * 2;
+        spacing: Theme.spacing * 2;
+        alignment: space-between;
+
+        title-txt := Link {
+            clicked => {
+                Util.open-url(root.url);
+            }
+        }
+
+        Text {
+            font-size: Theme.default-font-size - 1px;
+            color: Theme.regular-text-color;
+            text: root.summary;
+            wrap: word-wrap;
+        }
+
+        HorizontalLayout {
+            alignment: end;
+            spacing: Theme.padding * 4;
+
+            author-txt := Text {
+                visible: root.author != "";
+                font-size: Theme.default-font-size - 4px;
+                color: Theme.placeholder-text-color;
+                text: root.author;
+            }
+
+            pub-date-txt := Text {
+                font-size: Theme.default-font-size - 4px;
+                color: Theme.placeholder-text-color;
+            }
+        }
+    }
+}
+
+export component EntryList inherits Rectangle {
+    clip: true;
+
+    public function scroll-to-top(){
+        lv.viewport-y = 0;
+    }
+
+    lv := Flickable {
+        x: 0px;
+        width: root.width;
+
+        private property <length> offset-y: 0;
+
+        for item[index] in Store.rss-favorite-entrys: rect := Rectangle {
+            private property <length> max-move-pixels-up-bound: self.width * 0.04;
+            private property <length> max-move-pixels-low-bound: self.width * 0.02;
+            private property <bool> is-show-opt: false;
+            private property <bool> is-hide-opt: true;
+
+            init => {
+                if (index == 0) {
+                    offset-y = 0;
+                }
+
+                self.y = offset-y;
+                offset-y = offset-y + entry-vbox.preferred-height;
+                self.height = entry-vbox.preferred-height;
+                lv.viewport-height = offset-y;
+            }
+
+            public function show-opt(){
+                rect.x = -opt.width - Theme.padding;
+                rect.is-show-opt = true;
+                rect.is-hide-opt = false;
+            }
+
+            public function hide-opt(){
+                rect.x = 0;
+                rect.is-hide-opt = true;
+                rect.is-show-opt = false;
+            }
+
+            animate x {
+                duration: Theme.default-animate-duration;
+                easing: ease-in-out;
+            }
+
+            TouchArea {
+                moved => {
+                    if (lv.interactive && (self.pressed-x - self.mouse-x > parent.max-move-pixels-low-bound || self.mouse-x - self.pressed-x > parent.max-move-pixels-low-bound)) {
+                        lv.interactive = false;
+                    }
+                    if (!rect.is-show-opt) {
+                        if (self.pressed-x - self.mouse-x > parent.max-move-pixels-up-bound) {
+                            rect.show-opt();
+                        }
+                    }
+                    if (!rect.is-hide-opt) {
+                        if (self.mouse-x - self.pressed-x > parent.max-move-pixels-up-bound) {
+                            hide-opt();
+                        }
+                    }
+                }
+
+                pointer-event(evt) => {
+                    if (evt.kind == PointerEventKind.up) {
+                        lv.interactive = true;
+                    }
+                }
+            }
+
+            entry-vbox := VerticalLayout {
+                padding: Theme.padding / 2;
+
+                Entry {
+                    uuid: item.uuid;
+                    suuid: item.suuid;
+                    title: item.title;
+                    author: item.author;
+                    summary: item.summary;
+                    tag-text: item.tags;
+                    pub-date-text: item.pub-date;
+                    url: item.url;
+                }
+            }
+
+            opt := VerticalLayout {
+                x: entry-vbox.width + Theme.padding;
+                y: 0;
+                width: 50px;
+                height: entry-vbox.height;
+                alignment: center;
+
+                Rectangle {
+                    height: 100%;
+                    IconBtn {
+                        width: 100%;
+                        height: 100%;
+                        icon: Icons.delete;
+                        border-radius: 0;
+                        colorize: Theme.danger-color;
+
+                        clicked => {
+                            rect.hide-opt();
+                            Logic.remove-favorite-entry(item.uuid);
+                            Store.refresh-current-tab();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if Store.rss-favorite-entrys.length == 0: CenterLayout {
+        NoDataImg {
+            width: root.width * 0.6;
+            text: Logic.tr(Store.is-cn, "没有消息");
+        }
+    }
+}
+
+component Body inherits Rectangle {
+    public function entrylist-scroll-to-top(){
+        entrylist.scroll-to-top();
+    }
+
+    entrylist := EntryList { }
+}
+
+export component Favorite inherits VerticalLayout {
+    head := FHead {
+        scroll-to-top => {
+            body.entrylist-scroll-to-top();
+        }
+    }
+
+    body := Body { }
+}

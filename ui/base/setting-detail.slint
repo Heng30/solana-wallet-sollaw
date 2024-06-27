@@ -1,0 +1,39 @@
+import { Theme, Icons } from "../theme.slint";
+import { IconBtn } from "./icon-btn.slint";
+import { Label } from "./label.slint";
+import { Head } from "./head.slint";
+
+export component SettingDetail inherits Rectangle {
+    callback back <=> head.clicked;
+
+    in-out property title <=> head.title;
+
+    VerticalLayout {
+        head := Head {
+            hbox-alignment: LayoutAlignment.start;
+        }
+
+        @children
+    }
+}
+
+export component SettingDetailInner inherits Flickable {
+    in-out property <LayoutAlignment> vbox-alignment: LayoutAlignment.start;
+
+    VerticalLayout {
+        alignment: root.vbox-alignment;
+        padding: Theme.padding * 2;
+        spacing: Theme.spacing * 4;
+
+        @children
+    }
+}
+
+export component SettingDetailInnerVbox inherits VerticalLayout {
+    spacing: Theme.spacing;
+    @children
+}
+
+export component SettingDetailLabel inherits Label {
+    font-size: Theme.title4-font-size;
+}

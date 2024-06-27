@@ -1,0 +1,409 @@
+import { CheckBox, ComboBox, LineEdit } from "std-widgets.slint";
+import { Theme, Icons } from "../../theme.slint";
+import { Store, TabIndex, RssConfig } from "../../store.slint";
+import { Logic } from "../../logic.slint";
+import { IconsDialogSetting, OkCancelDialogSetting, CancelBtn, ConfirmBtn, Tag, IconBtn, NoMessageImg, Label, Head, SettingDetailInner, SettingDetailInnerVbox, SettingDetailLabel, CenterLayout } from "../../base/widgets.slint";
+
+enum BtnIndex {
+    New,
+    Edit,
+    Delete,
+}
+
+component AHead inherits Head {
+    icon: Icons.add-small;
+    title: Logic.tr(Store.is-cn, "添加");
+    hbox-alignment: LayoutAlignment.space-between;
+
+    callback back <=> self.clicked;
+
+    CenterLayout {
+        IconBtn {
+            icon: Icons.refresh;
+            icon-width: Theme.icon-size * 1.2;
+            background: Colors.transparent;
+            clicked => {
+                Logic.sync-rss-all();
+            }
+        }
+    }
+}
+
+component RssList inherits Rectangle {
+    private property <length> item-height: 40px;
+    private property <color> selected-item-color: Theme.base-border-color;
+    out property <string> current-uuid;
+
+    if Store.rss-lists.length == 0: Rectangle {
+        NoMessageImg {
+            width: parent.width * 0.6;
+            text: Logic.tr(Store.is-cn, "没有订阅");
+        }
+    }
+
+    Flickable {
+        viewport-height: Store.rss-lists.length * root.item-height;
+
+        for data[index] in Store.rss-lists: Rectangle {
+            y: index * item-height;
+            height: root.item-height;
+
+            background: data.uuid == root.current-uuid ? root.selected-item-color : Colors.transparent;
+            border-radius: Theme.border-radius;
+
+            touch := TouchArea {
+                mouse-cursor: MouseCursor.pointer;
+                clicked => {
+                    root.current-uuid = data.uuid;
+                }
+            }
+
+            HorizontalLayout {
+                padding-left: Theme.padding * 2;
+
+                HorizontalLayout {
+                    spacing: Theme.spacing * 2;
+
+                    VerticalLayout {
+                        alignment: center;
+                        IconBtn {
+                            icon: IconsDialogSetting.icons[Math.max(0, Math.min(data.icon-index, IconsDialogSetting.icons.length - 1))];
+                            width: Theme.icon-size * 1.2;
+                            background: Colors.transparent;
+                            show-icon-hover-background: false;
+                            mouse-cursor: MouseCursor.default;
+                        }
+                    }
+
+                    Label {
+                        text: data.name;
+                        overflow: elide;
+                    }
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+                    spacing: Theme.spacing * 2;
+                    padding-left: Theme.padding;
+                    padding-right: Theme.padding;
+
+                    if data.is-update-failed: VerticalLayout {
+                        alignment: center;
+                        IconBtn {
+                            icon: Icons.sync-failed;
+                            icon-width: Theme.icon-size * 0.8;
+                            colorize: Theme.danger-color;
+                            border-radius: Theme.border-radius;
+                            show-icon-hover-background: false;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        height: root.item-height;
+                        Tag {
+                            text: data.unread-counts;
+                            text-color: Theme.danger-color;
+                            background: Colors.transparent;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        IconBtn {
+                            icon: Icons.star;
+                            colorize: data.is-favorite ? Theme.mark-color : Theme.unmark-color;
+                            clicked => {
+                                Logic.toggle-rss-favorite(data.uuid);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RssListBtns inherits HorizontalLayout {
+    in property <string> current-uuid;
+
+    alignment: center;
+    spacing: Theme.spacing * 4;
+    padding: Theme.padding * 4;
+
+    callback current-btn-index(BtnIndex);
+
+    IconBtn {
+        use-auto-size: true;
+        text: Logic.tr(Store.is-cn, "新建");
+        icon: Icons.add-small;
+        border-radius: self.height / 2;
+        bg-color: Theme.success-color.darker(10%);
+        bg-pressed-color: self.bg-color.darker(30%);
+        colorize: Theme.base-color;
+
+        clicked => {
+            current-btn-index(BtnIndex.New);
+        }
+    }
+
+    IconBtn {
+        use-auto-size: true;
+        text: Logic.tr(Store.is-cn, "编辑");
+        icon: Icons.edit;
+        border-radius: self.height / 2;
+        bg-color: Theme.info-color.brighter(50%);
+        bg-pressed-color: self.bg-color.darker(30%);
+        colorize: self.bg-pressed-color.darker(100%);
+
+        clicked => {
+            current-btn-index(BtnIndex.Edit);
+        }
+    }
+
+    IconBtn {
+        use-auto-size: true;
+        text: Logic.tr(Store.is-cn, "删除");
+        icon: Icons.delete;
+        border-radius: self.height / 2;
+        bg-color: Theme.danger-color;
+        bg-pressed-color: self.bg-color.darker(30%);
+        colorize: self.bg-pressed-color.darker(100%);
+
+        clicked => {
+            current-btn-index(BtnIndex.Delete);
+        }
+    }
+}
+
+component AddEdit inherits Rectangle {
+    public function get() -> RssConfig {
+        return {
+            name: line-edit-name.text,
+            url: line-edit-url.text,
+            use-http-proxy: use-http-proxy-checkbox.checked,
+            use-socks5-proxy: use-socks5-proxy-checkbox.checked,
+            is-favorite: favorite-checkbox.checked,
+            icon-index: Store.icon-index,
+            feed-format: feed-format-combobox.current-value,
+        };
+    }
+
+    public function set(config: RssConfig) {
+        line-edit-name.text = config.name;
+        line-edit-url.text = config.url;
+        use-http-proxy-checkbox.checked = config.use-http-proxy;
+        use-socks5-proxy-checkbox.checked = config.use-socks5-proxy;
+        favorite-checkbox.checked = config.is-favorite;
+        Store.icon-index = config.icon-index;
+
+        feed-format-combobox.current-value = config.feed-format;
+        if (config.feed-format == "") {
+            feed-format-combobox.current-value = feed-format-combobox.model[0];
+        }
+    }
+
+    public function force-clear-focus() {
+        line-edit-url.clear-focus();
+        line-edit-name.clear-focus();
+    }
+
+    SettingDetailInner {
+        SettingDetailInnerVbox {
+            txt-name := SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "RSS名称和图标");
+            }
+
+            HorizontalLayout {
+                height: txt-name.preferred-height * 1.6;
+                spacing: Theme.spacing;
+
+                line-edit-name := LineEdit {
+                    placeholder-text: Logic.tr(Store.is-cn, "请输入RSS名称");
+                }
+
+                rss-icon := IconBtn {
+                    width: self.height;
+                    icon: IconsDialogSetting.icons[Math.max(0, Math.min(Store.icon-index, IconsDialogSetting.icons.length - 1))];
+                    clicked => {
+                        IconsDialogSetting.show = true;
+                    }
+                }
+            }
+        }
+
+        SettingDetailInnerVbox {
+            txt-url := SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "RSS源地址");
+            }
+
+            HorizontalLayout {
+                spacing: Theme.spacing;
+
+                line-edit-url := LineEdit {
+                    height: txt-url.preferred-height * 1.6;
+                    placeholder-text: Logic.tr(Store.is-cn, "请输入RSS源地址");
+                }
+
+                IconBtn {
+                    width: line-edit-url.height;
+                    bg-color: Colors.transparent;
+                    icon: Icons.paste;
+                    icon-width: Theme.icon-size * 1.2;
+
+                    clicked => {
+                        line-edit-url.text = "";
+                        line-edit-url.paste();
+                    }
+                }
+            }
+        }
+
+        SettingDetailInnerVbox {
+            txt-feed-format := SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "RSS源格式");
+            }
+
+            feed-format-combobox := ComboBox {
+                height: line-edit-url.height;
+                model: ["AUTO", "RSS", "ATOM"];
+                current-value: self.model[0];
+            }
+        }
+
+        favorite-checkbox := CheckBox {
+            text: self.checked ? Logic.tr(Store.is-cn, "已收藏") : Logic.tr(Store.is-cn, "未收藏");
+        }
+
+        use-http-proxy-checkbox := CheckBox {
+            width: 50%;
+            text: self.checked ? Logic.tr(Store.is-cn, "已启用Http代理") : Logic.tr(Store.is-cn, "未启用Http代理");
+
+            toggled => {
+                if (self.checked && use-socks5-proxy-checkbox.checked) {
+                    use-socks5-proxy-checkbox.checked = false;
+                }
+            }
+        }
+
+        use-socks5-proxy-checkbox := CheckBox {
+            text: self.checked ? Logic.tr(Store.is-cn, "已启用Socks5代理") : Logic.tr(Store.is-cn, "未启用Socks5代理");
+
+            toggled => {
+                if (self.checked && use-http-proxy-checkbox.checked) {
+                    use-http-proxy-checkbox.checked = false;
+                }
+            }
+        }
+    }
+}
+
+component AddEditBtns inherits HorizontalLayout {
+    alignment: center;
+    spacing: Theme.spacing * 10;
+    padding: Theme.padding * 4;
+
+    callback cancel-clicked();
+    callback ok-clicked();
+
+    ConfirmBtn {
+        text: Logic.tr(Store.is-cn, "确认");
+        clicked => {
+            root.ok-clicked();
+        }
+    }
+
+    CancelBtn {
+        text: Logic.tr(Store.is-cn, "取消");
+        clicked => {
+            root.cancel-clicked();
+        }
+    }
+}
+
+component Body inherits Rectangle {
+    private property <BtnIndex> rss-list-btns-index: BtnIndex.New;
+
+    rsslist-vbox := VerticalLayout {
+        AHead {
+            back => {
+                ae.force-clear-focus();
+            }
+        }
+
+        rsslist := RssList { }
+
+        RssListBtns {
+            current-uuid: rsslist.current-uuid;
+
+            current-btn-index(index) => {
+                root.rss-list-btns-index = index;
+
+                if (index == BtnIndex.New) {
+                    rsslist-vbox.visible = false;
+                    ae.set({ });
+                } else if (index == BtnIndex.Edit) {
+                    if (!Logic.exist-rss(rsslist.current-uuid)) {
+                        Logic.show-message(Logic.tr(Store.is-cn, "请选择条目"), "info");
+                        return;
+                    }
+                    rsslist-vbox.visible = false;
+                    ae.set(Logic.get-rss-config-to-ui(rsslist.current-uuid));
+                } else if (index == BtnIndex.Delete) {
+                    if (!Logic.exist-rss(rsslist.current-uuid)) {
+                        Logic.show-message(Logic.tr(Store.is-cn, "请选择条目"), "info");
+                        return;
+                    }
+                    OkCancelDialogSetting.title-type = "warning";
+                    OkCancelDialogSetting.title-text = Logic.tr(Store.is-cn, "警告");
+                    OkCancelDialogSetting.body-text = Logic.tr(Store.is-cn, "是否删除？");
+                    OkCancelDialogSetting.handle-type = "remove-rss";
+                    OkCancelDialogSetting.handle-uuid = rsslist.current-uuid;
+                }
+            }
+        }
+    }
+
+    ae-vbox := VerticalLayout {
+        visible: !rsslist-vbox.visible;
+        alignment: start;
+
+        ad-head := Head {
+            hbox-alignment: LayoutAlignment.start;
+            title: root.rss-list-btns-index == BtnIndex.New ? Logic.tr(Store.is-cn, "新建") : Logic.tr(Store.is-cn, "编辑");
+            clicked => {
+                rsslist-vbox.visible = true;
+            }
+        }
+
+        ae := AddEdit { }
+
+        AddEditBtns {
+            cancel-clicked => {
+                ae.force-clear-focus();
+                rsslist-vbox.visible = true;
+            }
+
+            ok-clicked => {
+                if (ae.get().name == "" || ae.get().url == "") {
+                    Logic.show-message(Logic.tr(Store.is-cn, "非法输入"), "warning");
+                    return;
+                }
+                rsslist-vbox.visible = true;
+                ae.force-clear-focus();
+
+                if (root.rss-list-btns-index == BtnIndex.New) {
+                    Logic.new-rss(ae.get());
+                } else if (root.rss-list-btns-index == BtnIndex.Edit) {
+                    Logic.update-rss(rsslist.current-uuid, ae.get());
+                }
+            }
+        }
+    }
+}
+
+export component Add inherits VerticalLayout {
+    spacing: Theme.spacing;
+
+    body := Body { }
+}

@@ -1,0 +1,246 @@
+export enum TabIndex {
+    Rss,
+    Add,
+    Favorite,
+    Find,
+    Setting,
+    None,
+}
+
+export enum SettingDetailIndex {
+    Home,
+    UI,
+    Reading,
+    Sync,
+    Proxy,
+    About,
+    Help,
+    Feedback,
+    Donate,
+    BackupRecover,
+    Update,
+}
+
+export struct FindEntry {
+    name: string,
+    url: string,
+    is-blacklist: bool,
+}
+
+export struct RssEntry {
+    suuid: string,
+    uuid: string,
+    url: string,
+    title: string,
+    pub-date: string,
+    tags: string,
+    author: string,
+    summary: string,
+    is-read: bool,
+}
+
+export struct RssConfig {
+    uuid: string,
+    name: string,
+    url: string,
+    use-http-proxy: bool,
+    use-socks5-proxy: bool,
+    icon-index: int,
+    feed_format: string,
+    is-favorite: bool,
+    update-time: string,
+
+    is-update-failed: bool,
+    unread-counts: int,
+    entry: [RssEntry],
+    current-viewport-y: length,
+}
+
+export struct MessageItem {
+    text: string,
+    text-type: string,
+}
+
+export struct SettingUI {
+    font-size: string,
+    font-family: string,
+    language: string,
+    is-dark: bool,
+}
+
+export struct SettingReading {
+    browser: string,
+    is-delete-after-reading: bool,
+}
+
+export struct SettingSync {
+    sync-interval: string,
+    sync-timeout: string,
+    is-auto-sync: bool,
+    is-start-sync: bool,
+}
+
+export struct SettingProxy {
+    proxy-type: string,
+    http-url: string,
+    http-port: string,
+    socks5-url: string,
+    socks5-port: string,
+}
+
+export struct SettingBackupRecover {
+    api-token: string,
+    rss: bool,
+    favorite: bool,
+    setting: bool,
+}
+
+export struct SettingUpdate {
+    current-version: string,
+    latest-version: string,
+    detail-cn: string,
+    detail-en: string,
+    url: string,
+}
+
+export struct AboutDialog {
+    show: bool,
+    title: string,
+    text: string,
+    sponsor: string,
+}
+
+export global Store {
+    in-out property <TabIndex> current-tab-index: TabIndex.Rss;
+    private property <TabIndex> current-tab-index-tmp: TabIndex.None;
+    in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
+
+    in-out property <string> current-rss-uuid;
+
+    in-out property <[RssConfig]> rss-lists: [
+        {
+            uuid: "uuid-1",
+            is-favorite: true,
+            use-http-proxy: false,
+            is-update-failed: true,
+            icon-index: 0,
+            name: "测试-1",
+        },
+        {
+            uuid: "uuid-2",
+            is-favorite: false,
+            use-socks5-proxy: true,
+            is-update-failed: false,
+            icon-index: 0,
+            name: "测试-2",
+        },
+    ];
+
+    in-out property <[RssEntry]> rss-entrys: [
+        {
+            uuid: "42342e2jkfjk",
+            url: "https://www.zhihu.com/rss",
+            pub-date: "2023-10-22 23:12:34",
+            tags: "rust",
+            is-read: false,
+            author: "hello",
+            title: "Actors may modify their own private state, but can only affect each other indirectly through messaging (removing the need for lock-based synchronization).",
+            summary: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
+        },
+        {
+            uuid: "xx2342jkfjk",
+            url: "https://bing.com",
+            pub-date: "2023-11-12 13:12:34",
+            tags: "slint-ui, rust",
+            is-read: true,
+            title: "中文测试链接",
+            summary: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
+        },
+    ];
+
+    in-out property <[RssEntry]> rss-favorite-entrys: [
+        {
+            uuid: "42342e2jkfjk",
+            url: "https://www.zhihu.com/rss",
+            pub-date: "2023-10-22 23:12:34",
+            tags: "rust",
+            is-read: false,
+            author: "hello",
+            title: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
+            summary: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
+        },
+        {
+            uuid: "42342e2jkfjk",
+            url: "https://www.zhihu.com/rss",
+            pub-date: "2023-10-22 23:12:34",
+            tags: "rust",
+            is-read: false,
+            author: "hello",
+            title: "收藏测试-1",
+        },
+    ];
+
+    in-out property <[FindEntry]> find-entrys: [
+        { name: "find name 1", url: "url-1", is-blacklist: true },
+        { name: "find name 2", url: "url-2" },
+    ];
+
+    in-out property <[FindEntry]> find-entrys-keyword: [
+        { name: "keyword name 1", url: "url-1", is-blacklist: true },
+        { name: "keyword name 2", url: "url-1" },
+    ];
+
+    in-out property <MessageItem> message;
+
+    in-out property <int> icon-index: 0;
+    in-out property <bool> is-first-run;
+    in-out property <bool> is-show-landing-page;
+    in-out property <bool> rss-update-time-flag;
+    in-out property <bool> rss-unread-counts-flag;
+    in-out property <bool> find-entrys-counts-flag;
+    in-out property <bool> is-show-side-rsslist;
+    in-out property <string> cache-size: "0M";
+    in-out property <bool> is-cn: setting-ui.language == "cn";
+    in-out property <SettingUI> setting-ui: {
+        font-size: "16",
+        font-family: "Source Han Serif CN",
+        language: "cn",
+        is-dark: false,
+    };
+
+    in-out property <SettingUpdate> setting-update: {
+        current-version: "v1.0.0",
+        latest-version: "v1.1.0",
+        url: "https://example.com",
+        detail-cn: "1. 更新内容 1\n" + "2. 更新内容 2\n",
+        detail-en: "1. update message 1\n" + "2. update message 2\n",
+    };
+
+    in-out property <AboutDialog> about-dialog: {
+        show: false,
+        title: "rssbox v0.0.1",
+        text: "Based on Slint-UI. Copyright 2022-2030. All rights reserved. The program is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.",
+        sponsor: "0xf1199999751b1a3A74590adBf95401D19AB30014",
+    };
+
+    in-out property <{show: bool, text-cn: string, text-en: string}> help-dialog: {
+        show: false,
+        text-cn:
+          "- 点击[订阅]选项卡右上角的列表图标打开RSS列表。\n\n" + "- 向右滑动[订阅]和[收藏夹]的条目，可收藏或删除条目。\n\n" + "- 设置后，点击左上角的返回按钮。对设置进行保存。\n\n" + "- 曾经下载过的文章会缓存起来，避免文章重复显示。进入到[设置]选项卡可清除缓存。\n\n" + "- 将语言切换为英文后，在[发现]页面刷新可获取英文RSS。",
+        text-en:
+          "- Click the top-right list icon of the [RSS] selected card to open the RSS list.\n\n" + "- Swipe right on the [RSS] and [Collection] items to collect or delete items.\n\n" + "- After setting, click the back button in the upper left corner. Save the settings.\n\n" + "- In case of don't show the same articles, It will cache the articles after syncing. You can enter the [Setting] selected card to clear cache.\n\n",
+    };
+
+    public function switch-tab(tab-index: TabIndex) {
+        current-tab-index = tab-index;
+    }
+
+    public function refresh-current-tab() {
+        if (current-tab-index == TabIndex.Add || current-tab-index == TabIndex.Setting || current-tab-index == TabIndex.Find) {
+            return;
+        }
+        current-tab-index-tmp = current-tab-index;
+        current-tab-index = TabIndex.None;
+        current-tab-index = current-tab-index-tmp;
+    }
+}

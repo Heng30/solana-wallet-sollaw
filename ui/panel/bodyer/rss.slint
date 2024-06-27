@@ -1,0 +1,490 @@
+import { ListView, ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../../theme.slint";
+import { Store } from "../../store.slint";
+import { Logic } from "../../logic.slint";
+import { Util } from "../../util.slint";
+import { IconBtn, Head, Label, IconsDialogSetting, Tag, Link, Label, NoDataImg, ElevatedBtn, NoMessageImg, CenterLayout, Loading, Blanket, OkCancelDialogSetting} from "../../base/widgets.slint";
+
+component RHead inherits Head {
+    callback scroll-to-top <=> ta.clicked;
+    callback hide-loading-indicator();
+
+    icon: Icons.menu;
+    icon-width: Theme.icon-size * 1.2;
+    is-show-divider: true;
+
+    HorizontalLayout {
+        horizontal-stretch: 1;
+        padding-left: Theme.padding;
+        padding-right: Theme.padding;
+
+        Rectangle {
+            clip: true;
+            Label {
+                text: Logic.name-rss(Store.current-rss-uuid);
+                font-size: Theme.default-font-size - 2px;
+                color: Theme.secondary-text-color;
+                overflow: elide;
+            }
+
+            ta := TouchArea { }
+        }
+    }
+
+    IconBtn {
+        icon: Icons.delete;
+
+        clicked => {
+            root.hide-loading-indicator();
+
+            OkCancelDialogSetting.title-type = "warning";
+            OkCancelDialogSetting.title-text = Logic.tr(Store.is-cn, "警告");
+            OkCancelDialogSetting.body-text = Logic.tr(Store.is-cn, "是否删除全部？");
+            OkCancelDialogSetting.handle-type = "remove-all-entrys";
+            OkCancelDialogSetting.handle-uuid = Store.current-rss-uuid;
+        }
+    }
+}
+
+component RssListItems inherits Rectangle {
+    private property <length> item-height: 40px;
+    private property <color> selected-item-color: Theme.brand-color.darker(30%);
+
+    callback switch-rss();
+
+    Flickable {
+        viewport-height: Store.rss-lists.length * root.item-height;
+
+        for data[index] in Store.rss-lists: VerticalLayout {
+            y: index * item-height;
+            height: root.item-height;
+
+            Rectangle {
+                touch := TouchArea {
+                    mouse-cursor: MouseCursor.pointer;
+                    clicked => {
+                        Logic.switch-rss(Store.current-rss-uuid, data.uuid);
+                        root.switch-rss();
+                    }
+                }
+
+                HorizontalLayout {
+                    padding-left: Theme.padding;
+
+                    VerticalLayout {
+                        alignment: center;
+                        height: root.item-height;
+                        padding-right: Theme.padding * 2;
+
+                        Rectangle {
+                            width: 3px;
+                            height: 60%;
+                            border-radius: 2px;
+                            background: data.uuid == Store.current-rss-uuid ? root.selected-item-color : Colors.transparent;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: Theme.spacing * 2;
+
+                        VerticalLayout {
+                            alignment: center;
+                            Image {
+                                source: IconsDialogSetting.icons[Math.max(0, Math.min(data.icon-index, IconsDialogSetting.icons.length - 1))];
+                                colorize: data.uuid == Store.current-rss-uuid ? root.selected-item-color : Theme.regular-text-color;
+                                width: name-txt.font-size * 1.2;
+                            }
+                        }
+
+                        name-txt := Label {
+                            color: data.uuid == Store.current-rss-uuid ? root.selected-item-color : Theme.regular-text-color;
+                            text: data.name;
+                            font-size: Theme.title5-font-size;
+                            overflow: elide;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: Theme.spacing * 2;
+                        padding-left: Theme.padding;
+                        padding-right: Theme.padding;
+
+                        if data.is-update-failed: VerticalLayout {
+                            alignment: center;
+                            IconBtn {
+                                icon: Icons.sync-failed;
+                                icon-width: Theme.icon-size * 0.8;
+                                colorize: Theme.danger-color;
+                                border-radius: Theme.border-radius;
+                                show-icon-hover-background: false;
+                            }
+                        }
+
+                        VerticalLayout {
+                            alignment: center;
+                            height: root.item-height;
+                            Tag {
+                                text: data.unread-counts;
+                                text-color: Theme.danger-color;
+                                background: Colors.transparent;
+                            }
+                        }
+
+                        VerticalLayout {
+                            alignment: center;
+                            IconBtn {
+                                icon: Icons.star;
+                                colorize: data.is-favorite ? Theme.mark-color : Theme.unmark-color;
+                                border-radius: Theme.border-radius;
+                                clicked => {
+                                    Logic.toggle-rss-favorite(data.uuid);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RssList inherits Rectangle {
+    in-out property is-show-list <=> Store.is-show-side-rsslist;
+
+    Blanket {
+        visible: root.is-show-list;
+        clicked => {
+            root.is-show-list = false;
+        }
+    }
+
+    Rectangle {
+        animate width {
+            duration: Theme.default-animate-duration;
+            easing: ease-in-out;
+        }
+
+        x: 0px;
+        width: root.is-show-list ? Math.min(parent.width * 0.8, 500px) : 0;
+        background: Theme.base-background;
+        border-top-right-radius: Theme.border-radius * 4;
+        border-bottom-right-radius: Theme.border-radius * 4;
+
+        RssListItems {
+            switch-rss => {
+                root.is-show-list = false;
+            }
+        }
+
+        if Store.rss-lists.length == 0: Rectangle {
+            clip: true;
+            width: parent.width;
+
+            NoMessageImg {
+                width: parent.width * 0.8;
+                text: Logic.tr(Store.is-cn, "没有订阅");
+            }
+        }
+    }
+
+    if Store.is-show-side-rsslist: ElevatedBtn {
+        x: root.width - self.width - Theme.padding * 4;
+        y: root.height - self.height - Theme.padding * 4;
+
+        icon: Icons.refresh;
+        enable-rotation-animation: true;
+
+        clicked => {
+            Logic.sync-rss-all();
+        }
+    }
+}
+
+export component Entry inherits Rectangle {
+    in-out property title <=> title-txt.text;
+    in-out property pub-date-text <=> pub-date-txt.text;
+    in-out property <string> summary;
+    in-out property <string> author;
+    in-out property <string> tag-text;
+    in-out property <bool> is-read;
+    in-out property <string> uuid;
+    in-out property <string> suuid;
+    in-out property <string> url;
+
+    background: Theme.base-background;
+    border-radius: Theme.border-radius;
+    drop-shadow-blur: Theme.padding * 2;
+    drop-shadow-color: Theme.base-background-drop-shadow;
+
+    VerticalLayout {
+        padding: Theme.padding * 2;
+        spacing: Theme.spacing * 2;
+        alignment: start;
+
+        title-txt := Link {
+            is-read: root.is-read;
+
+            clicked => {
+                if (!self.is-read) {
+                    Logic.set-entry-read(Store.current-rss-uuid, root.uuid);
+                }
+                Util.open-url(root.url);
+
+                if (Logic.get-setting-reading().is-delete-after-reading) {
+                    Logic.remove-entry(Store.current-rss-uuid, root.uuid);
+                }
+            }
+        }
+
+        Text {
+            font-size: Theme.default-font-size - 1px;
+            color: root.is-read ? Theme.have-read-text-color : Theme.regular-text-color;
+            text: root.summary;
+            wrap: word-wrap;
+        }
+
+        HorizontalLayout {
+            alignment: end;
+            spacing: Theme.padding * 4;
+
+            author-txt := Text {
+                visible: root.author != "";
+                font-size: Theme.default-font-size - 4px;
+                color: Theme.placeholder-text-color;
+                text: root.author;
+            }
+
+            pub-date-txt := Text {
+                font-size: Theme.default-font-size - 4px;
+                color: Theme.placeholder-text-color;
+            }
+        }
+    }
+}
+
+export component EntryList inherits Rectangle {
+    private property <int> current-list-index: -1;
+    in-out property <bool> is-loading;
+
+    clip: true;
+
+    public function scroll-to-top() {
+        lv.viewport-y = 0;
+    }
+
+    lv := Flickable {
+        x: 0px;
+        viewport-width: root.width;
+
+        private property <length> offset-y: 0;
+
+        for item[index] in Store.rss-entrys: rect := Rectangle {
+            private property <length> max-move-pixels-up-bound: self.width * 0.04;
+            private property <length> max-move-pixels-low-bound: self.width * 0.02;
+            private property <bool> is-show-opt: false;
+            private property <bool> is-hide-opt: true;
+
+            init => {
+                if (index == 0) {
+                    offset-y = 0;
+                    lv.viewport-y = 0;
+                } else if (index == Store.rss-entrys.length - 1) {
+                    current-list-index = Logic.current-rsslist-index(Store.current-rss-uuid);
+                    if (current-list-index >= 0 && current-list-index < Store.rss-lists.length) {
+                        //  viewport-y from 0 to -infinity
+                        lv.viewport-y = min(0px, max(lv.height - offset-y, Store.rss-lists[current-list-index].current-viewport-y));
+                    }
+                }
+                self.y = offset-y;
+                offset-y = offset-y + entry-vbox.preferred-height;
+                self.height = entry-vbox.preferred-height;
+                lv.viewport-height = offset-y + Theme.padding;
+            }
+
+            public function show-opt() {
+                rect.x = -opt.width - Theme.padding;
+                rect.is-show-opt = true;
+                rect.is-hide-opt = false;
+            }
+
+            public function hide-opt() {
+                rect.x = 0;
+                rect.is-hide-opt = true;
+                rect.is-show-opt = false;
+            }
+
+            animate x {
+                duration: Theme.default-animate-duration;
+                easing: ease-in-out;
+            }
+
+            TouchArea {
+                moved => {
+                    if (lv.interactive && (self.pressed-x - self.mouse-x > parent.max-move-pixels-low-bound || self.mouse-x - self.pressed-x > parent.max-move-pixels-low-bound)) {
+                        lv.interactive = false;
+                    }
+                    if (!rect.is-show-opt) {
+                        if (self.pressed-x - self.mouse-x > parent.max-move-pixels-up-bound) {
+                            rect.show-opt();
+                        }
+                    }
+                    if (!rect.is-hide-opt) {
+                        if (self.mouse-x - self.pressed-x > parent.max-move-pixels-up-bound) {
+                            hide-opt();
+                        }
+                    }
+                }
+
+                pointer-event(evt) => {
+                    if (evt.kind == PointerEventKind.up) {
+                        lv.interactive = true;
+                    }
+                }
+            }
+
+            entry-vbox := VerticalLayout {
+                padding: Theme.padding / 2;
+
+                Entry {
+                    uuid: item.uuid;
+                    suuid: item.suuid;
+                    title: item.title;
+                    author: item.author;
+                    summary: item.summary;
+                    tag-text: item.tags;
+                    pub-date-text: item.pub-date;
+                    is-read: item.is-read;
+                    url: item.url;
+                }
+            }
+
+            opt := VerticalLayout {
+                x: entry-vbox.width + Theme.padding;
+                y: 0;
+                width: 50px;
+                height: entry-vbox.preferred-height;
+                alignment: center;
+
+                Rectangle {
+                    height: 50%;
+                    IconBtn {
+                        width: 100%;
+                        height: 100%;
+                        icon: Icons.star;
+                        border-radius: 0;
+                        colorize: Theme.mark-color;
+
+                        clicked => {
+                            rect.hide-opt();
+                            Logic.favorite-entry(Store.current-rss-uuid, item.uuid);
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 50%;
+                    IconBtn {
+                        width: 100%;
+                        height: 100%;
+                        icon: Icons.delete;
+                        border-radius: 0;
+                        colorize: Theme.danger-color;
+
+                        clicked => {
+                            root.is-loading = false;
+                            current-list-index = Logic.current-rsslist-index(Store.current-rss-uuid);
+                            if (current-list-index >= 0 && current-list-index < Store.rss-lists.length) {
+                                Store.rss-lists[current-list-index].current-viewport-y = lv.viewport-y;
+                            }
+                            rect.hide-opt();
+                            Logic.remove-entry(Store.current-rss-uuid, item.uuid);
+
+                            // If I don't refresh current tab, the remove entry space will remain on the Flickable
+                            Store.refresh-current-tab();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if !is-loading && Store.rss-entrys.length == 0: CenterLayout {
+        NoDataImg {
+            width: root.width * 0.6;
+            text: Logic.tr(Store.is-cn, "没有消息");
+        }
+    }
+
+    if is-loading && Store.rss-entrys.length == 0: Loading {
+        icon-size: Theme.icon-size * 2;
+        colorize: Theme.brand-color;
+        loading-text: Logic.tr(Store.is-cn, "正在同步...");
+    }
+
+    if !Store.is-show-side-rsslist: VerticalLayout {
+        x: root.width - self.preferred-width - Theme.padding * 4;
+        y: root.height - self.preferred-height - Theme.padding * 4;
+        spacing: Theme.spacing * 2;
+
+        ElevatedBtn {
+            icon: Icons.menu;
+
+            clicked => {
+                if (Store.rss-lists.length == 0) {
+                    Logic.load-all-rss();
+                }
+                Store.is-show-side-rsslist = true;
+            }
+        }
+
+        ElevatedBtn {
+            icon: Icons.refresh;
+            enable-rotation-animation: true;
+
+            clicked => {
+                root.is-loading = true;
+                if (Store.rss-lists.length == 0) {
+                    Logic.load-all-rss();
+                }
+                current-list-index = Logic.current-rsslist-index(Store.current-rss-uuid);
+                if (current-list-index >= 0 && current-list-index < Store.rss-lists.length) {
+                    Store.rss-lists[current-list-index].current-viewport-y = 0;
+                }
+                Logic.sync-rss(Store.current-rss-uuid, true);
+            }
+        }
+    }
+}
+
+component Body inherits Rectangle {
+    in-out property is-show-rsslist <=> rsslist.is-show-list;
+    in-out property is-loading <=> entrylist.is-loading;
+
+    public function entrylist-scroll-to-top() {
+        entrylist.scroll-to-top();
+    }
+
+    entrylist := EntryList { }
+
+    rsslist := RssList { }
+}
+
+export component Rss inherits VerticalLayout {
+    head := RHead {
+        clicked => {
+            if (Store.rss-lists.length == 0) {
+                Logic.load-all-rss();
+            }
+            body.is-show-rsslist = !body.is-show-rsslist;
+        }
+        scroll-to-top => {
+            body.entrylist-scroll-to-top();
+        }
+        hide-loading-indicator => {
+            body.is-loading = false;
+        }
+    }
+
+    body := Body { }
+}
