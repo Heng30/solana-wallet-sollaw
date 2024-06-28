@@ -549,6 +549,18 @@ pub fn create_online_account_with_seed(
     Ok((derived_pubkey, sig))
 }
 
+pub fn send_lamports_instruction(
+    sender_pubkey: &Pubkey,
+    recipient_pubkey: &Pubkey,
+    lamports: u64,
+) -> [Instruction; 1] {
+    [system_instruction::transfer(
+        sender_pubkey,
+        recipient_pubkey,
+        lamports,
+    )]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -572,13 +584,12 @@ mod tests {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
 
-        let instruction =
-            system_instruction::transfer(&sender_keypair.pubkey(), &recipient_pubkey, 100);
-        let instructions = &[instruction];
+        let instructions =
+            send_lamports_instruction(&sender_keypair.pubkey(), &recipient_pubkey, 100);
 
         let fee = evaluate_transaction_fee(
             RpcUrlType::Test,
-            instructions,
+            &instructions,
             &sender_keypair.pubkey(),
             None,
         )?;

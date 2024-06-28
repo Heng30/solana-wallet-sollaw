@@ -1,11 +1,10 @@
 use super::data::{self, Config};
 use anyhow::Result;
 use log::debug;
+use once_cell::sync::Lazy;
 use std::{fs, path::PathBuf, sync::Mutex};
 
-lazy_static! {
-    pub static ref CONFIG: Mutex<Config> = Mutex::new(Config::default());
-}
+static CONFIG: Lazy<Mutex<Config>> = Lazy::new(|| Mutex::new(Config::default()));
 
 #[cfg(not(target_os = "android"))]
 use platform_dirs::AppDirs;
@@ -64,16 +63,8 @@ pub fn ui() -> data::UI {
     CONFIG.lock().unwrap().ui.clone()
 }
 
-pub fn reading() -> data::Reading {
-    CONFIG.lock().unwrap().reading.clone()
-}
-
 pub fn proxy() -> data::Proxy {
     CONFIG.lock().unwrap().proxy.clone()
-}
-
-pub fn sync() -> data::Sync {
-    CONFIG.lock().unwrap().sync.clone()
 }
 
 pub fn backup_recover() -> data::BackupRecover {
@@ -98,13 +89,12 @@ pub fn save(conf: data::Config) -> Result<()> {
 impl Config {
     pub fn init(&mut self) -> Result<()> {
         let app_name = if cfg!(not(target_os = "android")) {
-            "rssbox-android"
+            "sollet"
         } else {
             if cfg!(debug_assertions) {
-                // "xyz.heng30.rssbox.dev"
-                "xyz.heng30.rssbox"
+                "xyz.heng30.sollet"
             } else {
-                "xyz.heng30.rssbox"
+                "xyz.heng30.sollet"
             }
         };
 
@@ -116,8 +106,8 @@ impl Config {
     }
 
     fn init_config(&mut self, app_dirs: &AppDirs) -> Result<()> {
-        self.db_path = app_dirs.data_dir.join("rssbox.db");
-        self.config_path = app_dirs.config_dir.join("rssbox.toml");
+        self.db_path = app_dirs.data_dir.join("sollet.db");
+        self.config_path = app_dirs.config_dir.join("sollet.toml");
         self.cache_dir = app_dirs.data_dir.join("cache");
 
         if self.appid.is_empty() {
@@ -137,9 +127,7 @@ impl Config {
                 Ok(c) => {
                     self.appid = c.appid;
                     self.ui = c.ui;
-                    self.reading = c.reading;
                     self.proxy = c.proxy;
-                    self.sync = c.sync;
                     self.backup_recover = c.backup_recover;
                     Ok(())
                 }

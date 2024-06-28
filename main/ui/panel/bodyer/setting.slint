@@ -360,7 +360,7 @@ component About inherits SettingDetail {
                     font-size: Theme.default-font-size - 2px;
 
                     clicked => {
-                        Util.open-url("https://etherscan.io/address/" + Store.about-dialog.sponsor);
+                        // Util.open-url("https://etherscan.io/address/" + Store.about-dialog.sponsor);
                     }
                 }
             }
@@ -500,17 +500,13 @@ component BackupRecover inherits SettingDetail {
 
         return {
             api-token: token-lineedit.text,
-            rss: rss-checkbox.checked,
             setting: setting-checkbox.checked,
-            favorite: favorite-checkbox.checked,
         };
     }
 
     public function set(setting: SettingBackupRecover) {
         token-lineedit.text = setting.api-token;
-        rss-checkbox.checked = setting.rss;
         setting-checkbox.checked = setting.setting;
-        favorite-checkbox.checked = setting.favorite;
     }
 
     SettingDetailInner {
@@ -664,7 +660,7 @@ component Update inherits SettingDetail {
                 text: Logic.tr(Store.is-cn, "下载最新版本");
 
                 clicked => {
-                    Util.open-url(root.setting.url);
+                    // Util.open-url(root.setting.url);
                 }
             }
         }
@@ -778,7 +774,7 @@ component Body inherits VerticalLayout {
                 text: Logic.tr(Store.is-cn, "Github");
                 icon: Icons.github;
                 clicked => {
-                    Util.open-url("https://github.com/Heng30/rssbox-android");
+                    // Util.open-url("https://github.com/Heng30/solana-wallet-sollet");
                 }
             }
 

@@ -18,11 +18,10 @@ pub fn init(ui: &AppWindow) {
         .on_float_fixed2(move |n| slint::format!("{:2}", (n * 100.0).round() / 100.0));
 
     let ui_handle = ui.as_weak();
-    ui.global::<Util>().on_open_url(move |url| {
+    ui.global::<Util>().on_open_url(move |browser, url| {
         let ui = ui_handle.unwrap();
-        let reading_config = config::reading();
 
-        let browser = Browser::from_str(&reading_config.browser.to_lowercase()).unwrap_or_default();
+        let browser = Browser::from_str(&browser.to_lowercase()).unwrap_or_default();
 
         let browser = if browser.exists() {
             browser

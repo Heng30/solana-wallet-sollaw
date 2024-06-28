@@ -20,14 +20,7 @@ pub struct Config {
     pub appid: String,
 
     pub ui: UI,
-
-    pub reading: Reading,
-
-    pub sync: Sync,
-
     pub proxy: Proxy,
-
-    #[serde(default)]
     pub backup_recover: BackupRecover,
 }
 
@@ -40,8 +33,6 @@ pub struct UI {
     pub font_size: u32,
     pub font_family: String,
     pub language: String,
-
-    #[serde(default)]
     pub is_dark: bool,
 }
 
@@ -75,44 +66,42 @@ impl Default for Proxy {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Sync {
-    pub sync_interval: i64,
-    pub sync_timeout: i64,
-    pub is_auto_sync: bool,
-    pub is_start_sync: bool,
-}
-
-impl Default for Sync {
-    fn default() -> Self {
-        Self {
-            sync_interval: 60,
-            sync_timeout: 15,
-            is_auto_sync: true,
-            is_start_sync: true,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Reading {
-    pub browser: String,
-    pub is_delete_after_reading: bool,
-}
-
-impl Default for Reading {
-    fn default() -> Self {
-        Self {
-            browser: "Default".to_string(),
-            is_delete_after_reading: false,
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct BackupRecover {
     pub api_token: String,
-    pub favorite: bool,
-    pub rss: bool,
     pub setting: bool,
 }
+
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct Sync {
+//     pub sync_interval: i64,
+//     pub sync_timeout: i64,
+//     pub is_auto_sync: bool,
+//     pub is_start_sync: bool,
+// }
+
+// impl Default for Sync {
+//     fn default() -> Self {
+//         Self {
+//             sync_interval: 60,
+//             sync_timeout: 15,
+//             is_auto_sync: true,
+//             is_start_sync: true,
+//         }
+//     }
+// }
+
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct Reading {
+//     pub browser: String,
+//     pub is_delete_after_reading: bool,
+// }
+
+// impl Default for Reading {
+//     fn default() -> Self {
+//         Self {
+//             browser: "Default".to_string(),
+//             is_delete_after_reading: false,
+//         }
+//     }
+// }

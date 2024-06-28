@@ -3,7 +3,7 @@ import { Theme } from "./theme.slint";
 export global Util {
     callback string-fixed2(string) -> string;
     callback float-fixed2(float) -> string;
-    callback open-url(string);
+    callback open-url(string, string); // browser, url
 
     pure callback text-len(string) -> int; // text
     pure callback rand-int(int, int) -> int; // low-bound, up-bound

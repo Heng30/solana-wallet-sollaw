@@ -1,7 +1,7 @@
-extern crate rssbox;
+extern crate sollet;
 
 #[cfg(not(target_os = "android"))]
 #[tokio::main]
 async fn main() {
-    rssbox::desktop_main().await;
+    sollet::desktop_main().await;
 }

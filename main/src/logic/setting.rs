@@ -1,38 +1,47 @@
-use super::{
-    entry,
-    message::{async_message_success, async_message_warn},
-    rss, ReqData,
-};
+use super::message::{async_message_success, async_message_warn};
 use crate::slint_generatedAppWindow::{
-    AppWindow, Logic, SettingBackupRecover, SettingProxy, SettingReading, SettingSync,
-    SettingUpdate, Store, Theme,
+    AppWindow, Logic, SettingBackupRecover, SettingProxy, SettingUpdate, Store, Theme,
 };
 use crate::{
     config::{self, Config},
-    db::{self, entry::RssEntry, rss::RssConfig},
-    message_warn,
+    db, message_warn,
     util::{http, translator::tr},
     version,
 };
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, Weak};
 use std::time::Duration;
 use uuid::Uuid;
 
-const FEEDBACK_URL: &str = "https://heng30.xyz/apisvr/rssbox/android/feedback";
-const BACKUP_URL: &str = "https://heng30.xyz/apisvr/rssbox/android/backup";
-const RECOVER_URL: &str = "https://heng30.xyz/apisvr/rssbox/android/recover";
-const LATEST_VERSION_URL: &str = "https://heng30.xyz/apisvr/latest/version?q=rssbox-android";
+const FEEDBACK_URL: &str = "https://heng30.xyz/apisvr/sollet/feedback";
+const BACKUP_URL: &str = "https://heng30.xyz/apisvr/sollet/backup";
+const RECOVER_URL: &str = "https://heng30.xyz/apisvr/sollet/recover";
+const LATEST_VERSION_URL: &str = "https://heng30.xyz/apisvr/latest/version?q=sollet";
 
-// const BACKUP_URL: &str = "http://127.0.0.1:8004/rssbox/android/backup";
-// const RECOVER_URL: &str = "http://127.0.0.1:8004/rssbox/android/recover";
+// const BACKUP_URL: &str = "http://127.0.0.1:8004/sollet/backup";
+// const RECOVER_URL: &str = "http://127.0.0.1:8004/sollet/recover";
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ReqData {
+    appid: String,
+    r#type: String,
+    data: String,
+}
+
+impl Default for ReqData {
+    fn default() -> Self {
+        Self {
+            appid: config::appid(),
+            r#type: Default::default(),
+            data: Default::default(),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 struct BackupRecoverData {
-    rss: Vec<RssConfig>,
-    collection: Vec<RssEntry>,
     setting: Config,
 }
 
@@ -40,6 +49,7 @@ struct BackupRecoverData {
 struct SettingUpdateData {
     #[serde(skip)]
     current_version: String,
+
     latest_version: String,
     detail_cn: String,
     detail_en: String,
@@ -63,6 +73,7 @@ pub fn init(ui: &AppWindow) {
 
     ui.global::<Store>()
         .set_is_first_run(config::is_first_run());
+
     ui.global::<Store>()
         .set_is_show_landing_page(config::is_first_run());
 
@@ -96,26 +107,6 @@ pub fn init(ui: &AppWindow) {
         _ = config::save(all);
     });
 
-    ui.global::<Logic>().on_get_setting_sync(move || {
-        let config = config::sync();
-        SettingSync {
-            sync_interval: slint::format!("{}", config.sync_interval),
-            sync_timeout: slint::format!("{}", config.sync_timeout),
-            is_auto_sync: config.is_auto_sync,
-            is_start_sync: config.is_start_sync,
-        }
-    });
-
-    ui.global::<Logic>().on_set_setting_sync(move |setting| {
-        let mut all = config::all();
-
-        all.sync.sync_interval = setting.sync_interval.parse().unwrap_or(60);
-        all.sync.sync_timeout = setting.sync_timeout.parse().unwrap_or(15);
-        all.sync.is_auto_sync = setting.is_auto_sync;
-        all.sync.is_start_sync = setting.is_start_sync;
-        _ = config::save(all);
-    });
-
     ui.global::<Logic>().on_get_setting_proxy(move || {
         let config = config::proxy();
 
@@ -135,23 +126,6 @@ pub fn init(ui: &AppWindow) {
         all.proxy.http_port = setting.http_port.parse().unwrap_or(3218);
         all.proxy.socks5_url = setting.socks5_url.into();
         all.proxy.socks5_port = setting.socks5_port.parse().unwrap_or(1080);
-        _ = config::save(all);
-    });
-
-    ui.global::<Logic>().on_get_setting_reading(move || {
-        let config = config::reading();
-
-        SettingReading {
-            browser: config.browser.into(),
-            is_delete_after_reading: config.is_delete_after_reading,
-        }
-    });
-
-    ui.global::<Logic>().on_set_setting_reading(move |setting| {
-        let mut all = config::all();
-
-        all.reading.browser = setting.browser.into();
-        all.reading.is_delete_after_reading = setting.is_delete_after_reading;
         _ = config::save(all);
     });
 
@@ -183,8 +157,6 @@ pub fn init(ui: &AppWindow) {
 
         SettingBackupRecover {
             api_token: config.api_token.into(),
-            favorite: config.favorite,
-            rss: config.rss,
             setting: config.setting,
         }
     });
@@ -194,8 +166,6 @@ pub fn init(ui: &AppWindow) {
             let mut all = config::all();
 
             all.backup_recover.api_token = setting.api_token.into();
-            all.backup_recover.favorite = setting.favorite;
-            all.backup_recover.rss = setting.rss;
             all.backup_recover.setting = setting.setting;
 
             _ = config::save(all);
@@ -205,14 +175,6 @@ pub fn init(ui: &AppWindow) {
     ui.global::<Logic>().on_backup_to_remote(move |options| {
         let ui = ui_handle.unwrap();
         let mut data = BackupRecoverData::default();
-
-        if options.rss {
-            data.rss = rss::get_rss_configs(&ui);
-        }
-
-        if options.favorite {
-            data.collection = entry::get_favorite_entrys(&ui);
-        }
 
         if options.setting {
             data.setting = config::all();
@@ -271,10 +233,7 @@ async fn _send_feedback(text: String) -> Result<()> {
         .await?;
 
     if !res.status().is_success() {
-        return Err(anyhow::anyhow!(
-            "http error code: {}",
-            res.status().as_str()
-        ));
+        bail!("http error code: {}", res.status().as_str());
     }
 
     Ok(())
@@ -347,36 +306,6 @@ fn recover_from_remote(ui: Weak<AppWindow>, options: SettingBackupRecover) {
                     let ui = ui.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         init_setting(&ui.unwrap());
-                    });
-                }
-
-                let rss = data.rss;
-                if options.rss {
-                    _ = db::rss::delete_all().await;
-
-                    let ui = ui.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        let ui = ui.unwrap();
-                        rss::remove_all_rss(&ui);
-
-                        for item in rss.into_iter() {
-                            ui.global::<Logic>().invoke_new_rss(item.into());
-                        }
-                    });
-                }
-
-                if options.favorite {
-                    _ = db::entry::delete_all(entry::FAVORITE_UUID).await;
-                    for item in data.collection.into_iter() {
-                        let uuid = Uuid::new_v4().to_string();
-                        if let Ok(text) = serde_json::to_string(&item) {
-                            _ = db::entry::insert(entry::FAVORITE_UUID, &uuid, &text).await;
-                        };
-                    }
-
-                    let ui = ui.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        entry::init_favorite(ui.clone());
                     });
                 }
 

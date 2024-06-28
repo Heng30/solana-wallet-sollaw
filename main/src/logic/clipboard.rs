@@ -32,20 +32,16 @@ fn copy_from_clipboard() -> Result<String> {
     }
 }
 
+// TODO
 #[cfg(target_os = "android")]
 fn copy_to_clipboard(msg: &str) -> Result<()> {
-    match terminal_clipboard::set_string(msg) {
-        Err(e) => bail!("{e:?}"),
-        _ => Ok(()),
-    }
+    Ok(())
 }
 
+// TODO
 #[cfg(target_os = "android")]
 fn copy_from_clipboard() -> Result<String> {
-    match terminal_clipboard::get_string() {
-        Err(e) => bail!("{e:?}"),
-        Ok(msg) => Ok(msg),
-    }
+    Ok("TODO".to_string())
 }
 
 pub fn init(ui: &AppWindow) {
