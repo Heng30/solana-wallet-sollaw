@@ -1,7 +1,7 @@
 import { Theme, Icons } from "../theme.slint";
 import { Store, TabIndex } from "../store.slint";
 import { Logic } from "../logic.slint";
-import { TabBtn, Tag, Divider } from "../base/widgets.slint";
+import { TabBtn, Divider } from "../base/widgets.slint";
 
 export component Footer inherits Rectangle {
     private property <length> btn-height: self.height * 0.9;
@@ -20,69 +20,48 @@ export component Footer inherits Rectangle {
         TabBtn {
             width: root.btn-width;
             height: root.btn-height;
-            icon: Icons.rss-light;
-            text: Logic.tr(Store.is-cn, "订阅");
-            checked: Store.current-tab-index == TabIndex.Rss;
+            icon: Icons.crypto;
+            text: Logic.tr(Store.is-cn, "主页");
+            checked: Store.current-tab-index == TabIndex.Home;
 
             clicked => {
-                if (self.checked) {
-                    Store.is-show-side-rsslist = !Store.is-show-side-rsslist;
-
-                    if (Store.is-show-side-rsslist && Store.rss-lists.length == 0) {
-                        Logic.load-all-rss();
-                    }
-                }
-                Store.switch-tab(TabIndex.Rss);
-            }
-
-            Tag {
-                private property <int> unread_counts: Logic.unread-counts-rss(Store.current-rss-uuid, Store.rss-unread-counts-flag);
-
-                visible: self.unread_counts > 0;
-                x: parent.width / 2 + self.width / 2;
-                y: 0;
-                width: 20px;
-                height: self.width;
-                font-size: 12px;
-                background: Colors.transparent;
-                text-color: Theme.danger-color;
-                text: self.unread_counts;
+                Store.switch-tab(TabIndex.Home);
             }
         }
 
         TabBtn {
             width: root.btn-width;
             height: root.btn-height;
-            icon: Icons.favorite-fill;
-            text: Logic.tr(Store.is-cn, "收藏夹");
-            checked: Store.current-tab-index == TabIndex.Favorite;
+            icon: Icons.recipient;
+            text: Logic.tr(Store.is-cn, "接收");
+            checked: Store.current-tab-index == TabIndex.Recipient;
 
             clicked => {
-                Store.switch-tab(TabIndex.Favorite);
+                Store.switch-tab(TabIndex.Recipient);
             }
         }
 
         TabBtn {
             width: root.btn-width;
             height: root.btn-height;
-            icon: Icons.add-small;
-            text: Logic.tr(Store.is-cn, "添加");
-            checked: Store.current-tab-index == TabIndex.Add;
+            icon: Icons.history;
+            text: Logic.tr(Store.is-cn, "历史");
+            checked: Store.current-tab-index == TabIndex.History;
 
             clicked => {
-                Store.switch-tab(TabIndex.Add);
+                Store.switch-tab(TabIndex.History);
             }
         }
 
         TabBtn {
             width: root.btn-width;
             height: root.btn-height;
-            icon: Icons.find-light;
-            text: Logic.tr(Store.is-cn, "发现");
-            checked: Store.current-tab-index == TabIndex.Find;
+            icon: Icons.address;
+            text: Logic.tr(Store.is-cn, "地址簿");
+            checked: Store.current-tab-index == TabIndex.AddressBook;
 
             clicked => {
-                Store.switch-tab(TabIndex.Find);
+                Store.switch-tab(TabIndex.AddressBook);
             }
         }
 
@@ -94,7 +73,6 @@ export component Footer inherits Rectangle {
             checked: Store.current-tab-index == TabIndex.Setting;
 
             clicked => {
-                Logic.update-cache-size();
                 Store.switch-tab(TabIndex.Setting);
             }
         }

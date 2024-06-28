@@ -164,6 +164,9 @@ pub fn tr(text: &str) -> String {
         "Welcome! Enjoying you journey of reading.",
     );
     items.insert("请选择语言", "Please select language");
+    items.insert("没有记录", "No record");
+    items.insert("没有地址", "No address");
+
 
     if let Some(txt) = items.get(text) {
         return txt.to_string();

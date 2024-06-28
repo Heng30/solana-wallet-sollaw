@@ -1,8 +1,8 @@
 export enum TabIndex {
-    Rss,
-    Add,
-    Favorite,
-    Find,
+    Home,
+    Recipient,
+    History,
+    AddressBook,
     Setting,
     None,
 }
@@ -10,8 +10,6 @@ export enum TabIndex {
 export enum SettingDetailIndex {
     Home,
     UI,
-    Reading,
-    Sync,
     Proxy,
     About,
     Help,
@@ -109,95 +107,14 @@ export struct AboutDialog {
 }
 
 export global Store {
-    in-out property <TabIndex> current-tab-index: TabIndex.Rss;
+    in-out property <TabIndex> current-tab-index: TabIndex.Home;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 
-    in-out property <string> current-rss-uuid;
-
-    in-out property <[RssConfig]> rss-lists: [
-        {
-            uuid: "uuid-1",
-            is-favorite: true,
-            use-http-proxy: false,
-            is-update-failed: true,
-            icon-index: 0,
-            name: "测试-1",
-        },
-        {
-            uuid: "uuid-2",
-            is-favorite: false,
-            use-socks5-proxy: true,
-            is-update-failed: false,
-            icon-index: 0,
-            name: "测试-2",
-        },
-    ];
-
-    in-out property <[RssEntry]> rss-entrys: [
-        {
-            uuid: "42342e2jkfjk",
-            url: "https://www.zhihu.com/rss",
-            pub-date: "2023-10-22 23:12:34",
-            tags: "rust",
-            is-read: false,
-            author: "hello",
-            title: "Actors may modify their own private state, but can only affect each other indirectly through messaging (removing the need for lock-based synchronization).",
-            summary: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
-        },
-        {
-            uuid: "xx2342jkfjk",
-            url: "https://bing.com",
-            pub-date: "2023-11-12 13:12:34",
-            tags: "slint-ui, rust",
-            is-read: true,
-            title: "中文测试链接",
-            summary: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
-        },
-    ];
-
-    in-out property <[RssEntry]> rss-favorite-entrys: [
-        {
-            uuid: "42342e2jkfjk",
-            url: "https://www.zhihu.com/rss",
-            pub-date: "2023-10-22 23:12:34",
-            tags: "rust",
-            is-read: false,
-            author: "hello",
-            title: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
-            summary: "The actor model in computer science is a mathematical model of concurrent computation that treats an actor as the basic building block of concurrent computation.",
-        },
-        {
-            uuid: "42342e2jkfjk",
-            url: "https://www.zhihu.com/rss",
-            pub-date: "2023-10-22 23:12:34",
-            tags: "rust",
-            is-read: false,
-            author: "hello",
-            title: "收藏测试-1",
-        },
-    ];
-
-    in-out property <[FindEntry]> find-entrys: [
-        { name: "find name 1", url: "url-1", is-blacklist: true },
-        { name: "find name 2", url: "url-2" },
-    ];
-
-    in-out property <[FindEntry]> find-entrys-keyword: [
-        { name: "keyword name 1", url: "url-1", is-blacklist: true },
-        { name: "keyword name 2", url: "url-1" },
-    ];
-
     in-out property <MessageItem> message;
 
-    in-out property <int> icon-index: 0;
     in-out property <bool> is-first-run;
     in-out property <bool> is-show-landing-page;
-    in-out property <bool> rss-update-time-flag;
-    in-out property <bool> rss-unread-counts-flag;
-    in-out property <bool> find-entrys-counts-flag;
-    in-out property <bool> is-show-side-rsslist;
-    in-out property <string> cache-size: "0M";
     in-out property <bool> is-cn: setting-ui.language == "cn";
     in-out property <SettingUI> setting-ui: {
         font-size: "16",
@@ -216,7 +133,7 @@ export global Store {
 
     in-out property <AboutDialog> about-dialog: {
         show: false,
-        title: "rssbox v0.0.1",
+        title: "sollet v0.0.1",
         text: "Based on Slint-UI. Copyright 2022-2030. All rights reserved. The program is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.",
         sponsor: "0xf1199999751b1a3A74590adBf95401D19AB30014",
     };
@@ -234,9 +151,6 @@ export global Store {
     }
 
     public function refresh-current-tab() {
-        if (current-tab-index == TabIndex.Add || current-tab-index == TabIndex.Setting || current-tab-index == TabIndex.Find) {
-            return;
-        }
         current-tab-index-tmp = current-tab-index;
         current-tab-index = TabIndex.None;
         current-tab-index = current-tab-index-tmp;

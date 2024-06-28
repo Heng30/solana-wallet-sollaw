@@ -1,10 +1,10 @@
 use anyhow::{bail, Context, Result};
+use futures::stream::StreamExt;
 use solana_account_decoder::{
     parse_token::UiTokenAccount, UiAccount, UiAccountEncoding, UiDataSliceConfig,
 };
 use solana_client::{
-    pubsub_client::PubsubClient,
-    rpc_client::RpcClient,
+    nonblocking::{pubsub_client::PubsubClient, rpc_client::RpcClient},
     rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
     rpc_filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
     rpc_response::Response,
@@ -73,21 +73,21 @@ impl AccountToken {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct SendLamportsProps<'a> {
+#[derive(Debug)]
+pub struct SendLamportsProps {
     pub rpc_url_ty: RpcUrlType,
-    pub sender_keypair: &'a Keypair,
-    pub recipient_pubkey: &'a Pubkey,
+    pub sender_keypair: Keypair,
+    pub recipient_pubkey: Pubkey,
     pub lamports: u64,
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
 }
 
-#[derive(Clone, Debug)]
-pub struct CreateOnlineAccountProps<'a> {
+#[derive(Debug)]
+pub struct CreateOnlineAccountProps {
     pub rpc_url_ty: RpcUrlType,
-    pub from_keypair: &'a Keypair,
-    pub new_account_keypair: &'a Keypair,
+    pub from_keypair: Keypair,
+    pub new_account_keypair: Keypair,
     pub space: usize,
     pub rent_exemption_amount: Option<u64>,
     pub timeout: Option<u64>,
@@ -95,11 +95,11 @@ pub struct CreateOnlineAccountProps<'a> {
 }
 
 #[derive(Debug)]
-pub struct CreateOnlineAccountWithSeedProps<'a> {
+pub struct CreateOnlineAccountWithSeedProps {
     pub rpc_url_ty: RpcUrlType,
-    pub base_keypair: &'a Keypair,
-    pub payer_keypair: &'a Keypair,
-    pub seed: &'a str,
+    pub base_keypair: Keypair,
+    pub payer_keypair: Keypair,
+    pub seed: String,
     pub space: usize,
     pub rent_exemption_amount: Option<u64>,
     pub timeout: Option<u64>,
@@ -107,43 +107,49 @@ pub struct CreateOnlineAccountWithSeedProps<'a> {
 }
 
 // return the fee of lamports
-pub fn evaluate_transaction_fee(
+pub async fn evaluate_transaction_fee(
     rpc_url_ty: RpcUrlType,
     instructions: &[Instruction],
     payer: &Pubkey,
     timeout: Option<u64>,
 ) -> Result<u64> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let recent_blockhash = connection
         .get_latest_blockhash()
+        .await
         .with_context(|| "Get latest blockhash failed")?;
 
     let message = Message::new_with_blockhash(instructions, Some(payer), &recent_blockhash);
 
     connection
         .get_fee_for_message(&message)
+        .await
         .with_context(|| "Get fee for Message failed")
 }
 
-pub fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
+pub async fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
     let connection = match props.timeout {
-        Some(timeout) => {
-            RpcClient::new_with_timeout(props.rpc_url_ty, Duration::from_millis(timeout))
-        }
-        None => RpcClient::new(props.rpc_url_ty),
+        Some(timeout) => RpcClient::new_with_timeout(
+            props.rpc_url_ty.to_string(),
+            Duration::from_millis(timeout),
+        ),
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
     let recent_blockhash = connection
         .get_latest_blockhash()
+        .await
         .with_context(|| "Get latest blockhash failed")?;
 
     let instruction = system_instruction::transfer(
         &props.sender_keypair.pubkey(),
-        props.recipient_pubkey,
+        &props.recipient_pubkey,
         props.lamports,
     );
 
@@ -151,48 +157,60 @@ pub fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
-        true => connection.send_and_confirm_transaction(&transaction),
-        false => connection.send_transaction(&transaction),
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
     }
     .with_context(|| "Send and confirm transation failed")
 }
 
 // return the balance of lamports
-pub fn get_balance(rpc_url_ty: RpcUrlType, pubkey: &str, timeout: Option<u64>) -> Result<u64> {
+pub async fn get_balance(
+    rpc_url_ty: RpcUrlType,
+    pubkey: &str,
+    timeout: Option<u64>,
+) -> Result<u64> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
     let pubkey = Pubkey::from_str(pubkey).with_context(|| format!("Invalid pubkey {pubkey}"))?;
     connection
         .get_balance(&pubkey)
+        .await
         .with_context(|| format!("Get {pubkey} balance failed."))
 }
 
-pub fn fetch_token_account(
+pub async fn fetch_token_account(
     rpc_url_ty: RpcUrlType,
     token_account_address: &str,
     timeout: Option<u64>,
 ) -> Result<Option<UiTokenAccount>> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let token_account_pubkey = Pubkey::from_str(token_account_address)?;
     connection
         .get_token_account(&token_account_pubkey)
+        .await
         .with_context(|| format!("Get token account {token_account_address} failed"))
 }
 
-pub fn fetch_account_tokens(
+pub async fn fetch_account_tokens(
     rpc_url_ty: RpcUrlType,
     address: &str,
     timeout: Option<u64>,
 ) -> Result<Vec<AccountToken>> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let filters = Some(vec![
@@ -216,6 +234,7 @@ pub fn fetch_account_tokens(
                 ..RpcProgramAccountsConfig::default()
             },
         )
+        .await
         .with_context(|| {
             format!("Get program accounts with config failed. wallet address: {address}")
         })?;
@@ -239,6 +258,7 @@ pub fn fetch_account_tokens(
 
         let mint_account_data = connection
             .get_account_data(&mint_token_account.mint)
+            .await
             .with_context(|| {
                 format!(
                     "Get account data failed for {:?}",
@@ -254,31 +274,16 @@ pub fn fetch_account_tokens(
     Ok(items)
 }
 
-pub fn min_balance_for_rent_exemption(
-    rpc_url_ty: RpcUrlType,
-    data_length: usize,
-    timeout: Option<u64>,
-) -> Result<u64> {
-    let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
-    };
-
-    let rent_exemption_amount = connection
-        .get_minimum_balance_for_rent_exemption(data_length)
-        .with_context(|| "get minimum balance for rent exemption failed")?;
-
-    Ok(rent_exemption_amount)
-}
-
-pub fn number_of_token_holders(
+pub async fn number_of_token_holders(
     rpc_url_ty: RpcUrlType,
     mint_address: &str,
     timeout: Option<u64>,
 ) -> Result<usize> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let filters = Some(vec![
@@ -306,6 +311,7 @@ pub fn number_of_token_holders(
                 ..RpcProgramAccountsConfig::default()
             },
         )
+        .await
         .with_context(|| {
             format!(
                 "Get program accounts with config faild. token contract address: {mint_address}"
@@ -315,15 +321,17 @@ pub fn number_of_token_holders(
     Ok(accounts.len())
 }
 
-pub fn request_airdrop(
+pub async fn request_airdrop(
     rpc_url_ty: RpcUrlType,
     address: &str,
     lamports: u64,
     timeout: Option<u64>,
 ) -> Result<Signature> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let pubkey = Pubkey::from_str(address)
@@ -331,23 +339,26 @@ pub fn request_airdrop(
 
     connection
         .request_airdrop(&pubkey, lamports)
+        .await
         .with_context(|| format!("Request airdrop for {address} failed"))
 }
 
-pub fn wait_signature_confirmed(
+pub async fn wait_signature_confirmed(
     rpc_url_ty: RpcUrlType,
     signature: &Signature,
     try_counts: u64,
     timeout: Option<u64>,
 ) -> Result<u64> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let mut counts = 1;
     loop {
-        match connection.confirm_transaction(signature) {
+        match connection.confirm_transaction(signature).await {
             Ok(true) => return Ok(counts),
             Ok(false) => {
                 if counts >= try_counts {
@@ -362,18 +373,21 @@ pub fn wait_signature_confirmed(
     }
 }
 
-pub fn is_signature_confirmed(
+pub async fn is_signature_confirmed(
     rpc_url_ty: RpcUrlType,
     signature: &Signature,
     timeout: Option<u64>,
 ) -> Result<()> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     let transation = connection
         .get_transaction(signature, UiTransactionEncoding::Json)
+        .await
         .with_context(|| format!("Get transacting {signature} failed"))?;
 
     match transation.transaction.meta {
@@ -386,42 +400,51 @@ pub fn is_signature_confirmed(
 }
 
 // listening the wallet_address events including sending, receiving and other events
-pub fn account_subscribe(
+pub async fn account_subscribe(
     ws_url_ty: WssUrlType,
     wallet_address: &str,
-) -> Result<Response<UiAccount>> {
-    let (mut _client, receiver) = PubsubClient::account_subscribe(
-        &ws_url_ty.to_string(),
-        &Pubkey::from_str(wallet_address)
-            .with_context(|| format!("Generate pubkey from {wallet_address} failed"))?,
-        Some(RpcAccountInfoConfig {
-            encoding: None,
-            data_slice: None,
-            commitment: Some(CommitmentConfig::confirmed()),
-            ..RpcAccountInfoConfig::default()
-        }),
-    )
-    .with_context(|| format!("{wallet_address} subscribe failed"))?;
+    cb: impl Fn(Response<UiAccount>),
+) -> Result<()> {
+    let connection = PubsubClient::new(&ws_url_ty.to_string())
+        .await
+        .with_context(|| format!("New PubsubClient for {wallet_address} failed"))?;
 
-    let message = receiver
-        .recv()
-        .with_context(|| format!("{wallet_address} receive subscribe response failed"))?;
+    let mut receiver = connection
+        .account_subscribe(
+            &Pubkey::from_str(wallet_address)
+                .with_context(|| format!("Generate pubkey from {wallet_address} failed"))?,
+            Some(RpcAccountInfoConfig {
+                encoding: None,
+                data_slice: None,
+                commitment: Some(CommitmentConfig::confirmed()),
+                ..RpcAccountInfoConfig::default()
+            }),
+        )
+        .await
+        .with_context(|| format!("{wallet_address} subscribe failed"))?;
 
-    Ok(message)
+    while let Some(item) = receiver.0.next().await {
+        cb(item);
+    }
+
+    bail!("Account subscribe exit")
 }
 
-pub fn minimum_balance_for_rent_exemption(
+pub async fn minimum_balance_for_rent_exemption(
     rpc_url_ty: RpcUrlType,
     space: usize,
     timeout: Option<u64>,
 ) -> Result<u64> {
     let connection = match timeout {
-        Some(timeout) => RpcClient::new_with_timeout(rpc_url_ty, Duration::from_millis(timeout)),
-        None => RpcClient::new(rpc_url_ty),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
     };
 
     connection
         .get_minimum_balance_for_rent_exemption(space)
+        .await
         .with_context(|| {
             format!(
                 "get_mininum_rent_exemption_amount for space {} failed",
@@ -430,16 +453,18 @@ pub fn minimum_balance_for_rent_exemption(
         })
 }
 
-pub fn create_online_account(props: CreateOnlineAccountProps) -> Result<Signature> {
+pub async fn create_online_account(props: CreateOnlineAccountProps) -> Result<Signature> {
     let connection = match props.timeout {
-        Some(timeout) => {
-            RpcClient::new_with_timeout(props.rpc_url_ty, Duration::from_millis(timeout))
-        }
-        None => RpcClient::new(props.rpc_url_ty),
+        Some(timeout) => RpcClient::new_with_timeout(
+            props.rpc_url_ty.to_string(),
+            Duration::from_millis(timeout),
+        ),
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
     let min_rent_exemption_amount = connection
         .get_minimum_balance_for_rent_exemption(props.space)
+        .await
         .with_context(|| {
             format!(
                 "Get mininum_rent_exemption_amount for space {} failed",
@@ -460,6 +485,7 @@ pub fn create_online_account(props: CreateOnlineAccountProps) -> Result<Signatur
 
     let recent_blockhash = connection
         .get_latest_blockhash()
+        .await
         .with_context(|| "get latest blockhash failed")?;
 
     let ix = system_instruction::create_account(
@@ -478,20 +504,21 @@ pub fn create_online_account(props: CreateOnlineAccountProps) -> Result<Signatur
     );
 
     match props.is_wait_confirmed {
-        true => connection.send_and_confirm_transaction(&transaction),
-        false => connection.send_transaction(&transaction),
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
     }
     .with_context(|| "Send and confirm transation failed")
 }
 
-pub fn create_online_account_with_seed(
+pub async fn create_online_account_with_seed(
     props: CreateOnlineAccountWithSeedProps,
 ) -> Result<(Pubkey, Signature)> {
     let connection = match props.timeout {
-        Some(timeout) => {
-            RpcClient::new_with_timeout(props.rpc_url_ty, Duration::from_millis(timeout))
-        }
-        None => RpcClient::new(props.rpc_url_ty),
+        Some(timeout) => RpcClient::new_with_timeout(
+            props.rpc_url_ty.to_string(),
+            Duration::from_millis(timeout),
+        ),
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
     let program_id = system_program::id();
@@ -501,6 +528,7 @@ pub fn create_online_account_with_seed(
 
     let min_rent_exemption_amount = connection
         .get_minimum_balance_for_rent_exemption(props.space)
+        .await
         .with_context(|| {
             format!(
                 "Get mininum_rent_exemption_amount for space {} failed",
@@ -521,13 +549,14 @@ pub fn create_online_account_with_seed(
 
     let recent_blockhash = connection
         .get_latest_blockhash()
+        .await
         .with_context(|| "get latest blockhash failed")?;
 
     let ix = system_instruction::create_account_with_seed(
         &props.payer_keypair.pubkey(),
         &derived_pubkey,
         &props.base_keypair.pubkey(),
-        props.seed,
+        &props.seed,
         rent_exemption_amount,
         props.space as u64,
         &program_id,
@@ -541,8 +570,8 @@ pub fn create_online_account_with_seed(
     );
 
     let sig = match props.is_wait_confirmed {
-        true => connection.send_and_confirm_transaction(&transaction),
-        false => connection.send_transaction(&transaction),
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
     }
     .with_context(|| "Send and confirm transation failed")?;
 
@@ -564,6 +593,7 @@ pub fn send_lamports_instruction(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::distributions::{Alphanumeric, DistString};
     use std::str::FromStr;
 
     const SENDER_KEYPAIR: &[u8] = &[
@@ -579,8 +609,8 @@ mod tests {
     const USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS: &str =
         "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr";
 
-    #[test]
-    fn test_evaluate_transaction_fee() -> Result<()> {
+    #[tokio::test]
+    async fn test_evaluate_transaction_fee() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
 
@@ -592,183 +622,182 @@ mod tests {
             &instructions,
             &sender_keypair.pubkey(),
             None,
-        )?;
+        )
+        .await?;
         println!("fee: {fee}");
 
         Ok(())
     }
 
-    #[test]
-    fn test_send_lamports() -> Result<()> {
+    #[tokio::test]
+    async fn test_send_lamports() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let props = SendLamportsProps {
             rpc_url_ty: RpcUrlType::Test,
-            sender_keypair: &sender_keypair,
-            recipient_pubkey: &recipient_pubkey,
+            sender_keypair: sender_keypair,
+            recipient_pubkey: recipient_pubkey,
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_MS),
             is_wait_confirmed: true,
         };
 
-        let signature = send_lamports(props)?;
+        let signature = send_lamports(props).await?;
         println!("{signature:?}");
 
         Ok(())
     }
 
-    #[test]
-    fn test_get_balance() -> Result<()> {
-        let lamports = get_balance(RpcUrlType::Test, SENDER_WALLET_ADDRESS, None)?;
+    #[tokio::test]
+    async fn test_get_balance() -> Result<()> {
+        let lamports = get_balance(RpcUrlType::Test, SENDER_WALLET_ADDRESS, None).await?;
         println!("Balance: {lamports} lamports");
 
         Ok(())
     }
 
-    #[test]
-    fn test_fetch_account_tokens() -> Result<()> {
+    #[tokio::test]
+    async fn test_fetch_account_tokens() -> Result<()> {
         let ret = fetch_account_tokens(
             RpcUrlType::Test,
             RECIPIENT_WALLET_ADDRESS,
             Some(DEFAULT_TIMEOUT_MS),
-        )?;
+        )
+        .await?;
         println!("{:?}", ret);
 
         Ok(())
     }
 
-    #[test]
-    fn test_min_balance_for_rent_exemption() -> Result<()> {
-        let ret = min_balance_for_rent_exemption(RpcUrlType::Main, 100, None)?;
+    #[tokio::test]
+    async fn test_minimum_balance_for_rent_exemption() -> Result<()> {
+        let ret = minimum_balance_for_rent_exemption(RpcUrlType::Main, 100, None).await?;
         println!("rent exemption amount: {:?} lamports", ret);
 
         Ok(())
     }
 
-    #[test]
-    fn test_number_of_token_holders() -> Result<()> {
+    #[tokio::test]
+    async fn test_number_of_token_holders() -> Result<()> {
         let ret =
-            number_of_token_holders(RpcUrlType::Test, USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS, None)?;
+            number_of_token_holders(RpcUrlType::Test, USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS, None)
+                .await?;
         println!("{:?}", ret);
 
         Ok(())
     }
 
-    #[test]
-    fn test_fetch_token_account() -> Result<()> {
-        let ret = fetch_token_account(RpcUrlType::Test, TOKEN_ACCOUNT_ADDRESS, None)?;
+    #[tokio::test]
+    async fn test_fetch_token_account() -> Result<()> {
+        let ret = fetch_token_account(RpcUrlType::Test, TOKEN_ACCOUNT_ADDRESS, None).await?;
         println!("{:?}", ret);
 
         Ok(())
     }
 
-    #[test]
-    fn test_request_airdrop() -> Result<()> {
-        let ret = request_airdrop(RpcUrlType::Test, SENDER_WALLET_ADDRESS, 100_000, None)?;
+    #[tokio::test]
+    async fn test_request_airdrop() -> Result<()> {
+        let ret =
+            request_airdrop(RpcUrlType::Test, SENDER_WALLET_ADDRESS, 100_000_000, None).await?;
         println!("request airdrop {:?}", ret);
 
         Ok(())
     }
 
-    #[test]
-    fn test_wait_signature_confirmed() -> Result<()> {
+    #[tokio::test]
+    async fn test_wait_signature_confirmed() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let props = SendLamportsProps {
             rpc_url_ty: RpcUrlType::Test,
-            sender_keypair: &sender_keypair,
-            recipient_pubkey: &recipient_pubkey,
+            sender_keypair: sender_keypair,
+            recipient_pubkey: recipient_pubkey,
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_MS),
             is_wait_confirmed: false,
         };
 
-        let signature = send_lamports(props)?;
+        let signature = send_lamports(props).await?;
         println!("{signature:?}");
 
-        let ret = wait_signature_confirmed(RpcUrlType::Test, &signature, u64::MAX, None)?;
+        let ret = wait_signature_confirmed(RpcUrlType::Test, &signature, u64::MAX, None).await?;
         println!("wait_signature_confirmed try counts {ret}");
 
         Ok(())
     }
 
-    #[test]
-    fn test_account_subscribe() -> Result<()> {
+    #[tokio::test]
+    async fn test_account_subscribe() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let props = SendLamportsProps {
             rpc_url_ty: RpcUrlType::Test,
-            sender_keypair: &sender_keypair,
-            recipient_pubkey: &recipient_pubkey,
+            sender_keypair: sender_keypair,
+            recipient_pubkey: recipient_pubkey,
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_MS),
             is_wait_confirmed: false,
         };
 
-        let signature = send_lamports(props)?;
+        let signature = send_lamports(props).await?;
         println!("{signature:?}");
 
-        let message = account_subscribe(WssUrlType::Test, SENDER_WALLET_ADDRESS)?;
-        println!("{message:?}");
+        account_subscribe(WssUrlType::Test, SENDER_WALLET_ADDRESS, |item| {
+            println!("{item:?}");
+        })
+        .await?;
 
         Ok(())
     }
 
-    #[test]
-    fn test_is_signature_confirmed_expect_failed() -> Result<()> {
+    #[tokio::test]
+    async fn test_is_signature_confirmed_expect_failed() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let props = SendLamportsProps {
             rpc_url_ty: RpcUrlType::Test,
-            sender_keypair: &sender_keypair,
-            recipient_pubkey: &recipient_pubkey,
+            sender_keypair: sender_keypair,
+            recipient_pubkey: recipient_pubkey,
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_MS),
             is_wait_confirmed: false,
         };
 
-        let signature = send_lamports(props)?;
+        let signature = send_lamports(props).await?;
         println!("{signature:?}");
 
-        let ret = is_signature_confirmed(RpcUrlType::Test, &signature, None);
+        let ret = is_signature_confirmed(RpcUrlType::Test, &signature, None).await;
         println!("ret: {ret:?}");
         assert!(ret.is_err());
 
         Ok(())
     }
 
-    #[test]
-    fn test_is_signature_confirmed_expect_success() -> Result<()> {
+    #[tokio::test]
+    async fn test_is_signature_confirmed_expect_success() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let props = SendLamportsProps {
             rpc_url_ty: RpcUrlType::Test,
-            sender_keypair: &sender_keypair,
-            recipient_pubkey: &recipient_pubkey,
+            sender_keypair: sender_keypair,
+            recipient_pubkey: recipient_pubkey,
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_MS),
             is_wait_confirmed: true,
         };
 
-        let signature = send_lamports(props)?;
+        let signature = send_lamports(props).await?;
         println!("{signature:?}");
 
-        let ret = is_signature_confirmed(RpcUrlType::Test, &signature, None);
+        let ret = is_signature_confirmed(RpcUrlType::Test, &signature, None).await;
         println!("ret: {ret:?}");
         assert!(ret.is_ok());
 
         Ok(())
     }
 
-    #[test]
-    fn test_minimum_balance_for_rent_exemption() -> Result<()> {
-        let lamports = minimum_balance_for_rent_exemption(RpcUrlType::Test, 0, None)?;
-        println!("lamports: {lamports}");
-        Ok(())
-    }
-
-    #[test]
-    fn test_create_online_account() -> Result<()> {
+    #[tokio::test]
+    async fn test_create_online_account() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let new_account_keypair = Keypair::new();
 
@@ -779,36 +808,38 @@ mod tests {
 
         let props = CreateOnlineAccountProps {
             rpc_url_ty: RpcUrlType::Test,
-            from_keypair: &sender_keypair,
-            new_account_keypair: &new_account_keypair,
+            from_keypair: sender_keypair,
+            new_account_keypair: new_account_keypair,
             rent_exemption_amount: None,
             space: 100,
             timeout: None,
             is_wait_confirmed: true,
         };
 
-        let sig = create_online_account(props)?;
+        let sig = create_online_account(props).await?;
         println!("sig: {sig:?}");
 
         Ok(())
     }
 
-    #[test]
-    fn test_create_online_account_with_seed() -> Result<()> {
+    #[tokio::test]
+    async fn test_create_online_account_with_seed() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let payer_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let seed: String = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
 
         let props = CreateOnlineAccountWithSeedProps {
             rpc_url_ty: RpcUrlType::Test,
-            base_keypair: &sender_keypair,
-            payer_keypair: &sender_keypair,
-            seed: "test",
+            base_keypair: sender_keypair,
+            payer_keypair: payer_keypair,
+            seed,
             space: 100,
             rent_exemption_amount: None,
             timeout: None,
             is_wait_confirmed: true,
         };
 
-        let (derived_pubkey, sig) = create_online_account_with_seed(props)?;
+        let (derived_pubkey, sig) = create_online_account_with_seed(props).await?;
         println!("derived_pubkey: {derived_pubkey:?}");
         println!("sig: {sig:?}");
 
