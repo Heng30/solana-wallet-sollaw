@@ -5,7 +5,9 @@ import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
 import { Toast, IconsDialogSetting, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage } from "./base/widgets.slint";
 
-import { SignIn, Login } from "./base/widgets.slint";
+import { SignIn, Login, Mnemonic } from "./base/widgets.slint";
+import { Setup } from "./setup/panel.slint";
+import { CreateAccount } from "./setup/create-account.slint";
 
 export component AppWindow inherits Window {
     default-font-size: Theme.default-font-size;
@@ -16,7 +18,8 @@ export component AppWindow inherits Window {
     icon: Icons.brand;
     title: "rssbox";
 
-    Panel { }
+    if !Store.is-show-setup-page : Panel { }
+    if Store.is-show-setup-page : Setup {}
 
     if IconsDialogSetting.show || OkCancelDialogSetting.body-text != "": Blanket {
         clicked => {
@@ -65,7 +68,7 @@ export component AppWindow inherits Window {
         visible: false;
         background: white;
         // Login {}
-        SignIn {}
+        // SignIn {}
     }
 }
 

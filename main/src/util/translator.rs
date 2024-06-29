@@ -151,6 +151,19 @@ pub fn tr(text: &str) -> String {
     items.insert("下一步", "Next");
     items.insert("完成", "Finish");
     items.insert("返回", "Back");
+    items.insert("请选择语言", "Please select language");
+    items.insert("没有记录", "No record");
+    items.insert("没有地址", "No address");
+    items.insert("请输入用户名", "Please enter username");
+    items.insert("用户名", "Username");
+    items.insert("请输入密码", "Please enter password");
+    items.insert("请再次输入密码", "Please enter password again");
+    items.insert("至少8个字符", "At least 8 chars");
+    items.insert("创建新账户", "Create a new account");
+    items.insert("使用组记词恢复账户", "Recover account from mnemonic");
+
+
+    // TODO
     items.insert(
         "订阅、搜索和预览RSS消息",
         "Subscribe, search and review RSS message.",
@@ -163,14 +176,6 @@ pub fn tr(text: &str) -> String {
         "欢迎使用，享受你的阅读之旅",
         "Welcome! Enjoying you journey of reading.",
     );
-    items.insert("请选择语言", "Please select language");
-    items.insert("没有记录", "No record");
-    items.insert("没有地址", "No address");
-    items.insert("请输入用户名", "Please enter username");
-    items.insert("用户名", "Username");
-    items.insert("请输入密码", "Please enter password");
-    items.insert("请再次输入密码", "Please enter password again");
-    items.insert("至少8个字符", "At least 8 chars");
 
     if let Some(txt) = items.get(text) {
         return txt.to_string();

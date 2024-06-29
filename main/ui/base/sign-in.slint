@@ -13,14 +13,16 @@ export component SignIn inherits Rectangle {
     in property <bool> is-show-username;
 
     private property <string> error-message;
+    private property <string> username;
 
     callback cancel();
-    callback confirm();
     callback back();
+
+    //(username, password) -> void
+    callback confirm(string, string);
 
     public function reset() {
         error-message = "";
-        username-lineedit.text = "";
         password-first-lineedit.text = "";
         password-second-lineedit.text = "";
     }
@@ -37,7 +39,8 @@ export component SignIn inherits Rectangle {
         SettingDetailInner {
             vbox-alignment: LayoutAlignment.center;
 
-            SettingDetailInnerVbox {
+
+            if is-show-username : SettingDetailInnerVbox {
                 username-txt := SettingDetailLabel {
                     text: Logic.tr(Store.is-cn, "请输入用户名");
                 }
@@ -54,6 +57,8 @@ export component SignIn inherits Rectangle {
                             username-lineedit.text = "";
                             username-lineedit.paste();
                         }
+
+                        edited => { root.username = self.text; }
                     }
                 }
             }
@@ -138,7 +143,7 @@ export component SignIn inherits Rectangle {
                         root.error-message = Logic.is-valid-passwords(password-first-lineedit.text, password-second-lineedit.text);
 
                         if (root.error-message == "") {
-                            root.confirm();
+                            root.confirm(root.username, password-first-lineedit.text);
                         }
                     }
                 }

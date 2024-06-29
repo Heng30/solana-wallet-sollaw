@@ -1,0 +1,36 @@
+import { Store } from "../store.slint";
+import { Logic } from "../logic.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Mnemonic } from "../base/widgets.slint";
+
+export component CreateAccount inherits Rectangle {
+    callback confirm <=> mic.confirm;
+    callback back <=> mic.back;
+
+    out property mnemonics <=> mic.mnemonics;
+
+    mic := Mnemonic {
+        is-show-header: true;
+        is-read-only: true;
+        is-show-btns: true;
+        is-show-switch-mnemonic-counts-btn: true;
+        header-title: Logic.tr(Store.is-cn, "创建组记词");
+        mnemonics: Logic.new-mnemonics(12);
+
+        copy => {
+            Logic.copy-to-clipboard(Logic.join-mnemonics(self.mnemonics));
+        }
+
+        switch-mnemonic-counts(counts) => {
+            self.mnemonics = Logic.new-mnemonics(counts);
+        }
+
+        refresh(counts) => {
+            self.mnemonics = Logic.new-mnemonics(counts);
+        }
+
+        cancel => {
+            self.back();
+        }
+    }
+}

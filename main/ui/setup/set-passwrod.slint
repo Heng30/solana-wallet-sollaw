@@ -1,0 +1,17 @@
+import { Store } from "../store.slint";
+import { Logic } from "../logic.slint";
+import { Theme, Icons } from "../theme.slint";
+import { SignIn } from "../base/sign-in.slint";
+
+export component SetPassword inherits Rectangle {
+    callback back <=> si.back;
+    callback confirm <=> si.confirm;
+
+    si := SignIn {
+        is-show-username: false;
+
+        cancel => {
+            self.back();
+        }
+    }
+}
