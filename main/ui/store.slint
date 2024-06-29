@@ -19,41 +19,6 @@ export enum SettingDetailIndex {
     Update,
 }
 
-export struct FindEntry {
-    name: string,
-    url: string,
-    is-blacklist: bool,
-}
-
-export struct RssEntry {
-    suuid: string,
-    uuid: string,
-    url: string,
-    title: string,
-    pub-date: string,
-    tags: string,
-    author: string,
-    summary: string,
-    is-read: bool,
-}
-
-export struct RssConfig {
-    uuid: string,
-    name: string,
-    url: string,
-    use-http-proxy: bool,
-    use-socks5-proxy: bool,
-    icon-index: int,
-    feed_format: string,
-    is-favorite: bool,
-    update-time: string,
-
-    is-update-failed: bool,
-    unread-counts: int,
-    entry: [RssEntry],
-    current-viewport-y: length,
-}
-
 export struct MessageItem {
     text: string,
     text-type: string,
@@ -64,18 +29,6 @@ export struct SettingUI {
     font-family: string,
     language: string,
     is-dark: bool,
-}
-
-export struct SettingReading {
-    browser: string,
-    is-delete-after-reading: bool,
-}
-
-export struct SettingSync {
-    sync-interval: string,
-    sync-timeout: string,
-    is-auto-sync: bool,
-    is-start-sync: bool,
 }
 
 export struct SettingProxy {
@@ -112,7 +65,6 @@ export global Store {
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 
     in-out property <MessageItem> message;
-
     in-out property <bool> is-first-run;
     in-out property <bool> is-show-landing-page;
     in-out property <bool> is-cn: setting-ui.language == "cn";

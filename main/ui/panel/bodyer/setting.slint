@@ -3,8 +3,7 @@ import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
 import { Store,  SettingUI, SettingProxy, SettingBackupRecover, SettingUpdate, SettingDetailIndex } from "../../store.slint";
-import { CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn} from "../../base/widgets.slint";
-
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn} from "../../base/widgets.slint";
 
 component UI inherits SettingDetail {
     title: Logic.tr(Store.is-cn, "界 面");
@@ -411,23 +410,14 @@ component BackupRecover inherits SettingDetail {
                 text: Logic.tr(Store.is-cn, "API 令牌");
             }
 
-            HorizontalLayout {
-                spacing: Theme.spacing;
+            token-lineedit := LineInput {
+                icon: Icons.paste;
+                width: root.width - Theme.padding * 4;
+                placeholder-text: Logic.tr(Store.is-cn, "请输入API令牌");
 
-                token-lineedit := LineEdit {
-                    height: token-txt.preferred-height * 1.6;
-                    placeholder-text: Logic.tr(Store.is-cn, "请输入API令牌");
-                }
-
-                IconBtn {
-                    width: token-lineedit.height;
-                    icon: Icons.paste;
-                    icon-width: Theme.icon-size * 1.2;
-
-                    clicked => {
-                        token-lineedit.text = "";
-                        token-lineedit.paste();
-                    }
+                clicked => {
+                    token-lineedit.text = "";
+                    token-lineedit.paste();
                 }
             }
         }
@@ -437,16 +427,6 @@ component BackupRecover inherits SettingDetail {
 
             content-label := SettingDetailLabel {
                 text: Logic.tr(Store.is-cn, "备份与恢复选项");
-            }
-
-            favorite-checkbox := CheckBox {
-                text: Logic.tr(Store.is-cn, "收藏夹");
-                checked: true;
-            }
-
-            rss-checkbox := CheckBox {
-                text: Logic.tr(Store.is-cn, "RSS列表");
-                checked: true;
             }
 
             setting-checkbox := CheckBox {

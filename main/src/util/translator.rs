@@ -166,7 +166,11 @@ pub fn tr(text: &str) -> String {
     items.insert("请选择语言", "Please select language");
     items.insert("没有记录", "No record");
     items.insert("没有地址", "No address");
-
+    items.insert("请输入用户名", "Please enter username");
+    items.insert("用户名", "Username");
+    items.insert("请输入密码", "Please enter password");
+    items.insert("请再次输入密码", "Please enter password again");
+    items.insert("至少8个字符", "At least 8 chars");
 
     if let Some(txt) = items.get(text) {
         return txt.to_string();

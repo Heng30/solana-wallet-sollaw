@@ -1,61 +1,16 @@
-import { RssConfig, RssEntry, SettingUI, SettingReading, SettingSync, SettingProxy, SettingBackupRecover, SettingUpdate } from "./store.slint";
+import { SettingUI, SettingProxy, SettingBackupRecover, SettingUpdate } from "./store.slint";
 
 export global Logic {
-    // when it should be called. The app stay in background for a long time, and  killed by the system. After that, restart the app will not load the rss from the database. so we should call it manually.
-    callback load-all-rss();
-
-    callback current-rsslist-index(string) -> int;
-    callback new-rss(RssConfig);
-    callback update-rss(string, RssConfig);
-    callback remove-rss(string); // suuid
-    callback switch-rss(string, string); // from_suuid, to_suuid
-    callback toggle-rss-favorite(string); // suuid
-    callback sync-rss(string, bool); // suuid, is-show-toast
-    callback sync-rss-all();
-    callback get-rss-config-to-ui(string) -> RssConfig; // suuid
-    callback exist-rss(string) -> bool; // suuid
-
-    pure callback name-rss(string) -> string; // suuid
-    name-rss => { return "标题测试-1"; }
-
-    pure callback unread-counts-rss(string, bool) -> int; // suuid, toggle-flag
-    unread-counts-rss => { return 10; }
-
-    pure callback update-time-rss(string, bool) -> string; // suuid, toggle-flag
-    update-time-rss => { return "12:09:45"; }
-
-    callback remove-entry(string, string); // suuid, uuid
-    callback remove-all-entrys(string); // suuid
-    callback remove-favorite-entry(string); // uuid
-    callback remove-all-favorite-entrys();
-    callback favorite-entry(string, string); // suuid, uuid
-    callback set-entry-read(string, string); // suuid, uuid
-
-    callback fetch-all-find-entrys();
-    callback update-find-entrylist(string); // search-text
-
-    pure callback find-entrys-counts(bool) -> int; // toggle_flag
-    find-entrys-counts => { return 12; }
-
     callback update-cache-size();
     callback remove-all-cache();
 
-    callback add-to_find-blacklist(string); // rss-entry-url
-    callback recover-from-find-blacklist(int, string); // index, find-item-url
-
-    callback copy-to-clipboard(string); // msg
+    callback copy-to-clipboard(string);
     callback copy-from-clipboard() -> string;
     callback show-message(string, string);
     callback handle-ok-cancel-dialog(string, string);
 
     callback get-setting-ui() -> SettingUI;
     callback set-setting-ui(SettingUI);
-
-    callback get-setting-reading() -> SettingReading;
-    callback set-setting-reading(SettingReading);
-
-    callback get-setting-sync() -> SettingSync;
-    callback set-setting-sync(SettingSync);
 
     callback get-setting-proxy() -> SettingProxy;
     callback set-setting-proxy(SettingProxy);
@@ -65,11 +20,21 @@ export global Logic {
     callback backup-to-remote(SettingBackupRecover);
     callback recover-from-remote(SettingBackupRecover);
 
-    callback send-feedback(string); // feedback message
-
+    callback send-feedback(string);
     callback get-setting-update();
 
     pure callback tr(bool, string) -> string;
-    tr(is-cn, text) => { return text; }
-}
+    tr(is-cn, text) => {
+        return text;
+    }
 
+    callback is-valid-passwords(string, string) -> string;
+    is-valid-passwords(password-first, password-second) => {
+        return "默认错误信息";
+    }
+
+    callback is-valid-password(string) -> string;
+    is-valid-password(password) => {
+        return "默认错误信息";
+    }
+}

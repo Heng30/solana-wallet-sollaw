@@ -3,14 +3,14 @@ import { Logic } from "./logic.slint";
 import { Store } from "./store.slint";
 import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
-import { Toast, IconsDialogSetting, OkCancelDialogV2, Blanket, LanguageDialog, InputBar, OkCancelDialogSetting, LandingPage } from "./base/widgets.slint";
+import { Toast, IconsDialogSetting, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage } from "./base/widgets.slint";
+
+import { SignIn, Login } from "./base/widgets.slint";
 
 export component AppWindow inherits Window {
     default-font-size: Theme.default-font-size;
     default-font-family: Theme.default-font-family;
-
-    // uncomment when building desktop app
-    // height: Theme.default-height;
+    min-height: Theme.default-height;
 
     background: Theme.base-background;
     icon: Icons.brand;
@@ -59,6 +59,13 @@ export component AppWindow inherits Window {
         skipped => {
             Store.is-show-landing-page = false;
         }
+    }
+
+    Rectangle {
+        visible: false;
+        background: white;
+        // Login {}
+        SignIn {}
     }
 }
 
