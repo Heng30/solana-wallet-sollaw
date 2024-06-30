@@ -1,0 +1,63 @@
+import { Logic } from "../logic.slint";
+import { Theme } from "../theme.slint";
+import { Store, SetupIndex } from "../store.slint";
+import { SetupType } from "setup-type.slint";
+import { SetPassword } from "set-passwrod.slint";
+import { CreateAccount } from "create-account.slint";
+import { RecoverAccount } from "recover-account.slint";
+
+export component Setup inherits Rectangle {
+    private property <SetupIndex> prev-index: SetupType;
+    private property current-index <=> Store.current-setup-index;
+    private property <[string]> mnemonics;
+
+    background: Theme.base-background;
+
+    if current-index == SetupIndex.SetupType: SetupType {
+        create-account => {
+            current-index = SetupIndex.CreateAccount;
+        }
+
+        recover-account => {
+            current-index = SetupIndex.RecoverAccount;
+        }
+    }
+
+    if current-index == SetupIndex.CreateAccount: CreateAccount {
+        back => {
+            current-index = SetupIndex.SetupType;
+        }
+
+        confirm => {
+            if (Logic.is-valid-mnemonic(self.mnemonics)) {
+                root.mnemonics = self.mnemonics;
+                prev-index = SetupIndex.CreateAccount;
+                current-index = SetupIndex.SetPassword;
+            }
+        }
+    }
+
+    if current-index == SetupIndex.RecoverAccount: RecoverAccount {
+        back => {
+            current-index = SetupIndex.SetupType;
+        }
+
+        confirm => {
+            if (Logic.is-valid-mnemonic(self.mnemonics)) {
+                root.mnemonics = self.mnemonics;
+                prev-index = SetupIndex.RecoverAccount;
+                current-index = SetupIndex.SetPassword;
+            }
+        }
+    }
+
+    if current-index == SetupIndex.SetPassword: SetPassword {
+        back => {
+            current-index = prev-index;
+        }
+
+        confirm(username, password) => {
+            Logic.save-secret-info(username, password, root.mnemonics);
+        }
+    }
+}
