@@ -8,8 +8,6 @@ export component SetPassword inherits Rectangle {
     callback confirm <=> si.confirm;
 
     si := SignIn {
-        is-show-username: true;
-
         cancel => {
             self.back();
         }

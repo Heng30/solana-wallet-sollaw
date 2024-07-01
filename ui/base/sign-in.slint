@@ -10,19 +10,18 @@ import { SettingDetailInner, SettingDetailInnerVbox, SettingDetailLabel } from "
 
 export component SignIn inherits Rectangle {
     in property <bool> is-show-header: true;
-    in property <bool> is-show-username;
 
     private property <string> error-message;
-    private property <string> username;
 
     callback cancel();
     callback back();
 
-    //(username, password) -> void
-    callback confirm(string, string);
+    //(username, password-frist, password-second) -> error-message
+    callback confirm(string, string, string) -> string;
 
     public function reset() {
         error-message = "";
+        username-lineedit.text = "";
         password-first-lineedit.text = "";
         password-second-lineedit.text = "";
     }
@@ -39,8 +38,7 @@ export component SignIn inherits Rectangle {
         SettingDetailInner {
             vbox-alignment: LayoutAlignment.center;
 
-
-            if is-show-username : SettingDetailInnerVbox {
+            SettingDetailInnerVbox {
                 username-txt := SettingDetailLabel {
                     text: Logic.tr(Store.is-cn, "请输入用户名");
                 }
@@ -53,12 +51,14 @@ export component SignIn inherits Rectangle {
                         width: root.width - Theme.padding * 4;
                         placeholder-text: Logic.tr(Store.is-cn, "用户名");
 
+                        edited => {
+                            root.error-message = "";
+                        }
+
                         clicked => {
                             username-lineedit.text = "";
                             username-lineedit.paste();
                         }
-
-                        edited => { root.username = self.text; }
                     }
                 }
             }
@@ -140,11 +140,7 @@ export component SignIn inherits Rectangle {
                     text: Logic.tr(Store.is-cn, "确定");
 
                     clicked => {
-                        root.error-message = Logic.is-valid-passwords(password-first-lineedit.text, password-second-lineedit.text);
-
-                        if (root.error-message == "") {
-                            root.confirm(root.username, password-first-lineedit.text);
-                        }
+                        root.error-message = root.confirm(username-lineedit.text, password-first-lineedit.text, password-second-lineedit.text);
                     }
                 }
             }

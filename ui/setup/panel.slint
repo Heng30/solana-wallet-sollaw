@@ -10,6 +10,7 @@ export component Setup inherits Rectangle {
     private property <SetupIndex> prev-index: SetupType;
     private property current-index <=> Store.current-setup-index;
     private property <[string]> mnemonics;
+    private property <string> sign-in-error-message;
 
     background: Theme.base-background;
 
@@ -56,8 +57,15 @@ export component Setup inherits Rectangle {
             current-index = prev-index;
         }
 
-        confirm(username, password) => {
-            Logic.save-secret-info(username, password, root.mnemonics);
+        confirm(username, password-first, password-second) => {
+            root.sign-in-error-message = Logic.is-valid-sign-in-info(username, password-first, password-second);
+
+            if (root.sign-in-error-message != "") {
+                return root.sign-in-error-message;
+            }
+
+            Logic.save-secret-info(username, password-first, root.mnemonics);
+            return "";
         }
     }
 }

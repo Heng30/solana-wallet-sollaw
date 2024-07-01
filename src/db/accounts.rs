@@ -64,7 +64,6 @@ pub async fn delete(uuid: &str) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 pub async fn delete_all() -> Result<()> {
     sqlx::query("DELETE FROM accounts").execute(&pool()).await?;
     Ok(())

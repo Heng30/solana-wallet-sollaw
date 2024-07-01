@@ -5,7 +5,7 @@ import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
 import { Toast, IconsDialogSetting, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage } from "./base/widgets.slint";
 
-import { SignIn, Login, Mnemonic } from "./base/widgets.slint";
+import { SignIn, Login, Password, Mnemonic } from "./base/widgets.slint";
 import { Setup } from "./setup/panel.slint";
 import { CreateAccount } from "./setup/create-account.slint";
 
@@ -67,6 +67,7 @@ export component AppWindow inherits Window {
     Rectangle {
         visible: false;
         background: white;
+        Password {}
         // Login {}
         // SignIn {}
     }

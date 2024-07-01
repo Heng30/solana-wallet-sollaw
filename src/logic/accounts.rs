@@ -1,6 +1,10 @@
 use crate::{
     config,
-    db::{self, accounts::AccountEntry, ComEntry},
+    db::{
+        self,
+        accounts::{AccountEntry, SecretInfo, SECRET_UUID},
+        ComEntry,
+    },
     logic::message::{async_message_success, async_message_warn},
     message_info, message_success, message_warn,
     slint_generatedAppWindow::{AccountEntry as UIAccountEntry, AppWindow, Logic, Store},
@@ -26,6 +30,47 @@ macro_rules! store_accounts {
             .downcast_ref::<VecModel<UIAccountEntry>>()
             .expect("We know we set a VecModel earlier")
     };
+}
+
+async fn get_secrect_info() -> Result<SecretInfo> {
+    let cm = db::accounts::select(SECRET_UUID)
+        .await
+        .with_context(|| "Get SecretInfo failed")?;
+    serde_json::from_str::<SecretInfo>(&cm.data)
+        .with_context(|| format!("Parse Json failed. {cm:?}"))
+}
+
+async fn insert_secret_info(mut info: SecretInfo) -> Result<()> {
+    info.mnemonic = crypto::encrypt(&info.password, &info.mnemonic.as_bytes())?;
+    info.password = crypto::hash(&info.password);
+
+    let info = serde_json::to_string(&info)?;
+
+    _ = db::accounts::delete(SECRET_UUID).await;
+    db::accounts::insert(SECRET_UUID, &info)
+        .await
+        .with_context(|| "insert SecretInfo failed")
+}
+
+async fn update_secret_info(mut info: SecretInfo, old_password: Option<String>) -> Result<()> {
+    if let Some(old_password) = old_password {
+        let mn = crypto::decrypt(&old_password, &info.mnemonic)?;
+        info.mnemonic = crypto::encrypt(&info.password, &mn)?;
+        info.password = crypto::hash(&info.password);
+    }
+
+    let info = serde_json::to_string(&info)?;
+    db::accounts::update(SECRET_UUID, &info)
+        .await
+        .with_context(|| "update SecretInfo failed")
+}
+
+fn is_valid_secret_info(info: &SecretInfo) -> bool {
+    !info.password.is_empty() && !info.mnemonic.is_empty() && info.current_derive_index >= 0
+}
+
+fn accounts_sort_fn(a: &UIAccountEntry, b: &UIAccountEntry) -> Ordering {
+    a.derive_index.cmp(&b.derive_index)
 }
 
 fn get_account(ui: &AppWindow, uuid: &str) -> Option<(usize, UIAccountEntry)> {
@@ -55,52 +100,66 @@ fn get_account_by_derive_index(
     None
 }
 
-fn parse_com_entry(items: Vec<ComEntry>) -> Vec<AccountEntry> {
-    let mut list = vec![];
+fn get_unused_derive_index(ui: &AppWindow) -> i32 {
+    let mut indexs = ui
+        .global::<Store>()
+        .get_accounts()
+        .iter()
+        .map(|item| item.derive_index)
+        .collect::<Vec<i32>>();
+
+    indexs.sort();
+
+    for (k, v) in indexs.iter().enumerate() {
+        if k as i32 != *v {
+            return k as i32;
+        }
+    }
+
+    indexs.len() as i32
+}
+
+fn parse_com_entry(items: Vec<ComEntry>) -> (Option<SecretInfo>, Vec<AccountEntry>) {
+    let (mut info, mut list) = (None, vec![]);
+
     for item in items.into_iter() {
-        if item.uuid == db::accounts::SECRET_UUID {
+        if item.uuid == SECRET_UUID {
+            info = serde_json::from_str::<SecretInfo>(&item.data).ok();
             continue;
         }
 
         let entry = match serde_json::from_str::<AccountEntry>(&item.data) {
             Ok(v) => v,
-            Err(e) => {
-                log::warn!("{:?}", e);
-                continue;
-            }
+            _ => continue,
         };
 
         list.push(entry);
     }
 
-    list
-}
-
-fn remove_all_account(ui: &AppWindow) {
-    let uuids = ui
-        .global::<Store>()
-        .get_accounts()
-        .iter()
-        .map(|item| item.uuid)
-        .collect::<Vec<_>>();
-
-    for uuid in uuids.into_iter() {
-        ui.global::<Logic>().invoke_remove_account(uuid);
-    }
+    (info, list)
 }
 
 fn init_accounts(ui: &AppWindow) {
     store_accounts!(ui).set_vec(vec![]);
+    ui.global::<Store>().set_is_show_setup_page(true);
 
     let ui_handle = ui.as_weak();
     tokio::spawn(async move {
         match db::accounts::select_all().await {
             Ok(items) => {
-                let accounts = parse_com_entry(items);
+                let (secret_info, accounts) = parse_com_entry(items);
+                if secret_info.is_none() || accounts.is_empty() {
+                    _ = db::accounts::delete_all().await;
+                    return;
+                }
 
-                let ui = ui_handle.clone();
+                let secret_info = secret_info.unwrap();
+                if !is_valid_secret_info(&secret_info) {
+                    return;
+                }
+
                 _ = slint::invoke_from_event_loop(move || {
-                    init_accounts_store(&ui.unwrap(), accounts);
+                    init_accounts_in_event_loop(&ui_handle.unwrap(), secret_info, accounts);
                 });
             }
             Err(e) => log::warn!("{e:?}"),
@@ -108,17 +167,20 @@ fn init_accounts(ui: &AppWindow) {
     });
 }
 
-fn init_accounts_store(ui: &AppWindow, accounts: Vec<AccountEntry>) {
-    let list = accounts
+fn init_accounts_in_event_loop(
+    ui: &AppWindow,
+    secret_info: SecretInfo,
+    accounts: Vec<AccountEntry>,
+) {
+    let mut list = accounts
         .into_iter()
         .map(|item| item.into())
         .collect::<Vec<UIAccountEntry>>();
+    list.sort_by(accounts_sort_fn);
 
     store_accounts!(ui).set_vec(list);
 
-    let current_derive_index = 0; // TODO
-
-    match get_account_by_derive_index(&ui, current_derive_index) {
+    match get_account_by_derive_index(&ui, secret_info.current_derive_index) {
         Some((_, account)) => {
             ui.global::<Store>().set_is_show_setup_page(false);
             ui.global::<Store>().set_current_account(account.into());
@@ -128,12 +190,23 @@ fn init_accounts_store(ui: &AppWindow, accounts: Vec<AccountEntry>) {
                 let account = store_accounts!(ui).row_data(0).unwrap();
                 ui.global::<Store>().set_current_account(account);
                 ui.global::<Store>().set_is_show_setup_page(false);
-                // TODO: update secret info
-            } else {
-                ui.global::<Store>().set_is_show_setup_page(true);
+                ui.global::<Logic>().invoke_update_current_derive_index(0);
             }
         }
     }
+}
+
+fn get_keypair(password: &str, mnemonic: &str, derive_index: i32) -> Result<Keypair> {
+    let mnemonic = crypto::decrypt(password, mnemonic)
+        .with_context(|| "Decrypt mnemonic with password failed")?;
+    let mnemonic = std::str::from_utf8(&mnemonic).with_context(|| "Mnemonic is not valid utf8")?;
+
+    let passphrase = crypto::hash(mnemonic);
+    let mn = mnemonic::mnemonic_from_phrase(mnemonic)?;
+    let seed = wallet::seed::generate_seed(&mn, &passphrase);
+
+    let seed_bytes = wallet::seed::derive_seed_bytes(&seed.as_bytes(), derive_index as usize)?;
+    wallet::address::generate_keypair(&seed_bytes)
 }
 
 pub fn init(ui: &AppWindow) {
@@ -176,13 +249,13 @@ pub fn init(ui: &AppWindow) {
             .map(|item| item.to_string().into())
             .collect::<Vec<_>>();
 
-        if mns.len() != 12 || mns.len() != 24 {
+        if mns.len() == 12 || mns.len() == 24 {
+            VecModel::from_slice(&mns)
+        } else {
             let empty_mns = (0..12)
                 .map(|_| SharedString::new())
                 .collect::<Vec<SharedString>>();
             VecModel::from_slice(&empty_mns)
-        } else {
-            VecModel::from_slice(&mns)
         }
     });
 
@@ -209,50 +282,217 @@ pub fn init(ui: &AppWindow) {
         true
     });
 
-    // let ui_handle = ui.as_weak();
-    // ui.global::<Logic>().on_cache_mnemonics(move |mnemonics| {
-    //     let ui = ui_handle.unwrap();
-    //     let mut account = ui.global::<Store>().get_current_account();
-    //     account.mnemonic = ui.global::<Logic>().invoke_join_mnemonics(mnemonics);
-    //     match _cache_mnemonic(&account.mnemonic) {
-    //         Ok(pubkey) => {
-    //             account.pubkey = pubkey.into();
-    //             ui.global::<Store>().set_current_account(account);
-    //         }
-    //         Err(e) => message_warn!(ui, format!("{}. {}: {e:?}", tr("出错"), tr("原因"))),
-    //     }
-    // });
+    ui.global::<Logic>().on_is_valid_sign_in_info(
+        move |username, password_first, password_second| {
+            if username.is_empty() {
+                return tr("用户名不能为空").into();
+            }
 
-    // let ui_handle = ui.as_weak();
-    // ui.global::<Logic>().on_save_password(move |password| {
-    //     let ui = ui_handle.unwrap();
-    //     let mut account = ui.global::<Store>().get_current_account();
+            if password_first != password_second {
+                return tr("密码不相同").into();
+            }
 
-    //     match _save_password(&password, &account.mnemonic) {
-    //         Ok(mn) => {
-    //             account.mnemonic = mn;
-    //             account.uuid = Uuid::new_v4().to_string();
-    //             account.name = "Account-1".into();
-    //             ui.global::<Store>().set_current_account(account);
-    //         }
-    //         Err(e) => message_warn!(ui, format!("{}. {}: {e:?}", tr("出错"), tr("原因"))),
-    //     }
-    // });
+            if password_first.len() < 8 || password_second.len() < 8 {
+                return tr("密码不能小于8位").into();
+            }
+
+            SharedString::new()
+        },
+    );
+
+    ui.global::<Logic>().on_is_valid_password(move |password| {
+        if password.len() < 8 {
+            return tr("密码不能小于8位").into();
+        }
+
+        SharedString::new()
+    });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_save_secret_info(move |username, password, mnemonics| {
+            let ui = ui_handle.unwrap();
+            let mn = ui.global::<Logic>().invoke_join_mnemonics(mnemonics);
+
+            let info = SecretInfo {
+                mnemonic: mn.into(),
+                password: password.clone().into(),
+                current_derive_index: 0,
+            };
+
+            let ui_handle = ui.as_weak();
+            tokio::spawn(async move {
+                if let Err(e) = insert_secret_info(info).await {
+                    async_message_warn(ui_handle, format!("{}. {e:?}", tr("保存失败")));
+                } else {
+                    _ = slint::invoke_from_event_loop(move || {
+                        ui_handle
+                            .unwrap()
+                            .global::<Logic>()
+                            .invoke_new_account(username, password);
+                    });
+                }
+            });
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_update_password(move |old_password, new_password| {
+            let ui_handle = ui_handle.clone();
+            tokio::spawn(async move {
+                match get_secrect_info().await {
+                    Ok(mut info) => {
+                        info.password = new_password.into();
+                        match update_secret_info(info, Some(old_password.into())).await {
+                            Err(e) => {
+                                async_message_warn(ui_handle, format!("{}. {e:?}", tr("保存失败")))
+                            }
+                            _ => async_message_success(ui_handle, tr("保存成功")),
+                        }
+                    }
+                    Err(e) => async_message_warn(ui_handle, format!("{}. {e:?}", tr("保存失败"))),
+                }
+            });
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_update_current_derive_index(move |derive_index| {
+            let ui_handle = ui_handle.clone();
+            tokio::spawn(async move {
+                match get_secrect_info().await {
+                    Ok(mut info) => {
+                        info.current_derive_index = derive_index;
+                        if let Err(e) = update_secret_info(info, None).await {
+                            async_message_warn(ui_handle, format!("{}. {e:?}", tr("保存失败")));
+                        }
+                    }
+                    Err(e) => async_message_warn(ui_handle, format!("{}. {e:?}", tr("保存失败"))),
+                }
+            });
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_new_account(move |name, password| {
+        _new_account(&ui_handle.unwrap(), name, password);
+    });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_update_account(move |uuid, name| {
+        let ui = ui_handle.unwrap();
+        match get_account(&ui, &uuid) {
+            Some((index, mut account)) => {
+                account.name = name;
+
+                if ui.global::<Store>().get_current_account().uuid == uuid {
+                    ui.global::<Store>().set_current_account(account.clone());
+                }
+                store_accounts!(ui).set_row_data(index, account.clone());
+
+                _update_account(account.into());
+                message_success!(ui, tr("更新账户成功"));
+            }
+            None => message_warn!(ui, "更新账户失败. 账户不存在"),
+        }
+    });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_remove_account(move |uuid| {
+        let ui = ui_handle.unwrap();
+
+        if ui.global::<Store>().get_current_account().uuid == uuid {
+            message_warn!(ui, tr("不允许删除当前用户"));
+        }
+
+        match get_account(&ui, &uuid) {
+            Some((index, account)) => {
+                store_accounts!(ui).remove(index);
+                _remove_account(uuid);
+                message_success!(ui, tr("删除账户成功"));
+            }
+            None => (),
+        }
+    });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_switch_account(move |old_uuid, new_uuid| {
+            if old_uuid == new_uuid {
+                return;
+            }
+
+            let ui = ui_handle.unwrap();
+            match get_account(&ui, &new_uuid) {
+                Some((_, account)) => {
+                    ui.global::<Store>().set_current_account(account);
+                    // TODO: fetch the account info from the blockchain
+                    message_success!(ui, tr("切换账户成功"));
+                }
+                None => message_success!(ui, tr("切换账户失败，账户不存在")),
+            }
+        });
 }
 
-// fn _cache_mnemonic(mnemonic: &str) -> Result<String> {
-//     let passphrase = crypto::hash(mnemonic);
-//     let mn = mnemonic::mnemonic_from_phrase(mnemonic)?;
-//     let seed = wallet::seed::generate_seed(&mn, &passphrase);
+fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
+    let derive_index = get_unused_derive_index(&ui);
+    let ui_handle = ui.as_weak();
 
-//     let seed_bytes = wallet::seed::derive_seed_bytes(&seed.as_bytes(), 0)?;
-//     let keypair = wallet::address::generate_keypair(&seed_bytes)?;
-//     Ok(keypair.pubkey().to_string())
-// }
+    tokio::spawn(async move {
+        match get_secrect_info().await {
+            Ok(info) => {
+                if crypto::hash(&password) != info.password {
+                    async_message_warn(ui_handle.clone(), tr("创建用户失败，非法密码"));
+                }
 
-// fn _save_password(password: &str, &mn: &str) -> Result<()> {
-//     let mn = crypto::encrypt(password, mn)?;
-//     let conf = config::all();
-//     conf.wallet.password = crypto::hash(password);
-//     conf.save()
-// }
+                match get_keypair(&password, &info.mnemonic, derive_index) {
+                    Ok(kp) => {
+                        let account = AccountEntry {
+                            uuid: Uuid::new_v4().to_string(),
+                            name: if name.is_empty() {
+                                format!("Account-{derive_index}")
+                            } else {
+                                name.into()
+                            },
+                            pubkey: kp.pubkey().to_string(),
+                            derive_index,
+                        };
+
+                        let data = serde_json::to_string(&account).unwrap();
+                        _ = db::accounts::insert(&account.uuid, &data).await;
+
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+
+                            if store_accounts!(ui).row_count() == 0 {
+                                ui.global::<Store>()
+                                    .set_current_account(account.clone().into());
+                                store_accounts!(ui).set_vec(vec![account.into()]);
+                            } else {
+                                store_accounts!(ui).push(account.into());
+                            }
+
+                            ui.global::<Store>().set_is_show_setup_page(false);
+                            message_success!(ui, tr("创建用户成功"));
+                        });
+                    }
+                    Err(e) => {
+                        async_message_warn(ui_handle, format!("{}. {e:?}", tr("创建用户失败")))
+                    }
+                }
+            }
+            Err(e) => async_message_warn(ui_handle, format!("{}. {e:?}", tr("创建用户失败"))),
+        }
+    });
+}
+
+fn _update_account(account: AccountEntry) {
+    tokio::spawn(async move {
+        _ = db::accounts::update(&account.uuid, &serde_json::to_string(&account).unwrap());
+    });
+}
+
+fn _remove_account(uuid: SharedString) {
+    tokio::spawn(async move {
+        _ = db::accounts::delete(&uuid);
+    });
+}
