@@ -3,7 +3,7 @@ import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
 import { Store,  SettingUI, SettingDetailIndex } from "../../store.slint";
-import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn} from "../../base/widgets.slint";
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting} from "../../base/widgets.slint";
 
 component UI inherits SettingDetail {
     title: Logic.tr(Store.is-cn, "界 面");
@@ -19,7 +19,7 @@ component UI inherits SettingDetail {
         };
     }
 
-    public function set() {
+    init => {
         font-size-lineedit.text = Store.setting-ui.font-size;
         fonts-combox.current-value = Store.setting-ui.font-family;
     }
@@ -102,6 +102,75 @@ component UI inherits SettingDetail {
                     }
                 }
             }
+        }
+    }
+}
+
+component Accounts inherits Rectangle {
+    callback back <=> sd.back;
+
+    sd := SettingDetail {
+        title: Logic.tr(Store.is-cn, "账户管理");
+
+        private property <length> item-height: 80px;
+
+        SettingDetailInner {
+            for item[index] in Store.accounts: VerticalLayout {
+                alignment: LayoutAlignment.center;
+
+                ListTile {
+                    private property <int> icon-index: Util.bound(0, item.avatar-index, IconsDialogSetting.icons.length - 1);
+
+                    height: item-height;
+                    background: self.is-hover ? Theme.base-background.darker(3%) : Theme.base-background;
+                    border-radius: Theme.border-radius;
+                    drop-shadow-blur: Theme.padding * 2;
+                    drop-shadow-color: Theme.base-background-drop-shadow;
+
+                    is-show-left-icon: true;
+                    left-icon-is-avatar: true;
+                    left-icon-size: item-height / 2;
+                    left-icon-colorize: Theme.icon-color;
+                    left-icon-background: Theme.secondary-background;
+                    left-icon-hover-background: self.left-icon-background.darker(5%);
+                    left-icon-border-width: 2px;
+                    left-icon-border-color: Theme.secondary-brand-color;
+
+                    left-icon: IconsDialogSetting.icons[icon-index];
+
+                    title-text: item.name;
+                    subtitle-text: "$" + item.balance;
+                    middle-mouse-cursor: MouseCursor.pointer;
+
+                    is-show-right-icon: true;
+                    right-icon: Icons.switch;
+
+                    left-clicked => {
+                        IconsDialogSetting.show = true;
+                        IconsDialogSetting.handle-type = "account";
+                        IconsDialogSetting.user-data = item.uuid;
+                    }
+
+                    middle-clicked => {
+                        Store.current-setting-detail-index = SettingDetailIndex.AccountDetail;
+                    }
+
+                    right-clicked => {
+                        Logic.switch-account(Store.current-account.uuid, item.uuid);
+                    }
+                }
+            }
+        }
+    }
+
+    ElevatedBtn {
+        x: root.width - self.width - Theme.padding * 4;
+        y: root.height - self.height - Theme.padding * 4;
+        icon: Icons.add-small;
+
+        clicked => {
+            PasswordSetting.show = true;
+            PasswordSetting.handle-type = "new-account";
         }
     }
 }
@@ -264,6 +333,16 @@ component Body inherits VerticalLayout {
             }
 
             SettingEntry {
+                text: Logic.tr(Store.is-cn, "账 户");
+                icon: Icons.ui;
+
+                clicked => {
+                    root.current-setting-detail-index = SettingDetailIndex.Accounts;
+                    root.switch(SettingDetailIndex.Accounts);
+                }
+            }
+
+            SettingEntry {
                 text: Logic.tr(Store.is-cn, "关 于");
                 icon: Icons.about-light;
                 clicked => {
@@ -303,17 +382,11 @@ export component Setting inherits Rectangle {
         visible: self.current-setting-detail-index == SettingDetailIndex.Home;
 
         switch(index) => {
-            if (index == SettingDetailIndex.UI) {
-                ui.set();
-            }
         }
     }
 
-    Rectangle {
-        visible: !body.visible;
-
-        ui := UI {
-            visible: body.current-setting-detail-index == SettingDetailIndex.UI;
+    if !body.visible: Rectangle {
+        if body.current-setting-detail-index == SettingDetailIndex.UI: UI {
             back => {
                 if (self.get().font-size == "") {
                     Logic.show-message(Logic.tr(Store.is-cn, "非法输入，输入不能为空"), "warning");
@@ -323,9 +396,13 @@ export component Setting inherits Rectangle {
                 Logic.set-setting-ui(self.get());
             }
         }
-    }
 
-    if !body.visible: Rectangle {
+        if body.current-setting-detail-index == SettingDetailIndex.Accounts: Accounts {
+            back => {
+                body.current-setting-detail-index = SettingDetailIndex.Home;
+            }
+        }
+
         if body.current-setting-detail-index == SettingDetailIndex.About: About {
             back => {
                 body.current-setting-detail-index = SettingDetailIndex.Home;

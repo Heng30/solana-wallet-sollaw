@@ -7,7 +7,9 @@ use crate::{
     },
     logic::message::{async_message_success, async_message_warn},
     message_info, message_success, message_warn,
-    slint_generatedAppWindow::{AccountEntry as UIAccountEntry, AppWindow, Logic, Store},
+    slint_generatedAppWindow::{
+        AccountEntry as UIAccountEntry, AppWindow, IconsDialogSetting, Logic, Store, Util,
+    },
     util::{
         self,
         crypto::{self, md5_hex},
@@ -378,23 +380,48 @@ pub fn init(ui: &AppWindow) {
     });
 
     let ui_handle = ui.as_weak();
-    ui.global::<Logic>().on_update_account(move |uuid, name| {
-        let ui = ui_handle.unwrap();
-        match get_account(&ui, &uuid) {
-            Some((index, mut account)) => {
-                account.name = name;
+    ui.global::<Logic>()
+        .on_update_account_name(move |uuid, name| {
+            let ui = ui_handle.unwrap();
+            match get_account(&ui, &uuid) {
+                Some((index, mut account)) => {
+                    account.name = name;
 
-                if ui.global::<Store>().get_current_account().uuid == uuid {
-                    ui.global::<Store>().set_current_account(account.clone());
+                    if ui.global::<Store>().get_current_account().uuid == uuid {
+                        ui.global::<Store>().set_current_account(account.clone());
+                    }
+                    store_accounts!(ui).set_row_data(index, account.clone());
+
+                    _update_account(account.into());
+                    message_success!(ui, tr("更新账户成功"));
                 }
-                store_accounts!(ui).set_row_data(index, account.clone());
-
-                _update_account(account.into());
-                message_success!(ui, tr("更新账户成功"));
+                None => message_warn!(ui, "更新账户失败. 账户不存在"),
             }
-            None => message_warn!(ui, "更新账户失败. 账户不存在"),
-        }
-    });
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_update_account_avatar_index(move |uuid, avatar_index| {
+            log::debug!("{uuid}, {avatar_index}");
+
+            let ui = ui_handle.unwrap();
+            match get_account(&ui, &uuid) {
+                Some((index, mut account)) => {
+                    account.avatar_index = avatar_index;
+
+                    log::debug!("{account:?}");
+
+                    if ui.global::<Store>().get_current_account().uuid == uuid {
+                        ui.global::<Store>().set_current_account(account.clone());
+                    }
+                    store_accounts!(ui).set_row_data(index, account.clone());
+
+                    _update_account(account.into());
+                    message_success!(ui, tr("更新账户成功"));
+                }
+                None => message_warn!(ui, "更新账户失败. 账户不存在"),
+            }
+        });
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>().on_remove_account(move |uuid| {
@@ -404,13 +431,15 @@ pub fn init(ui: &AppWindow) {
             message_warn!(ui, tr("不允许删除当前用户"));
         }
 
-        match get_account(&ui, &uuid) {
-            Some((index, account)) => {
-                store_accounts!(ui).remove(index);
-                _remove_account(uuid);
-                message_success!(ui, tr("删除账户成功"));
+        if let Some((index, account)) = get_account(&ui, &uuid) {
+            if account.derive_index == 0 {
+                message_warn!(ui, tr("不允许删除主账号"));
+                return;
             }
-            None => (),
+
+            store_accounts!(ui).remove(index);
+            _remove_account(uuid);
+            message_success!(ui, tr("删除账户成功"));
         }
     });
 
@@ -428,20 +457,22 @@ pub fn init(ui: &AppWindow) {
                     // TODO: fetch the account info from the blockchain
                     message_success!(ui, tr("切换账户成功"));
                 }
-                None => message_success!(ui, tr("切换账户失败，账户不存在")),
+                None => message_success!(ui, tr("切换账户失败. 账户不存在")),
             }
         });
 }
 
 fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
     let derive_index = get_unused_derive_index(&ui);
+    let avatar_index = ui.global::<IconsDialogSetting>().invoke_rand_icon_index();
+
     let ui_handle = ui.as_weak();
 
     tokio::spawn(async move {
         match get_secrect_info().await {
             Ok(info) => {
                 if crypto::hash(&password) != info.password {
-                    async_message_warn(ui_handle.clone(), tr("创建用户失败，非法密码"));
+                    async_message_warn(ui_handle.clone(), tr("创建用户失败. 非法密码"));
                 }
 
                 match get_keypair(&password, &info.mnemonic, derive_index) {
@@ -455,6 +486,8 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
                             },
                             pubkey: kp.pubkey().to_string(),
                             derive_index,
+                            avatar_index,
+                            balance: String::from("0"),
                         };
 
                         let data = serde_json::to_string(&account).unwrap();
@@ -487,12 +520,12 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
 
 fn _update_account(account: AccountEntry) {
     tokio::spawn(async move {
-        _ = db::accounts::update(&account.uuid, &serde_json::to_string(&account).unwrap());
+        _ = db::accounts::update(&account.uuid, &serde_json::to_string(&account).unwrap()).await;
     });
 }
 
 fn _remove_account(uuid: SharedString) {
     tokio::spawn(async move {
-        _ = db::accounts::delete(&uuid);
+        _ = db::accounts::delete(&uuid).await;
     });
 }

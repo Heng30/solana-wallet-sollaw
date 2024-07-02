@@ -2,6 +2,29 @@ import { Theme, Icons } from "../theme.slint";
 import { IconBtn } from "./icon-btn.slint";
 import { Label } from "./label.slint";
 
+// Example:
+// VerticalLayout {
+//     alignment: LayoutAlignment.center;
+
+//     ListTile {
+//         height: item-height;
+//         background: Theme.secondary-background;
+//         border-radius: Theme.border-radius;
+//         is-show-left-icon: true;
+//         left-icon-size: item-height / 2;
+//         left-icon-background: Theme.secondary-brand-color;
+//         left-icon: Icons.Home;
+//         left-icon-is-avatar: true;
+
+//         title-text: item.name;
+//         subtitle-text: "$" + item.balance;
+//         middle-mouse-cursor: MouseCursor.pointer;
+
+//         is-show-right-icon: true;
+//         right-icon: Icons.delete;
+//     }
+// }
+
 export component ListTile inherits Rectangle {
     height: vbox.preferred-height;
 
@@ -9,12 +32,18 @@ export component ListTile inherits Rectangle {
     callback right-clicked();
     callback middle-clicked();
 
+    out property <bool> is-hover <=> middle-area.has-hover;
+
     in property <bool> is-show-left-icon;
-    in property <length> left-icon-size: Theme.icon-size;
-    in property <color> left-colorize;
+    in property <bool> left-icon-is-avatar;
     in property <image> left-icon;
+    in property <length> left-icon-size: Theme.icon-size;
+    in property <color> left-icon-colorize;
     in property <color> left-icon-background;
     in property <color> left-icon-hover-background;
+    in property <length> left-icon-border-radius: Theme.border-radius;
+    in property <length> left-icon-border-width;
+    in property <color> left-icon-border-color;
 
     in property <color> middle-background;
     in property <color> middle-hover-background;
@@ -43,22 +72,28 @@ export component ListTile inherits Rectangle {
             horizontal-stretch: 1;
             spacing: Theme.spacing * 2;
 
-            if is-show-left-icon: Rectangle {
-                width: root.left-icon-size + Theme.padding * 4;
-                border-radius: Theme.border-radius;
-                background: img-area.has-hover ? root.left-icon-hover-background : root.left-icon-background;
+            if is-show-left-icon: VerticalLayout {
+                alignment: LayoutAlignment.center;
+                Rectangle {
+                    width: root.left-icon-size + Theme.padding * 4;
+                    height: self.width;
+                    border-width: left-icon-border-width;
+                    border-color: left-icon-border-color;
+                    border-radius: left-icon-is-avatar ? self.width / 2 : left-icon-border-radius;
+                    background: img-area.has-hover ? root.left-icon-hover-background : root.left-icon-background;
 
-                img := Image {
-                    height: root.left-icon-size;
-                    width: self.height;
-                    source: root.left-icon;
-                    colorize: root.left-colorize;
-                }
+                    img := Image {
+                        height: root.left-icon-size;
+                        width: self.height;
+                        source: root.left-icon;
+                        colorize: root.left-icon-colorize;
+                    }
 
-                img-area := TouchArea {
-                    mouse-cursor: MouseCursor.pointer;
-                    clicked => {
-                        root.left-clicked();
+                    img-area := TouchArea {
+                        mouse-cursor: MouseCursor.pointer;
+                        clicked => {
+                            root.left-clicked();
+                        }
                     }
                 }
             }

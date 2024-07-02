@@ -5,12 +5,14 @@ use serde::{Deserialize, Serialize};
 
 pub const SECRET_UUID: &str = "secret-uuid";
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct AccountEntry {
     pub uuid: String,
     pub name: String,
     pub pubkey: String,
     pub derive_index: i32,
+    pub avatar_index: i32,
+    pub balance: String,
 }
 
 impl From<UIAccountEntry> for AccountEntry {
@@ -20,6 +22,8 @@ impl From<UIAccountEntry> for AccountEntry {
             name: entry.name.into(),
             pubkey: entry.pubkey.into(),
             derive_index: entry.derive_index,
+            avatar_index: entry.avatar_index,
+            balance: entry.balance.into(),
         }
     }
 }
@@ -31,6 +35,8 @@ impl From<AccountEntry> for UIAccountEntry {
             name: entry.name.into(),
             pubkey: entry.pubkey.into(),
             derive_index: entry.derive_index,
+            avatar_index: entry.avatar_index,
+            balance: entry.balance.into(),
         }
     }
 }

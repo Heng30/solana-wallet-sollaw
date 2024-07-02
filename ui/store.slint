@@ -13,6 +13,9 @@ export enum SettingDetailIndex {
     About,
     Help,
     Donate,
+
+    Accounts,
+    AccountDetail,
 }
 
 export enum SetupIndex {
@@ -27,6 +30,8 @@ export struct AccountEntry {
     name: string,
     pubkey: string,
     derive-index: int,
+    avatar-index: int,
+    balance: string,
 }
 
 export struct MessageItem {
@@ -50,12 +55,21 @@ export struct AboutDialog {
 
 export global Store {
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
-    in-out property <TabIndex> current-tab-index: TabIndex.Home;
+    in-out property <TabIndex> current-tab-index: TabIndex.Setting;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
-    in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
+    in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Accounts;
 
     in-out property <AccountEntry> current-account;
-    in-out property <[AccountEntry]> accounts: [];
+    in-out property <[AccountEntry]> accounts: [
+        {
+            uuid: "uuid-1",
+            name: "Account-1",
+            pubkey: "pubkey-test",
+            derive-index: 0,
+            avatar-index: 0,
+            balance: "100.21",
+        }
+    ];
 
     in-out property <MessageItem> message;
     in-out property <bool> is-first-run;

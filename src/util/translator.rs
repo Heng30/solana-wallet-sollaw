@@ -164,6 +164,20 @@ pub fn tr(text: &str) -> String {
     items.insert("生成组记词失败", "New mnemonic failed");
     items.insert("组记词数量不对，仅支持12和24个组记词", "Mnemonic counts is no correct. Only support 12 or 24 word counts mnemonic");
     items.insert("非法组记词", "Invalid mnemonic");
+    items.insert("用户名不能为空", "Username can not be empty");
+    items.insert("密码不相同", "Two passwords is different");
+    items.insert("密码不能小于8位", "Password can not less than 8 chars");
+    items.insert("更新账户成功", "Update account success");
+    items.insert("更新账户失败. 账户不存在", "Update account failed. The account don't exist");
+    items.insert("不允许删除当前用户", "Not allow delete current account");
+    items.insert("不允许删除主账号", "Not allow delete the main account");
+    items.insert("删除账户成功", "Delete account success");
+    items.insert("切换账户成功", "Switch account success");
+    items.insert("切换账户失败. 账户不存在", "Switch account failed. The account don't exist");
+    items.insert("创建用户失败. 非法密码", "Create account failed. Invalid password");
+    items.insert("创建用户成功", "Create account success");
+    items.insert("创建用户失败", "Create account failed");
+
 
     // TODO
     items.insert(

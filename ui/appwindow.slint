@@ -3,7 +3,7 @@ import { Logic } from "./logic.slint";
 import { Store } from "./store.slint";
 import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
-import { Toast, IconsDialogSetting, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage } from "./base/widgets.slint";
+import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage, Password, PasswordSetting } from "./base/widgets.slint";
 
 import { SignIn, Login, Password, Mnemonic } from "./base/widgets.slint";
 import { Setup } from "./setup/panel.slint";
@@ -18,13 +18,49 @@ export component AppWindow inherits Window {
     icon: Icons.brand;
     title: "rssbox";
 
-    if !Store.is-show-setup-page : Panel { }
-    if Store.is-show-setup-page : Setup {}
+    if !Store.is-show-setup-page: Panel { }
+    if Store.is-show-setup-page: Setup { }
 
-    if IconsDialogSetting.show || OkCancelDialogSetting.body-text != "": Blanket {
+    if IconsDialogSetting.show || PasswordSetting.show || OkCancelDialogSetting.body-text != "": Blanket {
         clicked => {
             IconsDialogSetting.show = false;
+            PasswordSetting.show = false;
             OkCancelDialogSetting.body-text = "";
+        }
+    }
+
+    if IconsDialogSetting.show: IconsDialog {
+        is-prevent-event-forward: true;
+        select-index(handle-type, index, user-data) => {
+            if (handle-type == "account") {
+                debug(handle-type, index, user-data);
+                Logic.update-account-avatar-index(user-data, index);
+            }
+        }
+    }
+
+    if PasswordSetting.show: Password {
+        private property <string> err;
+
+        back => {
+            PasswordSetting.show = false;
+        }
+
+        cancel => {
+            PasswordSetting.show = false;
+        }
+
+        confirm(handle-type, password, user-data) => {
+            self.err = Logic.is-valid-password(password);
+
+            if (self.err != "") {
+                return self.err;
+            }
+            if (handle-type == "new-account") {
+                Logic.new-account("", password);
+            }
+            PasswordSetting.show = false;
+            return "";
         }
     }
 
@@ -67,10 +103,11 @@ export component AppWindow inherits Window {
     Rectangle {
         visible: false;
         background: white;
-        Password {}
+        Password { }
+
         // Login {}
         // SignIn {}
     }
 }
 
-export { Util, Logic, Store, Theme }
+export { Util, Logic, Store, Theme, IconsDialogSetting }

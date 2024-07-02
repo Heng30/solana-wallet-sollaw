@@ -2,9 +2,17 @@ import { Dialog } from "./dialog.slint";
 import { Theme } from "../theme.slint";
 import { Store } from "../store.slint";
 import { Logic } from "../logic.slint";
+import { Util } from "../util.slint";
 
 export global IconsDialogSetting {
     in-out property <bool> show;
+    in property <string> handle-type;
+    in property <string> user-data;
+
+    public function rand-icon-index() -> int {
+        return Util.rand-int(0, IconsDialogSetting.icons.length);
+    }
+
     out property <[image]> icons: [
         @image-url("./icons/1.svg"),
         @image-url("./icons/2.svg"),
@@ -54,6 +62,8 @@ export global IconsDialogSetting {
         @image-url("./icons/46.svg"),
         @image-url("./icons/47.svg"),
         @image-url("./icons/48.svg"),
+        @image-url("./icons/49.svg"),
+        @image-url("./icons/50.svg"),
     ];
 }
 
@@ -66,7 +76,7 @@ export component IconsDialog inherits Dialog {
     property <length> icon-spacing: Theme.spacing;
     property <int> column-count: 5;
 
-    callback select-index(int);
+    callback select-index(string, int, string); // (handle-type, icon-index, user-data) -> void
 
     flick := Flickable {
         height: 300px;
@@ -108,7 +118,7 @@ export component IconsDialog inherits Dialog {
                     touch := TouchArea {
                         mouse-cursor: self.has-hover ? pointer : default;
                         clicked => {
-                            root.select-index(index);
+                            root.select-index(IconsDialogSetting.handle-type, index, IconsDialogSetting.user-data);
                             IconsDialogSetting.show = false;
                         }
                     }
