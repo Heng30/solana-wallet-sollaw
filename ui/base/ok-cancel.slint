@@ -7,11 +7,21 @@ import { Label } from "./label.slint";
 import { CancelBtn, TextBtn } from "./btn.slint";
 
 export global OkCancelDialogSetting {
-    in-out property <string> title-type: "warning";
-    in-out property <string> title-text: "警告";
-    in-out property <string> body-text;
-    in-out property <string> handle-type;
-    in-out property <string> handle-uuid;
+    in-out property <bool> show;
+    out property <string> title-type: "warning";
+    out property <string> title-text: "警告";
+    out property <string> body-text;
+    out property <string> handle-type;
+    out property <string> user-data;
+
+    public function set(show: bool, title-type: string, title-text: string, body-text: string, handle-type: string, user-data: string) {
+        self.show = show;
+        self.title-type = title-type;
+        self.title-text = title-text;
+        self.body-text = body-text;
+        self.handle-type = handle-type;
+        self.user-data = user-data;
+    }
 }
 
 export component OkCancelDialog inherits Dialog {
@@ -33,12 +43,12 @@ export component OkCancelDialog inherits Dialog {
     }
 
     ok-clicked => {
-        Logic.handle-ok-cancel-dialog(OkCancelDialogSetting.handle-type, OkCancelDialogSetting.handle-uuid);
-        OkCancelDialogSetting.body-text = "";
+        Logic.handle-ok-cancel-dialog(OkCancelDialogSetting.handle-type, OkCancelDialogSetting.user-data);
+        OkCancelDialogSetting.show = false;
     }
 
     cancel-clicked => {
-        OkCancelDialogSetting.body-text = "";
+        OkCancelDialogSetting.show = false;
     }
 }
 
@@ -80,8 +90,8 @@ export component OkCancelDialogV2 inherits Rectangle {
                 text: Logic.tr(Store.is-cn, "确认");
 
                 clicked => {
-                    Logic.handle-ok-cancel-dialog(OkCancelDialogSetting.handle-type, OkCancelDialogSetting.handle-uuid);
-                    OkCancelDialogSetting.body-text = "";
+                    Logic.handle-ok-cancel-dialog(OkCancelDialogSetting.handle-type, OkCancelDialogSetting.user-data);
+                    OkCancelDialogSetting.show = false;
                 }
             }
 
@@ -90,7 +100,7 @@ export component OkCancelDialogV2 inherits Rectangle {
                 icon: Icons.cancel;
 
                 clicked => {
-                    OkCancelDialogSetting.body-text = "";
+                    OkCancelDialogSetting.show = false;
                 }
             }
         }

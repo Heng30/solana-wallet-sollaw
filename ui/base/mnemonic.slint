@@ -13,6 +13,7 @@ export component Mnemonic inherits Rectangle {
     in property <bool> is-read-only;
     in property <bool> is-show-btns;
     in property <bool> is-show-header;
+    in property <bool> is-show-refresh-btn;
     in property <bool> is-show-switch-mnemonic-counts-btn;
     in property <string> header-title;
 
@@ -105,7 +106,7 @@ export component Mnemonic inherits Rectangle {
                     HorizontalLayout {
                         spacing: Theme.padding * 4;
 
-                        if is-read-only: IconBtn {
+                        if is-show-refresh-btn: IconBtn {
                             icon: Icons.refresh;
 
                             clicked => {

@@ -32,7 +32,7 @@ export component ListTile inherits Rectangle {
     callback right-clicked();
     callback middle-clicked();
 
-    out property <bool> is-hover <=> middle-area.has-hover;
+    out property <bool> has-hover: middle-area.has-hover || ta.has-hover;
 
     in property <bool> is-show-left-icon;
     in property <bool> left-icon-is-avatar;
@@ -47,6 +47,8 @@ export component ListTile inherits Rectangle {
 
     in property <color> middle-background;
     in property <color> middle-hover-background;
+    in property <TextWrap> middle-text-wrap: TextWrap.no-wrap;
+    in property <TextOverflow> middle-text-overflow: TextOverflow.elide;
 
     in property <bool> is-show-right-icon;
     in property <length> right-icon-size: Theme.icon-size;
@@ -62,6 +64,13 @@ export component ListTile inherits Rectangle {
     in property middle-mouse-cursor <=> middle-area.mouse-cursor;
 
     private property <LayoutAlignment> horizontal-alignment: is-show-right-icon ? LayoutAlignment.space-between : is-show-left-icon ? LayoutAlignment.start : LayoutAlignment.stretch;
+
+    ta := TouchArea {
+        mouse-cursor: middle-area.mouse-cursor;
+        clicked => {
+            middle-clicked();
+        }
+    }
 
     hbox := HorizontalLayout {
         padding: Theme.padding;
@@ -117,14 +126,16 @@ export component ListTile inherits Rectangle {
                     if root.title-text != "": Label {
                         font-size: root.title-font-size;
                         text: root.title-text;
-                        wrap: word-wrap;
+                        wrap: root.middle-text-wrap;
+                        overflow: root.middle-text-overflow;
                         font-weight: 0.5;
                     }
 
                     if root.subtitle-text != "": Label {
                         font-size: root.subtitle-font-size;
                         text: root.subtitle-text;
-                        wrap: word-wrap;
+                        overflow: root.middle-text-overflow;
+                        wrap: root.middle-text-wrap;
                     }
                 }
             }

@@ -6,8 +6,14 @@ import { Util } from "../util.slint";
 
 export global IconsDialogSetting {
     in-out property <bool> show;
-    in property <string> handle-type;
-    in property <string> user-data;
+    out property <string> handle-type;
+    out property <string> user-data;
+
+    public function set(show: bool, handle-type: string, user-data: string) {
+        self.show = show;
+        self.handle-type = handle-type;
+        self.user-data = user-data;
+    }
 
     public function rand-icon-index() -> int {
         return Util.rand-int(0, IconsDialogSetting.icons.length);

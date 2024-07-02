@@ -1,6 +1,6 @@
 import { Theme, Icons } from "./theme.slint";
 import { Logic } from "./logic.slint";
-import { Store } from "./store.slint";
+import { Store, SettingDetailIndex } from "./store.slint";
 import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
 import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage, Password, PasswordSetting } from "./base/widgets.slint";
@@ -8,6 +8,7 @@ import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, Lang
 import { SignIn, Login, Password, Mnemonic } from "./base/widgets.slint";
 import { Setup } from "./setup/panel.slint";
 import { CreateAccount } from "./setup/create-account.slint";
+import { AccountMnemonicSetting } from "./panel/bodyer/setting.slint";
 
 export component AppWindow inherits Window {
     default-font-size: Theme.default-font-size;
@@ -21,11 +22,11 @@ export component AppWindow inherits Window {
     if !Store.is-show-setup-page: Panel { }
     if Store.is-show-setup-page: Setup { }
 
-    if IconsDialogSetting.show || PasswordSetting.show || OkCancelDialogSetting.body-text != "": Blanket {
+    if IconsDialogSetting.show || PasswordSetting.show || OkCancelDialogSetting.show: Blanket {
         clicked => {
             IconsDialogSetting.show = false;
             PasswordSetting.show = false;
-            OkCancelDialogSetting.body-text = "";
+            OkCancelDialogSetting.show = false;
         }
     }
 
@@ -33,7 +34,6 @@ export component AppWindow inherits Window {
         is-prevent-event-forward: true;
         select-index(handle-type, index, user-data) => {
             if (handle-type == "account") {
-                debug(handle-type, index, user-data);
                 Logic.update-account-avatar-index(user-data, index);
             }
         }
@@ -58,13 +58,15 @@ export component AppWindow inherits Window {
             }
             if (handle-type == "new-account") {
                 Logic.new-account("", password);
+            } else if (handle-type == "show-mnemonic") {
+                Logic.show-mnemonic(password);
             }
             PasswordSetting.show = false;
             return "";
         }
     }
 
-    if OkCancelDialogSetting.body-text != "": OkCancelDialogV2 {
+    if OkCancelDialogSetting.show: OkCancelDialogV2 {
         is-prevent-event-forward: true;
         width: Math.min(root.width * 0.9, 380px);
     }
@@ -110,4 +112,4 @@ export component AppWindow inherits Window {
     }
 }
 
-export { Util, Logic, Store, Theme, IconsDialogSetting }
+export { Util, Logic, Store, Theme, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting }

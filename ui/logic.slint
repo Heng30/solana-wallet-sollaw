@@ -5,6 +5,9 @@ export global Logic {
     pure callback paste-mnemonics() -> [string];
     pure callback join-mnemonics([string]) -> string;
     pure callback is-valid-mnemonic([string]) -> bool;
+    pure callback split-mnemonic(string) -> [string];
+
+    callback show-mnemonic(string); // (password) -> void
 
     pure callback is-valid-sign-in-info(string, string, string) -> string; // (username, password-first, password-second) -> error_message
     pure callback is-valid-password(string) -> string; // (passwrod) -> error_message

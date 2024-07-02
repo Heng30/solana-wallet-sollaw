@@ -177,7 +177,12 @@ pub fn tr(text: &str) -> String {
     items.insert("创建用户失败. 非法密码", "Create account failed. Invalid password");
     items.insert("创建用户成功", "Create account success");
     items.insert("创建用户失败", "Create account failed");
-
+    items.insert("账户管理", "Account Management");
+    items.insert("账 户", "Account");
+    items.insert("是否删除账户？", "Delete account or not?");
+    items.insert("内部错误", "Internal error");
+    items.insert("密码错误", "Password is wrong");
+    items.insert("组记词", "Mnemonic");
 
     // TODO
     items.insert(

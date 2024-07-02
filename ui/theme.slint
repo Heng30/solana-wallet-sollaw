@@ -30,10 +30,11 @@ export global Theme {
 
     out property <color> brand-color: is-dark ? #3F51B5 : #0000B8;
     out property <color> secondary-brand-color: is-dark ? #324090: #3F51B5;
+    out property <color> third-brand-color: secondary-brand-color.brighter(50%);
     out property <color> success-color: is-dark ? #336633 : #67C23A;
     out property <color> warning-color: is-dark ? #996600 : #E6A23C;
-    out property <color> danger-color: is-dark ? #CC6060 : #F56C6C;
-    out property <color> info-color:is-dark ? #4B4B4B : #909399;
+    out property <color> danger-color: is-dark ? #CC3333 : #F56C6C;
+    out property <color> info-color:is-dark ? #6F6F6F : #909399;
     out property <color> mark-color: Theme.warning-color;
     out property <color> unmark-color: is-dark ? #646464 : #E8F2FD;
 
@@ -50,6 +51,7 @@ export global Theme {
     out property <color> regular-text-color: is-dark ? primary-text-color.darker(20%) : primary-text-color.brighter(20%);
     out property <color> placeholder-text-color: is-dark ? #4B4B4B : #A8ABB2;
 
+    out property<color> avatar-color: primary-text-color.brighter(50%);
     out property <color> icon-color: is-dark ? #AAAAAA : #515151;
     out property <color> base-border-color: is-dark ? #2a2a2a : #DCDFE6;
 
@@ -131,6 +133,8 @@ export global Icons {
     out property <image> close-eye: @image-url("./images/close-eye.svg");
     out property <image> account: @image-url("./images/account.svg");
     out property <image> switch: @image-url("./images/switch.svg");
+    out property <image> checked-box: @image-url("./images/checked-box.svg");
+    out property <image> mnemonic: @image-url("./images/mnemonic.svg");
 
     out property <image> wechat-fill: @image-url("./images/wechat-fill.svg");
     out property <image> wechat-light: @image-url("./images/wechat-light.svg");

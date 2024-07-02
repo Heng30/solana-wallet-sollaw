@@ -6,20 +6,16 @@ use crate::{
         ComEntry,
     },
     logic::message::{async_message_success, async_message_warn},
-    message_info, message_success, message_warn,
+    message_success, message_warn,
     slint_generatedAppWindow::{
-        AccountEntry as UIAccountEntry, AppWindow, IconsDialogSetting, Logic, Store, Util,
+        AccountEntry as UIAccountEntry, AccountMnemonicSetting, AppWindow, IconsDialogSetting,
+        Logic, SettingDetailIndex, Store,
     },
-    util::{
-        self,
-        crypto::{self, md5_hex},
-        http,
-        translator::tr,
-    },
+    util::{crypto, translator::tr},
 };
 use anyhow::{Context, Result};
-use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Weak};
-use std::{cmp::Ordering, io::BufReader, time::Duration};
+use slint::{ComponentHandle, Model, SharedString, VecModel};
+use std::cmp::Ordering;
 use uuid::Uuid;
 use wallet::{mnemonic, prelude::*};
 
@@ -119,6 +115,19 @@ fn get_unused_derive_index(ui: &AppWindow) -> i32 {
     }
 
     indexs.len() as i32
+}
+
+fn split_mnemonic(mnemonic: &str) -> Vec<SharedString> {
+    let mns = mnemonic
+        .split(char::is_whitespace)
+        .map(|item| item.to_string().into())
+        .collect::<Vec<_>>();
+
+    if mns.len() == 12 || mns.len() == 24 {
+        mns
+    } else {
+        (0..12).map(|_| SharedString::new()).collect::<Vec<_>>()
+    }
 }
 
 fn parse_com_entry(items: Vec<ComEntry>) -> (Option<SecretInfo>, Vec<AccountEntry>) {
@@ -245,20 +254,9 @@ pub fn init(ui: &AppWindow) {
     let ui_handle = ui.as_weak();
     ui.global::<Logic>().on_paste_mnemonics(move || {
         let ui = ui_handle.unwrap();
-        let mn = ui.global::<Logic>().invoke_copy_from_clipboard();
-        let mns = mn
-            .split(char::is_whitespace)
-            .map(|item| item.to_string().into())
-            .collect::<Vec<_>>();
-
-        if mns.len() == 12 || mns.len() == 24 {
-            VecModel::from_slice(&mns)
-        } else {
-            let empty_mns = (0..12)
-                .map(|_| SharedString::new())
-                .collect::<Vec<SharedString>>();
-            VecModel::from_slice(&empty_mns)
-        }
+        let mnemonic = ui.global::<Logic>().invoke_copy_from_clipboard();
+        let mns = split_mnemonic(&mnemonic);
+        VecModel::from_slice(&mns)
     });
 
     ui.global::<Logic>()
@@ -282,6 +280,11 @@ pub fn init(ui: &AppWindow) {
         }
 
         true
+    });
+
+    ui.global::<Logic>().on_split_mnemonic(move |mnemonic| {
+        let mns = split_mnemonic(&mnemonic);
+        VecModel::from_slice(&mns)
     });
 
     ui.global::<Logic>().on_is_valid_sign_in_info(
@@ -402,14 +405,10 @@ pub fn init(ui: &AppWindow) {
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_update_account_avatar_index(move |uuid, avatar_index| {
-            log::debug!("{uuid}, {avatar_index}");
-
             let ui = ui_handle.unwrap();
             match get_account(&ui, &uuid) {
                 Some((index, mut account)) => {
                     account.avatar_index = avatar_index;
-
-                    log::debug!("{account:?}");
 
                     if ui.global::<Store>().get_current_account().uuid == uuid {
                         ui.global::<Store>().set_current_account(account.clone());
@@ -439,6 +438,8 @@ pub fn init(ui: &AppWindow) {
 
             store_accounts!(ui).remove(index);
             _remove_account(uuid);
+            ui.global::<Store>()
+                .set_current_setting_detail_index(SettingDetailIndex::Accounts);
             message_success!(ui, tr("删除账户成功"));
         }
     });
@@ -460,6 +461,25 @@ pub fn init(ui: &AppWindow) {
                 None => message_success!(ui, tr("切换账户失败. 账户不存在")),
             }
         });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_show_mnemonic(move |password| {
+        let ui_handle = ui_handle.clone();
+        tokio::spawn(async move {
+            match _show_mnemonic(password).await {
+                Ok(mnemonic) => {
+                    _ = slint::invoke_from_event_loop(move || {
+                        let ui = ui_handle.unwrap();
+                        ui.global::<AccountMnemonicSetting>()
+                            .set_mnemonic(mnemonic.into());
+                        ui.global::<Store>()
+                            .set_current_setting_detail_index(SettingDetailIndex::AccountMnemonic);
+                    });
+                }
+                Err(e) => async_message_warn(ui_handle, format!("{}. {e:?}", tr("出错"))),
+            }
+        });
+    });
 }
 
 fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
@@ -528,4 +548,21 @@ fn _remove_account(uuid: SharedString) {
     tokio::spawn(async move {
         _ = db::accounts::delete(&uuid).await;
     });
+}
+
+async fn _show_mnemonic(password: SharedString) -> Result<String> {
+    match get_secrect_info().await {
+        Ok(info) => {
+            if info.password != crypto::hash(&password) {
+                anyhow::bail!("Wrong password");
+            } else {
+                let mnemonic = crypto::decrypt(&password, &info.mnemonic)
+                    .with_context(|| "Decrypt mnemonic with password failed")?;
+                let mnemonic =
+                    std::str::from_utf8(&mnemonic).with_context(|| "Mnemonic is not valid utf8")?;
+                Ok(mnemonic.to_string())
+            }
+        }
+        Err(e) => anyhow::bail!(format!("Internal error. {e:?}")),
+    }
 }

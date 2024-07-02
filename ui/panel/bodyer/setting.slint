@@ -2,8 +2,16 @@ import { LineEdit, CheckBox, ComboBox } from "std-widgets.slint";
 import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
-import { Store,  SettingUI, SettingDetailIndex } from "../../store.slint";
-import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting} from "../../base/widgets.slint";
+import { Store,  SettingUI, SettingDetailIndex, AccountEntry } from "../../store.slint";
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar} from "../../base/widgets.slint";
+
+export global AccountMnemonicSetting {
+    in-out property <string> mnemonic;
+
+    public function clear() {
+        self.mnemonic = "";
+    }
+}
 
 component UI inherits SettingDetail {
     title: Logic.tr(Store.is-cn, "界 面");
@@ -108,6 +116,7 @@ component UI inherits SettingDetail {
 
 component Accounts inherits Rectangle {
     callback back <=> sd.back;
+    callback selected(int);
 
     sd := SettingDetail {
         title: Logic.tr(Store.is-cn, "账户管理");
@@ -120,23 +129,24 @@ component Accounts inherits Rectangle {
 
                 ListTile {
                     private property <int> icon-index: Util.bound(0, item.avatar-index, IconsDialogSetting.icons.length - 1);
+                    private property <bool> is-current-account: item.uuid == Store.current-account.uuid;
 
                     height: item-height;
-                    background: self.is-hover ? Theme.base-background.darker(3%) : Theme.base-background;
+                    background: self.has-hover ? Theme.base-background.darker(3%) : Theme.base-background;
+                    border-color: Theme.invert-base-color;
+                    border-width: is-current-account ? 1px : 0px;
                     border-radius: Theme.border-radius;
                     drop-shadow-blur: Theme.padding * 2;
                     drop-shadow-color: Theme.base-background-drop-shadow;
 
                     is-show-left-icon: true;
+                    left-icon: IconsDialogSetting.icons[icon-index];
                     left-icon-is-avatar: true;
-                    left-icon-size: item-height / 2;
+                    left-icon-size: item-height * 2 / 5;
                     left-icon-colorize: Theme.icon-color;
+                    left-icon-border-width: 2px;
                     left-icon-background: Theme.secondary-background;
                     left-icon-hover-background: self.left-icon-background.darker(5%);
-                    left-icon-border-width: 2px;
-                    left-icon-border-color: Theme.secondary-brand-color;
-
-                    left-icon: IconsDialogSetting.icons[icon-index];
 
                     title-text: item.name;
                     subtitle-text: "$" + item.balance;
@@ -146,13 +156,11 @@ component Accounts inherits Rectangle {
                     right-icon: Icons.switch;
 
                     left-clicked => {
-                        IconsDialogSetting.show = true;
-                        IconsDialogSetting.handle-type = "account";
-                        IconsDialogSetting.user-data = item.uuid;
+                        IconsDialogSetting.set(true, "account", item.uuid);
                     }
 
                     middle-clicked => {
-                        Store.current-setting-detail-index = SettingDetailIndex.AccountDetail;
+                        root.selected(index);
                     }
 
                     right-clicked => {
@@ -169,8 +177,123 @@ component Accounts inherits Rectangle {
         icon: Icons.add-small;
 
         clicked => {
-            PasswordSetting.show = true;
-            PasswordSetting.handle-type = "new-account";
+            PasswordSetting.set(true, "new-account", "");
+        }
+    }
+}
+
+component AccountDetail inherits SettingDetail {
+    in property <int> selected-account-index;
+
+    private property <AccountEntry> selected-account: Store.accounts[selected-account-index];
+    private property <int> icon-index: Util.bound(0, selected-account.avatar-index, IconsDialogSetting.icons.length - 1);
+
+    title: Logic.tr(Store.is-cn, "账 户");
+
+    SettingDetailInner {
+        Rectangle {
+            height: Math.max(root.height * 0.2, 200px);
+            background: Theme.secondary-background;
+            border-radius: Theme.border-radius;
+
+            Avatar {
+                height: 50%;
+                width: self.height;
+                background: Theme.third-brand-color;
+                icon: IconsDialogSetting.icons[icon-index];
+
+                clicked => {
+                    IconsDialogSetting.set(true, "account", selected-account.uuid);
+                }
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "账户名称");
+            }
+
+            LineInput {
+                enabled: false;
+                width: root.width - Theme.padding * 4;
+                text: selected-account.name;
+                icon: self.enabled ? Icons.checked-box : Icons.edit;
+                clicked => {
+                    self.enabled = !self.enabled;
+
+                    if (self.enabled) {
+                        self.focus();
+                    } else {
+                        Logic.update-account-name(selected-account.uuid, self.text);
+                    }
+                }
+
+                accepted => {
+                    self.clear-focus();
+                    self.enabled = !self.enabled;
+                    Logic.update-account-name(selected-account.uuid, self.text);
+                }
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "账户地址");
+            }
+
+            LineInput {
+                enabled: false;
+                width: root.width - Theme.padding * 4;
+                text: selected-account.pubkey;
+                icon: Icons.copy;
+                clicked => {
+                    Logic.copy-to-clipboard(self.text);
+                }
+            }
+        }
+
+        SettingEntry {
+            text: Logic.tr(Store.is-cn, "显示组记词");
+            icon: Icons.mnemonic;
+            clicked => {
+                PasswordSetting.set(true, "show-mnemonic", "");
+            }
+        }
+
+        VerticalLayout {
+            padding-top: Theme.padding * 5;
+            CancelBtn {
+                icon: Icons.delete;
+                colorize: Theme.danger-color;
+                text-color: Theme.danger-color;
+                border-radius: Theme.border-radius;
+                font-size: Theme.title3-font-size;
+                text: Logic.tr(Store.is-cn, "移除账户");
+
+                clicked => {
+                    OkCancelDialogSetting.set(true, "warning", Logic.tr(Store.is-cn, "警告"), Logic.tr(Store.is-cn, "是否删除账户？"), "remove-account", selected-account.uuid);
+                }
+            }
+        }
+    }
+}
+
+component AccountMnemonic inherits SettingDetailInner {
+    callback back();
+
+    mc := Mnemonic {
+        is-read-only: true;
+        is-show-header: true;
+        header-title: Logic.tr(Store.is-cn, "组记词");
+        mnemonics: Logic.split-mnemonic(AccountMnemonicSetting.mnemonic);
+
+        copy => {
+            Logic.copy-to-clipboard(Logic.join-mnemonics(self.mnemonics));
+        }
+
+        back => {
+            AccountMnemonicSetting.clear();
+            root.back();
         }
     }
 }
@@ -378,46 +501,62 @@ component Body inherits VerticalLayout {
 }
 
 export component Setting inherits Rectangle {
-    body := Body {
-        visible: self.current-setting-detail-index == SettingDetailIndex.Home;
+    private property <int> selected-account-index;
 
-        switch(index) => {
-        }
-    }
+    if Store.current-setting-detail-index == SettingDetailIndex.Home: Body { }
 
-    if !body.visible: Rectangle {
-        if body.current-setting-detail-index == SettingDetailIndex.UI: UI {
+    if Store.current-setting-detail-index != SettingDetailIndex.Home: Rectangle {
+        if Store.current-setting-detail-index == SettingDetailIndex.UI: UI {
             back => {
                 if (self.get().font-size == "") {
                     Logic.show-message(Logic.tr(Store.is-cn, "非法输入，输入不能为空"), "warning");
                     return;
                 }
-                body.current-setting-detail-index = SettingDetailIndex.Home;
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
                 Logic.set-setting-ui(self.get());
             }
         }
 
-        if body.current-setting-detail-index == SettingDetailIndex.Accounts: Accounts {
+        if Store.current-setting-detail-index == SettingDetailIndex.Accounts: Accounts {
             back => {
-                body.current-setting-detail-index = SettingDetailIndex.Home;
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
+            }
+
+            selected(account-index) => {
+                root.selected-account-index = account-index;
+                Store.current-setting-detail-index = SettingDetailIndex.AccountDetail;
             }
         }
 
-        if body.current-setting-detail-index == SettingDetailIndex.About: About {
+        if Store.current-setting-detail-index == SettingDetailIndex.AccountDetail: AccountDetail {
+            selected-account-index: root.selected-account-index;
+
             back => {
-                body.current-setting-detail-index = SettingDetailIndex.Home;
+                Store.current-setting-detail-index = SettingDetailIndex.Accounts;
             }
         }
 
-        if body.current-setting-detail-index == SettingDetailIndex.Help: Help {
+        if Store.current-setting-detail-index == SettingDetailIndex.AccountMnemonic: AccountMnemonic {
             back => {
-                body.current-setting-detail-index = SettingDetailIndex.Home;
+                Store.current-setting-detail-index = SettingDetailIndex.AccountDetail;
             }
         }
 
-        if body.current-setting-detail-index == SettingDetailIndex.Donate: Donate {
+        if Store.current-setting-detail-index == SettingDetailIndex.About: About {
             back => {
-                body.current-setting-detail-index = SettingDetailIndex.Home;
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
+            }
+        }
+
+        if Store.current-setting-detail-index == SettingDetailIndex.Help: Help {
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
+            }
+        }
+
+        if Store.current-setting-detail-index == SettingDetailIndex.Donate: Donate {
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
             }
         }
     }

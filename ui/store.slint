@@ -16,6 +16,7 @@ export enum SettingDetailIndex {
 
     Accounts,
     AccountDetail,
+    AccountMnemonic,
 }
 
 export enum SetupIndex {
@@ -74,7 +75,7 @@ export global Store {
     in-out property <MessageItem> message;
     in-out property <bool> is-first-run;
     in-out property <bool> is-show-landing-page;
-    in-out property <bool> is-show-setup-page: false;
+    in-out property <bool> is-show-setup-page;
     in-out property <bool> is-cn: setting-ui.language == "cn";
     in-out property <SettingUI> setting-ui: {
         font-size: "16",

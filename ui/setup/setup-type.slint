@@ -13,13 +13,17 @@ export component SetupType inherits VerticalLayout {
 
     create-btn := ConfirmBtn {
         icon: Icons.account;
+        border-radius: Theme.border-radius;
+        font-size: Theme.title3-font-size;
         text: Logic.tr(Store.is-cn, "创建新账户");
     }
 
     recover-btn := ConfirmBtn {
         icon: Icons.recover;
-        bg-color: Theme.danger-color.darker(20%);
+        border-radius: Theme.border-radius;
+        bg-color: Theme.info-color;
         bg-pressed-color: self.bg-color.darker(30%);
+        font-size: Theme.title3-font-size;
         text: Logic.tr(Store.is-cn, "使用组记词恢复账户");
     }
 }

@@ -9,9 +9,11 @@ export component LineInput inherits Rectangle {
 
     in property <image> icon;
     in property <string> placeholder-text;
+    in property <bool> enabled <=> text-input.enabled;
 
     callback clicked <=> icon.clicked;
     callback edited <=> text-input.edited;
+    callback accepted <=> text-input.accepted;
 
     width: 100px;
     forward-focus: text-input;
