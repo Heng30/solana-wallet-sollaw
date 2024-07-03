@@ -1,4 +1,4 @@
-use crate::slint_generatedAppWindow::{AppWindow, Logic};
+use crate::slint_generatedAppWindow::{AppWindow, Logic, PasswordSetting};
 use slint::ComponentHandle;
 
 pub fn init(ui: &AppWindow) {
@@ -14,10 +14,17 @@ pub fn init(ui: &AppWindow) {
                 "remove-account" => {
                     ui.global::<Logic>().invoke_remove_account(user_data);
                 }
-                // "recover-from-remote" => {
-                //     let setting = ui.global::<Logic>().invoke_get_setting_backup_recover();
-                //     ui.global::<Logic>().invoke_recover_from_remote(setting);
-                // }
+                "remove-all-accounts" => {
+                    ui.global::<Logic>().invoke_remove_account(user_data);
+                    ui.global::<PasswordSetting>().invoke_set(
+                        true,
+                        handle_type,
+                        "".into(),
+                    );
+                }
+                "remove-address-book-entry" => {
+                    ui.global::<Logic>().invoke_remove_address(user_data);
+                }
                 _ => (),
             }
         });

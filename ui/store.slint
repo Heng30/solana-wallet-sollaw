@@ -2,7 +2,6 @@ export enum TabIndex {
     Home,
     Recipient,
     History,
-    AddressBook,
     Setting,
     None,
 }
@@ -17,6 +16,8 @@ export enum SettingDetailIndex {
     Accounts,
     AccountDetail,
     AccountMnemonic,
+    AddressBook,
+    AddressBookDetail,
 }
 
 export enum SetupIndex {
@@ -55,6 +56,7 @@ export struct AboutDialog {
 }
 
 export global Store {
+    out property<image> no-image: @image-url("./images/no-data.svg");
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
     in-out property <TabIndex> current-tab-index: TabIndex.Setting;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;

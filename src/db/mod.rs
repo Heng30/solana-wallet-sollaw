@@ -9,6 +9,7 @@ use sqlx::{
 use std::sync::Mutex;
 
 pub mod accounts;
+pub mod address_book;
 
 const MAX_CONNECTIONS: u32 = 3;
 
@@ -40,6 +41,7 @@ async fn create_db(db_path: &str) -> Result<()> {
 pub async fn init(db_path: &str) {
     create_db(db_path).await.expect("create db");
     accounts::new().await.expect("account table failed");
+    address_book::new().await.expect("address_book table failed");
 }
 
 #[allow(dead_code)]

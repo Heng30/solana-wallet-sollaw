@@ -1,6 +1,6 @@
 use crate::util::{self, number, time, translator::tr};
 use crate::{
-    config, message_warn,
+    message_warn,
     slint_generatedAppWindow::{AppWindow, Logic, Util},
 };
 use rand::Rng;

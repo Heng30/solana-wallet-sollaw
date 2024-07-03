@@ -5,14 +5,12 @@ import { Util } from "../../util.slint";
 import { Home } from "./home.slint";
 import { Recipient } from "./recipient.slint";
 import { History } from "./history.slint";
-import { AddressBook } from "./address-book.slint";
 import { Setting } from "./setting.slint";
 
 export component Bodyer inherits Rectangle {
     if TabIndex.Home == Store.current-tab-index : Home {}
     if TabIndex.Recipient == Store.current-tab-index : Recipient {}
     if TabIndex.History == Store.current-tab-index : History {}
-    if TabIndex.AddressBook == Store.current-tab-index : AddressBook {}
     if TabIndex.Setting == Store.current-tab-index : Setting {}
 }
 

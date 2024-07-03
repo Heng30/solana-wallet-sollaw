@@ -183,6 +183,17 @@ pub fn tr(text: &str) -> String {
     items.insert("内部错误", "Internal error");
     items.insert("密码错误", "Password is wrong");
     items.insert("组记词", "Mnemonic");
+    items.insert("地址簿", "AddressBook");
+    items.insert("移除地址", "Delete address");
+    items.insert("是否删除地址？", "Delete address or not?");
+    items.insert("地址名称", "Address name");
+    items.insert("账户地址", "Account address");
+    items.insert("地 址", "Address");
+    items.insert("删除地址成功", "Delete address success");
+    items.insert("更新地址成功", "Update address success");
+    items.insert("更新地址失败", "Update address failed");
+    items.insert("切换账户", "Switch account");
+    items.insert("是否删除所有账户？", "Delete all account or not?");
 
     // TODO
     items.insert(

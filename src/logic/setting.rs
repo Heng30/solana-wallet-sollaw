@@ -1,18 +1,9 @@
 use crate::{
-    config::{self, Config},
-    db,
-    logic::message::{async_message_success, async_message_warn},
-    message_warn,
+    config,
     slint_generatedAppWindow::{AppWindow, Logic, Store, Theme},
-    util::{http, translator::tr},
-    version,
+    util::translator::tr,
 };
-use anyhow::{anyhow, bail, Result};
-use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
-use serde::{Deserialize, Serialize};
-use slint::{ComponentHandle, Weak};
-use std::time::Duration;
-use uuid::Uuid;
+use slint::ComponentHandle;
 
 pub fn init(ui: &AppWindow) {
     init_setting(&ui);

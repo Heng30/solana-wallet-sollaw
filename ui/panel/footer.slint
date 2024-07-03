@@ -5,7 +5,7 @@ import { TabBtn, Divider } from "../base/widgets.slint";
 
 export component Footer inherits Rectangle {
     private property <length> btn-height: self.height * 0.9;
-    private property <length> btn-width: self.width * 0.2;
+    private property <length> btn-width: self.width * 0.25;
     height: Theme.footer-height;
 
     Divider {
@@ -50,18 +50,6 @@ export component Footer inherits Rectangle {
 
             clicked => {
                 Store.switch-tab(TabIndex.History);
-            }
-        }
-
-        TabBtn {
-            width: root.btn-width;
-            height: root.btn-height;
-            icon: Icons.address;
-            text: Logic.tr(Store.is-cn, "地址簿");
-            checked: Store.current-tab-index == TabIndex.AddressBook;
-
-            clicked => {
-                Store.switch-tab(TabIndex.AddressBook);
             }
         }
 

@@ -1,5 +1,4 @@
 use crate::{
-    config,
     db::{
         self,
         accounts::{AccountEntry, SecretInfo, SECRET_UUID},
@@ -428,6 +427,7 @@ pub fn init(ui: &AppWindow) {
 
         if ui.global::<Store>().get_current_account().uuid == uuid {
             message_warn!(ui, tr("不允许删除当前用户"));
+            return;
         }
 
         if let Some((index, account)) = get_account(&ui, &uuid) {
@@ -445,6 +445,16 @@ pub fn init(ui: &AppWindow) {
     });
 
     let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_remove_all_accounts(move || {
+        let ui = ui_handle.unwrap();
+
+        _remove_all_accounts();
+        store_accounts!(ui).set_vec(vec![]);
+        message_success!(ui, tr("删除所有用户成功"));
+        ui.global::<Store>().set_is_show_setup_page(true);
+    });
+
+    let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_switch_account(move |old_uuid, new_uuid| {
             if old_uuid == new_uuid {
@@ -454,6 +464,8 @@ pub fn init(ui: &AppWindow) {
             let ui = ui_handle.unwrap();
             match get_account(&ui, &new_uuid) {
                 Some((_, account)) => {
+                    ui.global::<Logic>()
+                        .invoke_update_current_derive_index(account.derive_index);
                     ui.global::<Store>().set_current_account(account);
                     // TODO: fetch the account info from the blockchain
                     message_success!(ui, tr("切换账户成功"));
@@ -547,6 +559,12 @@ fn _update_account(account: AccountEntry) {
 fn _remove_account(uuid: SharedString) {
     tokio::spawn(async move {
         _ = db::accounts::delete(&uuid).await;
+    });
+}
+
+fn _remove_all_accounts() {
+    tokio::spawn(async move {
+        _ = db::accounts::delete_all().await;
     });
 }
 

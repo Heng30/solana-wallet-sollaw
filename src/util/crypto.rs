@@ -49,10 +49,6 @@ pub fn hash(text: &str) -> String {
     )
 }
 
-pub fn md5_hex(text: &str) -> String {
-    format!("{:x}", md5::compute(text))
-}
-
 #[allow(dead_code)]
 pub fn random_string(length: usize) -> String {
     let mut rng = rand::thread_rng();

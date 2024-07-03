@@ -35,6 +35,7 @@ pub fn init() {
     }
 }
 
+#[allow(dead_code)]
 pub fn appid() -> String {
     CONFIG.lock().unwrap().appid.clone()
 }
@@ -47,6 +48,7 @@ pub fn all() -> data::Config {
     CONFIG.lock().unwrap().clone()
 }
 
+#[allow(dead_code)]
 pub fn reset(mut conf: Config) {
     let mut c = CONFIG.lock().unwrap();
 

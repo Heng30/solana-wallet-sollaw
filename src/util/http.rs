@@ -19,6 +19,7 @@ impl From<&str> for ProxyType {
     }
 }
 
+#[allow(dead_code)]
 pub fn headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
     headers.insert(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36".parse().unwrap());
@@ -28,6 +29,7 @@ pub fn headers() -> HeaderMap {
     headers
 }
 
+#[allow(dead_code)]
 pub fn client(conf: Option<(ProxyType, String, u16)>) -> Result<Client> {
     match conf {
         Some((proxy, url, port)) => {

@@ -7,6 +7,7 @@ mod ok_cancel_dialog;
 mod setting;
 mod util;
 mod accounts;
+mod address_book;
 
 pub fn init(ui: &AppWindow) {
     util::init(&ui);
@@ -17,4 +18,5 @@ pub fn init(ui: &AppWindow) {
     setting::init(&ui);
 
     accounts::init(&ui);
+    address_book::init(&ui);
 }

@@ -3,7 +3,7 @@ import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
 import { Store,  SettingUI, SettingDetailIndex, AccountEntry } from "../../store.slint";
-import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar} from "../../base/widgets.slint";
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar, AddressBook, AddressBookDetail, AddressBookEntry, AddressBookSetting } from "../../base/widgets.slint";
 
 export global AccountMnemonicSetting {
     in-out property <string> mnemonic;
@@ -133,7 +133,7 @@ component Accounts inherits Rectangle {
 
                     height: item-height;
                     background: self.has-hover ? Theme.base-background.darker(3%) : Theme.base-background;
-                    border-color: Theme.invert-base-color;
+                    border-color: Theme.third-brand-color;
                     border-width: is-current-account ? 1px : 0px;
                     border-radius: Theme.border-radius;
                     drop-shadow-blur: Theme.padding * 2;
@@ -171,13 +171,26 @@ component Accounts inherits Rectangle {
         }
     }
 
-    ElevatedBtn {
-        x: root.width - self.width - Theme.padding * 4;
-        y: root.height - self.height - Theme.padding * 4;
-        icon: Icons.add-small;
+    VerticalLayout {
+        x: root.width - Math.max(add-btn.width, delete-btn.width) - Theme.padding * 4;
+        y: root.height - add-btn.height - delete-btn.height - Theme.padding * 4 - Theme.footer-height;
 
-        clicked => {
-            PasswordSetting.set(true, "new-account", "");
+        spacing: Theme.padding * 4;
+
+        add-btn := ElevatedBtn {
+            icon: Icons.add-small;
+
+            clicked => {
+                PasswordSetting.set(true, "new-account", "");
+            }
+        }
+
+        delete-btn := ElevatedBtn {
+            icon: Icons.delete;
+
+            clicked => {
+                OkCancelDialogSetting.set(true, "warning", Logic.tr(Store.is-cn, "警告"), Logic.tr(Store.is-cn, "是否删除所有账户？"), "remove-all-accounts", "");
+            }
         }
     }
 }
@@ -262,6 +275,19 @@ component AccountDetail inherits SettingDetail {
 
         VerticalLayout {
             padding-top: Theme.padding * 5;
+            spacing: Theme.spacing * 4;
+
+            ConfirmBtn {
+                icon: Icons.switch;
+                border-radius: Theme.border-radius;
+                font-size: Theme.title3-font-size;
+                text: Logic.tr(Store.is-cn, "切换账户");
+
+                clicked => {
+                    Logic.switch-account(Store.current-account.uuid, selected-account.uuid)
+                }
+            }
+
             CancelBtn {
                 icon: Icons.delete;
                 colorize: Theme.danger-color;
@@ -350,7 +376,7 @@ component About inherits SettingDetail {
                     font-size: Theme.default-font-size - 2px;
 
                     clicked => {
-                        // Util.open-url("https://etherscan.io/address/" + Store.about-dialog.sponsor);
+                        Util.open-url("Default", "https://etherscan.io/address/" + Store.about-dialog.sponsor);
                     }
                 }
             }
@@ -466,6 +492,16 @@ component Body inherits VerticalLayout {
             }
 
             SettingEntry {
+                text: Logic.tr(Store.is-cn, "地址簿");
+                icon: Icons.address-book;
+
+                clicked => {
+                    root.current-setting-detail-index = SettingDetailIndex.AddressBook;
+                    root.switch(SettingDetailIndex.AddressBook);
+                }
+            }
+
+            SettingEntry {
                 text: Logic.tr(Store.is-cn, "关 于");
                 icon: Icons.about-light;
                 clicked => {
@@ -539,6 +575,41 @@ export component Setting inherits Rectangle {
         if Store.current-setting-detail-index == SettingDetailIndex.AccountMnemonic: AccountMnemonic {
             back => {
                 Store.current-setting-detail-index = SettingDetailIndex.AccountDetail;
+            }
+        }
+
+        if Store.current-setting-detail-index == SettingDetailIndex.AddressBook: AddressBook {
+            is-show-add-btn: true;
+
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
+            }
+
+            tap() => {
+                Store.current-setting-detail-index = SettingDetailIndex.AddressBookDetail;
+            }
+
+            add => {
+                Logic.add-address();
+            }
+        }
+
+        if Store.current-setting-detail-index == SettingDetailIndex.AddressBookDetail: AddressBookDetail {
+            init => {
+                self.qr-code = Logic.qr-code(AddressBookSetting.current-entry.address);
+            }
+
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.AddressBook;
+            }
+
+            update-name(uuid, name) => {
+                Logic.update-address-name(uuid, name);
+            }
+
+            update-address(uuid, address) => {
+                Logic.update-address(uuid, address);
+                self.qr-code = Logic.qr-code(self.address);
             }
         }
 
