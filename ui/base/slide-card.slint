@@ -30,6 +30,7 @@ export component SlideCard inherits Rectangle {
 
     callback icon-clicked(int);
 
+    in-out property <MouseCursor> mouse-cursor <=> ta.mouse-cursor;
     in property <[{icon: image, text: string, colorize: color}]> icons;
     in property <color> icons-background;
     in property <bool> hide-icons-after-clicked: true;
@@ -57,7 +58,7 @@ export component SlideCard inherits Rectangle {
         easing: ease-in-out;
     }
 
-    TouchArea {
+    ta := TouchArea {
         moved => {
             if (!root.is-show-icons) {
                 if (self.pressed-x - self.mouse-x > parent.max-move-pixels-up-bound) {

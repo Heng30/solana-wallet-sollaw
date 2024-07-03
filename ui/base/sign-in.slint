@@ -26,6 +26,8 @@ export component SignIn inherits Rectangle {
         password-second-lineedit.text = "";
     }
 
+    forward-focus: username-lineedit;
+
     vbox := VerticalLayout {
         if is-show-header: Head {
             title: Logic.tr(Store.is-cn, "返回");

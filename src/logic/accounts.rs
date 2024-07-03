@@ -12,8 +12,8 @@ use crate::{
     },
     util::{crypto, translator::tr},
 };
-use anyhow::{Context, Result};
-use slint::{ComponentHandle, Model, SharedString, VecModel};
+use anyhow::{bail, Context, Result};
+use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
 use std::cmp::Ordering;
 use uuid::Uuid;
 use wallet::{mnemonic, prelude::*};
@@ -64,6 +64,14 @@ async fn update_secret_info(mut info: SecretInfo, old_password: Option<String>) 
 
 fn is_valid_secret_info(info: &SecretInfo) -> bool {
     !info.password.is_empty() && !info.mnemonic.is_empty() && info.current_derive_index >= 0
+}
+
+async fn is_valid_password_in_secret_info(password: &str) -> Result<()> {
+    if get_secrect_info().await?.password != crypto::hash(password) {
+        bail!("Wrong password");
+    }
+
+    Ok(())
 }
 
 fn accounts_sort_fn(a: &UIAccountEntry, b: &UIAccountEntry) -> Ordering {
@@ -422,37 +430,30 @@ pub fn init(ui: &AppWindow) {
         });
 
     let ui_handle = ui.as_weak();
-    ui.global::<Logic>().on_remove_account(move |uuid| {
-        let ui = ui_handle.unwrap();
+    ui.global::<Logic>()
+        .on_remove_account(move |password, uuid| {
+            let ui = ui_handle.unwrap();
 
-        if ui.global::<Store>().get_current_account().uuid == uuid {
-            message_warn!(ui, tr("不允许删除当前用户"));
-            return;
-        }
-
-        if let Some((index, account)) = get_account(&ui, &uuid) {
-            if account.derive_index == 0 {
-                message_warn!(ui, tr("不允许删除主账号"));
+            if ui.global::<Store>().get_current_account().uuid == uuid {
+                message_warn!(ui, tr("不允许删除当前用户"));
                 return;
             }
 
-            store_accounts!(ui).remove(index);
-            _remove_account(uuid);
-            ui.global::<Store>()
-                .set_current_setting_detail_index(SettingDetailIndex::Accounts);
-            message_success!(ui, tr("删除账户成功"));
-        }
-    });
+            if let Some((index, account)) = get_account(&ui, &uuid) {
+                if account.derive_index == 0 {
+                    message_warn!(ui, tr("不允许删除主账号"));
+                    return;
+                }
+
+                _remove_account(ui.as_weak(), password, uuid, index);
+            }
+        });
 
     let ui_handle = ui.as_weak();
-    ui.global::<Logic>().on_remove_all_accounts(move || {
-        let ui = ui_handle.unwrap();
-
-        _remove_all_accounts();
-        store_accounts!(ui).set_vec(vec![]);
-        message_success!(ui, tr("删除所有用户成功"));
-        ui.global::<Store>().set_is_show_setup_page(true);
-    });
+    ui.global::<Logic>()
+        .on_remove_all_accounts(move |password| {
+            _remove_all_accounts(ui_handle.clone(), password);
+        });
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
@@ -556,15 +557,38 @@ fn _update_account(account: AccountEntry) {
     });
 }
 
-fn _remove_account(uuid: SharedString) {
+fn _remove_account(ui_handle: Weak<AppWindow>, password: SharedString, uuid: SharedString, index: usize) {
     tokio::spawn(async move {
-        _ = db::accounts::delete(&uuid).await;
+        match is_valid_password_in_secret_info(&password).await {
+            Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
+            _ => {
+                _ = db::accounts::delete(&uuid).await;
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui_handle.unwrap();
+                    store_accounts!(ui).remove(index);
+                    ui.global::<Store>()
+                        .set_current_setting_detail_index(SettingDetailIndex::Accounts);
+                    message_success!(ui, tr("移除账户成功"));
+                });
+            }
+        }
     });
 }
 
-fn _remove_all_accounts() {
+fn _remove_all_accounts(ui_handle: Weak<AppWindow>, password: SharedString) {
     tokio::spawn(async move {
-        _ = db::accounts::delete_all().await;
+        match is_valid_password_in_secret_info(&password).await {
+            Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
+            _ => {
+                _ = db::accounts::delete_all().await;
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui_handle.unwrap();
+                    store_accounts!(ui).set_vec(vec![]);
+                    message_success!(ui, tr("删除所有账户成功"));
+                    ui.global::<Store>().set_is_show_setup_page(true);
+                });
+            }
+        }
     });
 }
 

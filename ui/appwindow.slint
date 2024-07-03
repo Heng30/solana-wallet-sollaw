@@ -8,7 +8,7 @@ import { Setup } from "./setup/panel.slint";
 import { CreateAccount } from "./setup/create-account.slint";
 import { AccountMnemonicSetting } from "./panel/bodyer/setting.slint";
 
-import { AddressBook, AddressBookDetail } from "./base/widgets.slint";
+import { AddressBook, AddressBookDetail, Mnemonic } from "./base/widgets.slint";
 
 export component AppWindow inherits Window {
     default-font-size: Theme.default-font-size;
@@ -42,6 +42,10 @@ export component AppWindow inherits Window {
     if PasswordSetting.show: Password {
         private property <string> err;
 
+        init => {
+            self.focus();
+        }
+
         back => {
             PasswordSetting.show = false;
         }
@@ -60,8 +64,10 @@ export component AppWindow inherits Window {
                 Logic.new-account("", password);
             } else if (handle-type == "show-mnemonic") {
                 Logic.show-mnemonic(password);
+            } else if (handle-type == "remove-account") {
+                Logic.remove_account(password, user_data);
             } else if (handle-type == "remove-all-accounts") {
-                Logic.remove-all-accounts();
+                Logic.remove-all-accounts(password);
             }
             PasswordSetting.show = false;
             return "";
@@ -107,13 +113,17 @@ export component AppWindow inherits Window {
     Rectangle {
         visible: false;
         background: white;
-        AddressBookDetail {}
+        // AddressBookDetail {}
         // AddressBook {}
         // Password { }
-
         // Login {}
         // SignIn {}
+        // Mnemonic {
+        //     init => {
+        //         self.reset-mnemonics(24);
+        //     }
+        // }
     }
 }
 
-export { Util, Logic, Store, Theme, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting }
+export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting }

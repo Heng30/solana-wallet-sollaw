@@ -34,14 +34,14 @@ fn copy_from_clipboard() -> Result<String> {
 
 // TODO
 #[cfg(target_os = "android")]
-fn copy_to_clipboard(msg: &str) -> Result<()> {
-    Ok(())
+fn copy_to_clipboard(_msg: &str) -> Result<()> {
+    bail!("Not unimplement");
 }
 
 // TODO
 #[cfg(target_os = "android")]
 fn copy_from_clipboard() -> Result<String> {
-    Ok("TODO".to_string())
+    bail!("Not unimplement");
 }
 
 pub fn init(ui: &AppWindow) {

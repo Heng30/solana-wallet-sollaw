@@ -27,6 +27,7 @@ export global AddressBookSetting {
     ];
 
     in-out property <AddressBookEntry> current-entry;
+    in-out property <bool> enabled-input;
 
     public function clear() {
         self.entries = [];
@@ -125,7 +126,7 @@ export component AddressBookDetail inherits SettingDetail {
             }
 
             LineInput {
-                enabled: false;
+                enabled: AddressBookSetting.enabled-input;
                 width: root.width - Theme.padding * 4;
                 text: entry.name;
                 icon: self.enabled ? Icons.checked-box : Icons.edit;
@@ -153,7 +154,7 @@ export component AddressBookDetail inherits SettingDetail {
             }
 
             address-input := LineInput {
-                enabled: false;
+                enabled: AddressBookSetting.enabled-input;
                 width: root.width - Theme.padding * 4;
                 text: entry.address;
 

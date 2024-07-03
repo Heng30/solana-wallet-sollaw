@@ -17,7 +17,7 @@ export component Mnemonic inherits Rectangle {
     in property <bool> is-show-switch-mnemonic-counts-btn;
     in property <string> header-title;
 
-    private property <int> cell-pre-row: 3;
+    private property <int> cell-pre-row: 2;
     private property <length> label-width: 20px;
     private property <int> max-blocks: mnemonics.length == 24 ? 2 : (mnemonics.length == 12 ? 1 : 0);
 
@@ -136,15 +136,15 @@ export component Mnemonic inherits Rectangle {
                     VerticalLayout {
                         spacing: Theme.spacing * 2;
 
-                        for index in 4: HorizontalLayout {
+                        for index in 6: HorizontalLayout {
                             spacing: Theme.padding * 2;
                             alignment: LayoutAlignment.space-between;
 
                             private property <int> cell-start-index: index * cell-pre-row + block-start-index;
 
                             HorizontalLayout {
-                                width: 33%;
                                 spacing: Theme.spacing;
+                                horizontal-stretch: 1;
 
                                 Label {
                                     width: label-width;
@@ -164,7 +164,7 @@ export component Mnemonic inherits Rectangle {
                             }
 
                             HorizontalLayout {
-                                width: 33%;
+                                horizontal-stretch: 1;
                                 spacing: Theme.spacing;
 
                                 Label {
@@ -180,27 +180,6 @@ export component Mnemonic inherits Rectangle {
 
                                     edited => {
                                         mnemonics[cell-start-index + 1] = self.text;
-                                    }
-                                }
-                            }
-
-                            HorizontalLayout {
-                                width: 33%;
-                                spacing: Theme.spacing;
-
-                                Label {
-                                    width: label-width;
-                                    text: cell-start-index + 3;
-                                    horizontal-alignment: TextHorizontalAlignment.right;
-                                }
-
-                                LineEdit {
-                                    horizontal-stretch: 1;
-                                    read-only: is-read-only;
-                                    text: mnemonics[cell-start-index + 2];
-
-                                    edited => {
-                                        mnemonics[cell-start-index + 2] = self.text;
                                     }
                                 }
                             }

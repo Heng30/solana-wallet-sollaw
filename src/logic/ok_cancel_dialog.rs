@@ -11,15 +11,11 @@ pub fn init(ui: &AppWindow) {
                 "remove-all-cache" => {
                     ui.global::<Logic>().invoke_remove_all_cache();
                 }
-                "remove-account" => {
-                    ui.global::<Logic>().invoke_remove_account(user_data);
-                }
                 "remove-all-accounts" => {
-                    ui.global::<Logic>().invoke_remove_account(user_data);
                     ui.global::<PasswordSetting>().invoke_set(
                         true,
                         handle_type,
-                        "".into(),
+                        user_data,
                     );
                 }
                 "remove-address-book-entry" => {

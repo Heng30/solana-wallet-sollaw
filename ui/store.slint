@@ -56,11 +56,10 @@ export struct AboutDialog {
 }
 
 export global Store {
-    out property<image> no-image: @image-url("./images/no-data.svg");
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
-    in-out property <TabIndex> current-tab-index: TabIndex.Setting;
+    in-out property <TabIndex> current-tab-index: TabIndex.History;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
-    in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Accounts;
+    in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 
     in-out property <AccountEntry> current-account;
     in-out property <[AccountEntry]> accounts: [

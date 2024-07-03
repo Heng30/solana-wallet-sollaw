@@ -206,11 +206,9 @@ component AccountDetail inherits SettingDetail {
     SettingDetailInner {
         Rectangle {
             height: Math.max(root.height * 0.2, 200px);
-            background: Theme.secondary-background;
-            border-radius: Theme.border-radius;
 
             Avatar {
-                height: 50%;
+                height: 80%;
                 width: self.height;
                 background: Theme.third-brand-color;
                 icon: IconsDialogSetting.icons[icon-index];
@@ -297,7 +295,7 @@ component AccountDetail inherits SettingDetail {
                 text: Logic.tr(Store.is-cn, "移除账户");
 
                 clicked => {
-                    OkCancelDialogSetting.set(true, "warning", Logic.tr(Store.is-cn, "警告"), Logic.tr(Store.is-cn, "是否删除账户？"), "remove-account", selected-account.uuid);
+                    PasswordSetting.set(true, "remove-account", selected-account.uuid);
                 }
             }
         }
@@ -586,10 +584,12 @@ export component Setting inherits Rectangle {
             }
 
             tap() => {
+                AddressBookSetting.enabled-input = false;
                 Store.current-setting-detail-index = SettingDetailIndex.AddressBookDetail;
             }
 
             add => {
+                AddressBookSetting.enabled-input = true;
                 Logic.add-address();
             }
         }

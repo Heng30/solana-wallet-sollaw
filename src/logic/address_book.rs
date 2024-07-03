@@ -1,6 +1,6 @@
 use crate::slint_generatedAppWindow::{
     AddressBookEntry as UIAddressBookEntry, AddressBookSetting, AppWindow, Logic,
-    SettingDetailIndex, Store,
+    SettingDetailIndex, Store, Icons
 };
 use crate::{
     db::{self, address_book::AddressBookEntry},
@@ -83,7 +83,7 @@ pub fn init(ui: &AppWindow) {
                 );
                 Image::from_rgb8(buffer)
             }
-            _ => ui.global::<Store>().get_no_image(),
+            _ => ui.global::<Icons>().get_no_data(),
         }
     });
 

@@ -19,8 +19,8 @@ export global Logic {
     callback new-account(string, string); // (name, password) -> void
     callback update-account-name(string, string); // (uuid, name) -> void
     callback update-account-avatar-index(string, int); // (uuid, icon-index) -> void
-    callback remove-account(string); // (uuid) -> void
-    callback remove-all-accounts();
+    callback remove-account(string, string); // (password, uuid) -> void
+    callback remove-all-accounts(string); // (password) -> void
     callback switch-account(string, string); // (old-uuid, new-uuid) -> void
 
     callback qr-code(string) -> image;
