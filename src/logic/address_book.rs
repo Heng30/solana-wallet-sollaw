@@ -1,9 +1,12 @@
 use crate::slint_generatedAppWindow::{
-    AddressBookEntry as UIAddressBookEntry, AddressBookSetting, AppWindow, Logic,
-    SettingDetailIndex, Store, Icons
+    AddressBookEntry as UIAddressBookEntry, AddressBookSetting, AppWindow, Icons, Logic,
+    SettingDetailIndex, Store,
 };
 use crate::{
-    db::{self, address_book::AddressBookEntry},
+    db::{
+        self,
+        def::{AddressBookEntry, ADDRESS_BOOK_TABLE},
+    },
     message_success, message_warn,
     util::translator::tr,
 };
@@ -24,7 +27,7 @@ macro_rules! store_address_book_entries {
 }
 
 async fn get_from_db() -> Vec<UIAddressBookEntry> {
-    match db::address_book::select_all().await {
+    match db::entry::select_all(ADDRESS_BOOK_TABLE).await {
         Ok(items) => items
             .into_iter()
             .filter_map(|item| serde_json::from_str::<AddressBookEntry>(&item.data).ok())
@@ -153,18 +156,28 @@ pub fn init(ui: &AppWindow) {
 
 fn _add_address(address: AddressBookEntry) {
     tokio::spawn(async move {
-        _ = db::address_book::insert(&address.uuid, &serde_json::to_string(&address).unwrap()).await;
+        _ = db::entry::insert(
+            ADDRESS_BOOK_TABLE,
+            &address.uuid,
+            &serde_json::to_string(&address).unwrap(),
+        )
+        .await;
     });
 }
 
 fn _update_entry(address: AddressBookEntry) {
     tokio::spawn(async move {
-        _ = db::address_book::update(&address.uuid, &serde_json::to_string(&address).unwrap()).await;
+        _ = db::entry::update(
+            ADDRESS_BOOK_TABLE,
+            &address.uuid,
+            &serde_json::to_string(&address).unwrap(),
+        )
+        .await;
     });
 }
 
 fn _remove_entry(uuid: SharedString) {
     tokio::spawn(async move {
-        _ = db::address_book::delete(&uuid).await;
+        _ = db::entry::delete(ADDRESS_BOOK_TABLE, &uuid).await;
     });
 }

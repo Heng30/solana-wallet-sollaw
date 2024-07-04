@@ -31,8 +31,8 @@ uuid = { version = "=1.9.1", features = ["v4"] }
 tokio = { version = "=1.38.0", features = ["full"] }
 serde = { version = "=1.0.203", features = ["serde_derive"] }
 reqwest = { version = "=0.11.27", features = ["json", "socks"] }
-sqlx = { version = "=0.6.3", features = ["runtime-tokio-native-tls", "sqlite"] }
 
+sqldb = { version = "0.1.0", path = "./libs/sqldb" }
 wallet = { version = "0.1.0", path = "./libs/wallet" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

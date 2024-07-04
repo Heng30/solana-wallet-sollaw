@@ -1,7 +1,7 @@
 use crate::{
     db::{
         self,
-        accounts::{AccountEntry, SecretInfo, SECRET_UUID},
+        def::{AccountEntry, SecretInfo, ACCOUNTS_TABLE, SECRET_UUID},
         ComEntry,
     },
     logic::message::{async_message_success, async_message_warn},
@@ -30,7 +30,7 @@ macro_rules! store_accounts {
 }
 
 async fn get_secrect_info() -> Result<SecretInfo> {
-    let cm = db::accounts::select(SECRET_UUID)
+    let cm = db::entry::select(ACCOUNTS_TABLE, SECRET_UUID)
         .await
         .with_context(|| "Get SecretInfo failed")?;
     serde_json::from_str::<SecretInfo>(&cm.data)
@@ -43,8 +43,8 @@ async fn insert_secret_info(mut info: SecretInfo) -> Result<()> {
 
     let info = serde_json::to_string(&info)?;
 
-    _ = db::accounts::delete(SECRET_UUID).await;
-    db::accounts::insert(SECRET_UUID, &info)
+    _ = db::entry::delete(ACCOUNTS_TABLE, SECRET_UUID).await;
+    db::entry::insert(ACCOUNTS_TABLE, SECRET_UUID, &info)
         .await
         .with_context(|| "insert SecretInfo failed")
 }
@@ -57,7 +57,7 @@ async fn update_secret_info(mut info: SecretInfo, old_password: Option<String>) 
     }
 
     let info = serde_json::to_string(&info)?;
-    db::accounts::update(SECRET_UUID, &info)
+    db::entry::update(ACCOUNTS_TABLE, SECRET_UUID, &info)
         .await
         .with_context(|| "update SecretInfo failed")
 }
@@ -163,11 +163,11 @@ fn init_accounts(ui: &AppWindow) {
 
     let ui_handle = ui.as_weak();
     tokio::spawn(async move {
-        match db::accounts::select_all().await {
+        match db::entry::select_all(ACCOUNTS_TABLE).await {
             Ok(items) => {
                 let (secret_info, accounts) = parse_com_entry(items);
                 if secret_info.is_none() || accounts.is_empty() {
-                    _ = db::accounts::delete_all().await;
+                    _ = db::entry::delete_all(ACCOUNTS_TABLE).await;
                     return;
                 }
 
@@ -524,7 +524,7 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
                         };
 
                         let data = serde_json::to_string(&account).unwrap();
-                        _ = db::accounts::insert(&account.uuid, &data).await;
+                        _ = db::entry::insert(ACCOUNTS_TABLE, &account.uuid, &data).await;
 
                         _ = slint::invoke_from_event_loop(move || {
                             let ui = ui_handle.unwrap();
@@ -553,16 +553,26 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
 
 fn _update_account(account: AccountEntry) {
     tokio::spawn(async move {
-        _ = db::accounts::update(&account.uuid, &serde_json::to_string(&account).unwrap()).await;
+        _ = db::entry::update(
+            ACCOUNTS_TABLE,
+            &account.uuid,
+            &serde_json::to_string(&account).unwrap(),
+        )
+        .await;
     });
 }
 
-fn _remove_account(ui_handle: Weak<AppWindow>, password: SharedString, uuid: SharedString, index: usize) {
+fn _remove_account(
+    ui_handle: Weak<AppWindow>,
+    password: SharedString,
+    uuid: SharedString,
+    index: usize,
+) {
     tokio::spawn(async move {
         match is_valid_password_in_secret_info(&password).await {
             Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
             _ => {
-                _ = db::accounts::delete(&uuid).await;
+                _ = db::entry::delete(ACCOUNTS_TABLE, &uuid).await;
                 _ = slint::invoke_from_event_loop(move || {
                     let ui = ui_handle.unwrap();
                     store_accounts!(ui).remove(index);
@@ -580,7 +590,7 @@ fn _remove_all_accounts(ui_handle: Weak<AppWindow>, password: SharedString) {
         match is_valid_password_in_secret_info(&password).await {
             Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
             _ => {
-                _ = db::accounts::delete_all().await;
+                _ = db::entry::delete_all(ACCOUNTS_TABLE).await;
                 _ = slint::invoke_from_event_loop(move || {
                     let ui = ui_handle.unwrap();
                     store_accounts!(ui).set_vec(vec![]);
