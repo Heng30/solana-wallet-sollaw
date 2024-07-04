@@ -12,11 +12,8 @@ pub fn init(ui: &AppWindow) {
                     ui.global::<Logic>().invoke_remove_all_cache();
                 }
                 "remove-all-accounts" => {
-                    ui.global::<PasswordSetting>().invoke_set(
-                        true,
-                        handle_type,
-                        user_data,
-                    );
+                    ui.global::<PasswordSetting>()
+                        .invoke_set(true, handle_type, user_data);
                 }
                 "remove-address-book-entry" => {
                     ui.global::<Logic>().invoke_remove_address(user_data);

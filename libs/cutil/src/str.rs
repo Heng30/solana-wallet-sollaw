@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 pub fn split_string_to_fixed_length_parts(input: &str, length: usize) -> Vec<String> {
     input
         .chars()
@@ -8,7 +7,6 @@ pub fn split_string_to_fixed_length_parts(input: &str, length: usize) -> Vec<Str
         .collect()
 }
 
-#[allow(dead_code)]
 pub fn pretty_size_string(size: u64) -> String {
     match size {
         s if s < 1024 => format!("{}B", size),

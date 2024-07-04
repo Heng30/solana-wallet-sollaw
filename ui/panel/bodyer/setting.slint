@@ -3,7 +3,7 @@ import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
 import { Store,  SettingUI, SettingDetailIndex, AccountEntry } from "../../store.slint";
-import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar, AddressBook, AddressBookDetail, AddressBookEntry, AddressBookSetting } from "../../base/widgets.slint";
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar, AddressBook, AddressBookDetail, AddressBookEntry, AddressBookSetting, About } from "../../base/widgets.slint";
 
 export global AccountMnemonicSetting {
     in-out property <string> mnemonic;
@@ -318,73 +318,6 @@ component AccountMnemonic inherits SettingDetailInner {
         back => {
             AccountMnemonicSetting.clear();
             root.back();
-        }
-    }
-}
-
-component About inherits SettingDetail {
-    title: Logic.tr(Store.is-cn, "关 于");
-
-    VerticalLayout {
-        alignment: start;
-        spacing: Theme.spacing * 4;
-        padding: Theme.padding * 2;
-        padding-top: Theme.padding * 4;
-
-        HorizontalLayout {
-            alignment: center;
-
-            Label {
-                color: Theme.brand-color;
-                text: Store.about-dialog.title;
-                font-size: Theme.title1-font-size;
-            }
-        }
-
-        Label {
-            horizontal-alignment: center;
-            text: Store.about-dialog.text;
-            wrap: word-wrap;
-        }
-
-        VerticalLayout {
-            spacing: Theme.spacing * 2;
-            HorizontalLayout {
-                alignment: center;
-                spacing: Theme.spacing * 2;
-
-                Label {
-                    text: "🎉❤Buy Me a Coffee(MetaMask)❤🎉";
-                }
-
-                IconBtn {
-                    icon: Icons.copy;
-                    clicked => {
-                        Logic.copy-to-clipboard(Store.about-dialog.sponsor);
-                    }
-                }
-            }
-
-            HorizontalLayout {
-                alignment: center;
-                Link {
-                    wrap: word-wrap;
-                    text: Store.about-dialog.sponsor;
-                    color: Theme.placeholder-text-color;
-                    font-size: Theme.default-font-size - 2px;
-
-                    clicked => {
-                        Util.open-url("Default", "https://etherscan.io/address/" + Store.about-dialog.sponsor);
-                    }
-                }
-            }
-        }
-
-        HorizontalLayout {
-            alignment: center;
-            Brand {
-                width: 35%;
-            }
         }
     }
 }

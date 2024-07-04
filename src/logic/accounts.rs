@@ -1,3 +1,4 @@
+use super::tr::tr;
 use crate::{
     db::{
         self,
@@ -10,9 +11,9 @@ use crate::{
         AccountEntry as UIAccountEntry, AccountMnemonicSetting, AppWindow, IconsDialogSetting,
         Logic, SettingDetailIndex, Store,
     },
-    util::{crypto, translator::tr},
 };
 use anyhow::{bail, Context, Result};
+use cutil::crypto;
 use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
 use std::cmp::Ordering;
 use uuid::Uuid;

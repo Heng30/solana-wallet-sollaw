@@ -5,12 +5,11 @@ slint::include_modules!();
 mod config;
 mod db;
 mod logic;
-mod util;
 mod version;
 
 #[cfg(not(target_os = "android"))]
 pub fn init_logger() {
-    use chrono::Local;
+    use cutil::chrono::Local;
     use env_logger::fmt::Color;
     use std::io::Write;
 

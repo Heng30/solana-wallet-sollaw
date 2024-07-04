@@ -1,9 +1,13 @@
-use crate::util::{self, number, time, translator::tr};
+use super::tr::tr;
 use crate::{
     message_warn,
     slint_generatedAppWindow::{AppWindow, Logic, Util},
 };
-use rand::Rng;
+use cutil::{
+    self, number,
+    rand::{self, Rng},
+    time,
+};
 use slint::ComponentHandle;
 use std::str::FromStr;
 use webbrowser::{self, Browser};
@@ -52,7 +56,7 @@ pub fn init(ui: &AppWindow) {
 
     ui.global::<Util>()
         .on_split_and_join_string(move |input, length, sep| {
-            util::str::split_string_to_fixed_length_parts(input.as_str(), length as usize)
+            cutil::str::split_string_to_fixed_length_parts(input.as_str(), length as usize)
                 .join(sep.as_str())
                 .into()
         });

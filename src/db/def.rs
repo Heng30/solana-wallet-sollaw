@@ -1,5 +1,6 @@
 use crate::slint_generatedAppWindow::{
     AccountEntry as UIAccountEntry, AddressBookEntry as UIAddressBookEntry,
+    TransactionTileEntry as UIHistoryEntry, TransactionTileStatus,
 };
 use serde::{Deserialize, Serialize};
 
@@ -75,4 +76,13 @@ impl From<AddressBookEntry> for UIAddressBookEntry {
             address: entry.address.into(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HistoryEntry {
+    pub hash: String,
+    pub balance: String,
+    pub time: String,
+    // TODO
+    // pub status: TransactionTileStatus,
 }

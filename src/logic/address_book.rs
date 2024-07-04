@@ -1,15 +1,15 @@
-use crate::slint_generatedAppWindow::{
-    AddressBookEntry as UIAddressBookEntry, AddressBookSetting, AppWindow, Icons, Logic,
-    SettingDetailIndex, Store,
-};
 use crate::{
     db::{
         self,
         def::{AddressBookEntry, ADDRESS_BOOK_TABLE},
     },
     message_success, message_warn,
-    util::translator::tr,
+    slint_generatedAppWindow::{
+        AddressBookEntry as UIAddressBookEntry, AddressBookSetting, AppWindow, Icons, Logic,
+        SettingDetailIndex, Store,
+    },
 };
+use super::tr::tr;
 use image::Rgb;
 use qrcode::QrCode;
 use slint::{ComponentHandle, Image, Model, Rgb8Pixel, SharedPixelBuffer, SharedString, VecModel};

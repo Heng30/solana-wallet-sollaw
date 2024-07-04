@@ -1,13 +1,14 @@
 use crate::slint_generatedAppWindow::AppWindow;
 
 mod about;
+mod accounts;
+mod address_book;
 mod clipboard;
 mod message;
 mod ok_cancel_dialog;
 mod setting;
+mod tr;
 mod util;
-mod accounts;
-mod address_book;
 
 pub fn init(ui: &AppWindow) {
     util::init(&ui);

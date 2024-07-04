@@ -1,6 +1,5 @@
 use crate::slint_generatedAppWindow::{AppWindow, Logic, MessageItem, Store};
-use slint::ComponentHandle;
-use slint::{Timer, TimerMode, Weak};
+use slint::{ComponentHandle, Timer, TimerMode, Weak};
 
 #[macro_export]
 macro_rules! message_warn {
