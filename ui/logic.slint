@@ -1,4 +1,5 @@
 import { Store, SetupIndex, SettingUI, AccountEntry } from "./store.slint";
+import { TransactionTileEntry, TransactionTileStatus } from "base/transaction-tile.slint";
 
 export global Logic {
     pure callback new-mnemonics(int) -> [string];
@@ -28,6 +29,12 @@ export global Logic {
     callback update-address-name(string, string); // (uuid, name) -> void
     callback update-address(string, string); // (uuid, address) -> void
     callback remove-address(string); // (uuid) -> void
+
+    callback add-history(TransactionTileEntry);
+    callback remove-history(string); // (uuid) -> void
+    callback update-history-status(string, TransactionTileStatus); // (uuid, status) -> void
+    callback open-tx-detail(string, string); // (network, hash) -> void
+    callback switch-history-network(string); // (network) -> void
 
     callback update-cache-size();
     callback remove-all-cache();

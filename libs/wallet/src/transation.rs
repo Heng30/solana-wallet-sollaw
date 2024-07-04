@@ -22,42 +22,9 @@ use solana_sdk::{
 use solana_transaction_status::UiTransactionEncoding;
 use spl_token::state::Mint;
 use std::{str::FromStr, string::ToString, time::Duration};
+use super::network::{RpcUrlType, WssUrlType};
 
 pub const DEFAULT_TIMEOUT_MS: u64 = 10_000;
-
-#[derive(Clone, Debug)]
-pub enum RpcUrlType {
-    Main,
-    Test,
-    Dev,
-}
-
-impl ToString for RpcUrlType {
-    fn to_string(&self) -> String {
-        String::from(match self {
-            RpcUrlType::Main => "https://api.mainnet-beta.solana.com",
-            RpcUrlType::Test => "https://api.testnet.solana.com",
-            RpcUrlType::Dev => "https://api.devnet.solana.com",
-        })
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum WssUrlType {
-    Main,
-    Test,
-    Dev,
-}
-
-impl ToString for WssUrlType {
-    fn to_string(&self) -> String {
-        String::from(match self {
-            WssUrlType::Main => "wss://api.mainnet-beta.solana.com",
-            WssUrlType::Test => "wss://api.testnet.solana.com",
-            WssUrlType::Dev => "wss://api.devnet.solana.com",
-        })
-    }
-}
 
 #[derive(Default, Debug, Clone)]
 pub struct AccountToken {

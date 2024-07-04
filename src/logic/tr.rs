@@ -27,7 +27,8 @@ pub fn tr(text: &str) -> String {
     items.insert("保存失败", "Save failed");
     items.insert("保存成功", "Save success");
     items.insert("重置成功", "Reset success");
-    items.insert("刷新成功", "Flush success");
+    items.insert("刷新成功", "Refresh success");
+    items.insert("刷新失败", "Refresh failed");
     items.insert("发送失败", "Send failed");
     items.insert("下载成功", "Download success");
     items.insert("下载失败", "Download failed");
@@ -208,6 +209,8 @@ pub fn tr(text: &str) -> String {
     items.insert("切换账户", "Switch account");
     items.insert("是否删除所有账户？", "Delete all account or not?");
     items.insert("删除所有账户成功", "Delete all accounts success");
+    items.insert("打开成功", "Open link success");
+    items.insert("打开失败", "Open link failed");
 
     // TODO
     items.insert(

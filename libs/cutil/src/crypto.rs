@@ -2,7 +2,6 @@ use aes::Aes256;
 use anyhow::{anyhow, Context, Result};
 use block_modes::{block_padding, BlockMode, Cbc};
 use crypto_hash::{hex_digest, Algorithm};
-use rand::Rng;
 
 type Aes256Cbc = Cbc<Aes256, block_padding::Pkcs7>;
 
@@ -49,18 +48,10 @@ pub fn hash(text: &str) -> String {
     )
 }
 
-#[allow(dead_code)]
-pub fn random_string(length: usize) -> String {
-    let mut rng = rand::thread_rng();
-    let chars: Vec<char> = ('a'..='z').collect();
-    (0..length)
-        .map(|_| chars[rng.gen_range(0..chars.len())])
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::str::random_string;
 
     #[test]
     fn test_random_string() {

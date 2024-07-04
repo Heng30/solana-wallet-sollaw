@@ -11,4 +11,8 @@ pub async fn init(db_path: &str) {
     entry::new(def::ADDRESS_BOOK_TABLE)
         .await
         .expect("address_book table failed");
+
+    entry::new(def::HISTORY_TABLE)
+        .await
+        .expect("history table failed");
 }

@@ -7,8 +7,9 @@ import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, Lang
 import { Setup } from "./setup/panel.slint";
 import { CreateAccount } from "./setup/create-account.slint";
 import { AccountMnemonicSetting } from "./panel/bodyer/setting.slint";
+import { HistorySetting } from "./panel/bodyer/history.slint";
 
-import { AddressBook, AddressBookDetail, Mnemonic } from "./base/widgets.slint";
+// import { AddressBook, AddressBookDetail, Mnemonic } from "./base/widgets.slint";
 
 export component AppWindow inherits Window {
     default-font-size: Theme.default-font-size;
@@ -126,4 +127,4 @@ export component AppWindow inherits Window {
     }
 }
 
-export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus }
+export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, HistorySetting }

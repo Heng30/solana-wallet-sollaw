@@ -2,11 +2,13 @@ use crate::slint_generatedAppWindow::{
     AccountEntry as UIAccountEntry, AddressBookEntry as UIAddressBookEntry,
     TransactionTileEntry as UIHistoryEntry, TransactionTileStatus,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_with::{serde_as, DeserializeAs, SerializeAs};
 
+pub const SECRET_UUID: &str = "secret-uuid";
 pub const ACCOUNTS_TABLE: &str = "accounts";
 pub const ADDRESS_BOOK_TABLE: &str = "address_book";
-pub const SECRET_UUID: &str = "secret-uuid";
+pub const HISTORY_TABLE: &str = "history";
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct AccountEntry {
@@ -78,11 +80,72 @@ impl From<AddressBookEntry> for UIAddressBookEntry {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct HistoryEntry {
+    pub uuid: String,
+    pub network: String,
     pub hash: String,
     pub balance: String,
     pub time: String,
-    // TODO
-    // pub status: TransactionTileStatus,
+
+    #[serde_as(as = "TranStatus")]
+    pub status: TransactionTileStatus,
+}
+
+struct TranStatus;
+impl SerializeAs<TransactionTileStatus> for TranStatus {
+    fn serialize_as<S>(source: &TransactionTileStatus, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let status = match source {
+            TransactionTileStatus::Success => "Success",
+            TransactionTileStatus::Pending => "Pending",
+            TransactionTileStatus::Error => "Error",
+        };
+
+        serializer.serialize_str(status)
+    }
+}
+
+impl<'de> DeserializeAs<'de, TransactionTileStatus> for TranStatus {
+    fn deserialize_as<D>(deserializer: D) -> Result<TransactionTileStatus, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let status = String::deserialize(deserializer)?;
+        let status = match status.as_str() {
+            "Success" => TransactionTileStatus::Success,
+            "Pending" => TransactionTileStatus::Pending,
+            _ => TransactionTileStatus::Error,
+        };
+        Ok(status)
+    }
+}
+
+impl From<UIHistoryEntry> for HistoryEntry {
+    fn from(entry: UIHistoryEntry) -> Self {
+        HistoryEntry {
+            uuid: entry.uuid.into(),
+            network: entry.network.into(),
+            hash: entry.hash.into(),
+            balance: entry.balance.into(),
+            time: entry.time.into(),
+            status: entry.status,
+        }
+    }
+}
+
+impl From<HistoryEntry> for UIHistoryEntry {
+    fn from(entry: HistoryEntry) -> Self {
+        UIHistoryEntry {
+            uuid: entry.uuid.into(),
+            network: entry.network.into(),
+            hash: entry.hash.into(),
+            balance: entry.balance.into(),
+            time: entry.time.into(),
+            status: entry.status,
+        }
+    }
 }

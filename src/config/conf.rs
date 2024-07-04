@@ -65,6 +65,10 @@ pub fn ui() -> data::UI {
     CONFIG.lock().unwrap().ui.clone()
 }
 
+pub fn network() -> data::Network {
+    CONFIG.lock().unwrap().network.clone()
+}
+
 pub fn db_path() -> PathBuf {
     CONFIG.lock().unwrap().db_path.clone()
 }
@@ -121,6 +125,7 @@ impl Config {
                 Ok(c) => {
                     self.appid = c.appid;
                     self.ui = c.ui;
+                    self.network = c.network;
                     Ok(())
                 }
                 Err(_) => {

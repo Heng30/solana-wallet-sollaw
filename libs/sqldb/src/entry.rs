@@ -66,6 +66,14 @@ pub async fn select_all(table: &str) -> Result<Vec<ComEntry>> {
     )
 }
 
+pub async fn row_counts(table: &str) -> Result<i64> {
+    let count: (i64,) = sqlx::query_as(&format!("SELECT COUNT(*) FROM {table}"))
+        .fetch_one(&pool().await)
+        .await?;
+
+    Ok(count.0)
+}
+
 pub async fn is_exist(table: &str, uuid: &str) -> Result<()> {
     select(table, uuid).await?;
     Ok(())
@@ -74,8 +82,8 @@ pub async fn is_exist(table: &str, uuid: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::sync::Mutex;
     use once_cell::sync::Lazy;
+    use tokio::sync::Mutex;
 
     static MTX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
     const DB_PATH: &str = "/tmp/entry-db-test.db";
@@ -137,7 +145,10 @@ mod tests {
         insert(TABLE_NAME, "uuid-1", "data-1").await?;
         update(TABLE_NAME, "uuid-1", "data-1-1").await?;
 
-        assert_eq!(select(TABLE_NAME, "uuid-1").await?.data, "data-1-1".to_string());
+        assert_eq!(
+            select(TABLE_NAME, "uuid-1").await?.data,
+            "data-1-1".to_string()
+        );
 
         Ok(())
     }
@@ -175,6 +186,20 @@ mod tests {
         assert_eq!(v[0].data, "data-1");
         assert_eq!(v[1].uuid, "uuid-2");
         assert_eq!(v[1].data, "data-2");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_row_counts() -> Result<()> {
+        let _mtx = MTX.lock().await;
+        init(DB_PATH).await;
+        new(TABLE_NAME).await?;
+        delete_all(TABLE_NAME).await?;
+
+        assert!(row_counts(TABLE_NAME).await? == 0);
+        insert(TABLE_NAME, "uuid-1", "data-1").await?;
+        assert!(row_counts(TABLE_NAME).await? == 1);
+
         Ok(())
     }
 

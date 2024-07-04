@@ -6,18 +6,22 @@ import { Head, ElevatedBtn, NoMessageImg, TransactionTile, TransactionTileEntry,
 export global HistorySetting {
     in-out property <[TransactionTileEntry]> entries: [
         {
+            uuid: "uuid-1",
             hash: "hash-1",
             balance: "$100.12",
             time: "2024-12-04 12:06:09",
             status: TransactionTileStatus.Success,
         },
         {
+            uuid: "uuid-2",
             hash: "hash-1",
             balance: "$100.12",
             time: "2024-12-04 12:06:09",
             status: TransactionTileStatus.Pending,
         },
         {
+            uuid: "uuid-3",
+            hash: "hash-1",
             hash: "hash-1",
             balance: "$100.12",
             time: "2024-12-04 12:06:09",
@@ -55,14 +59,16 @@ component TransactionTiles inherits Rectangle {
                     entry: item;
 
                     hash-clicked => {
-                        // TODO
-                        debug(item.hash);
+                        Logic.open-tx-detail(item.network, item.hash);
+                    }
+
+                    icon-clicked => {
+                        self.hash-clicked();
                     }
                 }
 
                 icon-clicked => {
-                    // TODO
-                   debug("fwjfiweji");
+                   Logic.remove-history(item.uuid);
                 }
             }
         }
