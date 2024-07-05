@@ -120,7 +120,6 @@ component Accounts inherits Rectangle {
 
     sd := SettingDetail {
         title: Logic.tr(Store.is-cn, "账户管理");
-        is-show-divider: true;
 
         private property <length> item-height: 80px;
 
@@ -177,7 +176,7 @@ component Accounts inherits Rectangle {
         x: root.width - self.width - Theme.padding * 4;
         y: root.height - self.height - Theme.padding * 4 - Theme.footer-height;
 
-        icon: Icons.add-small;
+        icon: Icons.add-light;
 
         clicked => {
             PasswordSetting.set(true, "new-account", "");

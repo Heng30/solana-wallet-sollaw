@@ -34,7 +34,6 @@ component TopHead inherits Head {
     icon: Icons.history;
     title: Logic.tr(Store.is-cn, "历史记录");
     hbox-alignment: LayoutAlignment.start;
-    is-show-divider: true;
 }
 
 component TransactionTiles inherits SettingDetailInner {
@@ -82,6 +81,18 @@ component Body inherits Rectangle {
     }
 
     if HistorySetting.entries.length > 0: TransactionTiles { }
+
+    ElevatedBtn {
+        x: root.width - self.width - Theme.padding * 4;
+        y: root.height - self.height - Theme.padding * 4;
+
+        icon: Icons.refresh;
+
+        clicked => {
+            Logic.refresh-all-pending-and-error-history();
+        }
+    }
+
 }
 
 export component History inherits VerticalLayout {

@@ -69,6 +69,8 @@ export global Logic {
     // (uuid, status) -> void
     callback update-history-status(string, TransactionTileStatus);
 
+    callback refresh-all-pending-and-error-history();
+
     // (network, hash) -> void
     callback open-tx-detail(string, string);
 

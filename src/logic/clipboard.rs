@@ -37,13 +37,13 @@ fn copy_from_clipboard() -> Result<String> {
 // TODO
 #[cfg(target_os = "android")]
 fn copy_to_clipboard(_msg: &str) -> Result<()> {
-    bail!("Not unimplement");
+    bail!("Not Implemented");
 }
 
 // TODO
 #[cfg(target_os = "android")]
 fn copy_from_clipboard() -> Result<String> {
-    bail!("Not unimplement");
+    bail!("Not Implemented");
 }
 
 pub fn init(ui: &AppWindow) {

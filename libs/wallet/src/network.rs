@@ -15,7 +15,7 @@ impl FromStr for NetworkType {
             "main" => NetworkType::Main,
             "test" => NetworkType::Test,
             "dev" => NetworkType::Dev,
-            _ => return Err(format!("Unknown Rpc type {ty}")),
+            _ => return Err(format!("Unknown Network type {ty}")),
         };
 
         Ok(ty)
@@ -58,6 +58,21 @@ pub enum RpcUrlType {
     Main,
     Test,
     Dev,
+}
+
+impl FromStr for RpcUrlType {
+    type Err = String;
+
+    fn from_str(ty: &str) -> Result<Self, Self::Err> {
+        let ty = match ty.to_lowercase().as_str() {
+            "main" => RpcUrlType::Main,
+            "test" => RpcUrlType::Test,
+            "dev" => RpcUrlType::Dev,
+            _ => return Err(format!("Unknown Rpc type {ty}")),
+        };
+
+        Ok(ty)
+    }
 }
 
 impl ToString for RpcUrlType {

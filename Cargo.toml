@@ -29,7 +29,11 @@ serde = { version = "=1.0.203", features = ["serde_derive"] }
 
 sqldb = { version = "0.1.0", path = "./libs/sqldb" }
 wallet = { version = "0.1.0", path = "./libs/wallet" }
-cutil = { version = "0.1.0", path = "./libs/cutil", features = ["default", "crypto", "time"] }
+cutil = { version = "0.1.0", path = "./libs/cutil", features = [
+  "default",
+  "crypto",
+  "time",
+] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 env_logger = "=0.10.2"
@@ -46,7 +50,7 @@ slint-build = "1.6"
 embed-resource = "=2.4.2"
 
 [features]
-default = ["slint/backend-android-activity-06"]
+default = ["slint/backend-android-activity-06", "cutil/native-tls-vendored"]
 desktop = []
 
 [lib]

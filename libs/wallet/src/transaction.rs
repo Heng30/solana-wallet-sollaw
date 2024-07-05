@@ -1,3 +1,4 @@
+use super::network::{RpcUrlType, WssUrlType};
 use anyhow::{bail, Context, Result};
 use futures::stream::StreamExt;
 use solana_account_decoder::{
@@ -22,9 +23,8 @@ use solana_sdk::{
 use solana_transaction_status::UiTransactionEncoding;
 use spl_token::state::Mint;
 use std::{str::FromStr, string::ToString, time::Duration};
-use super::network::{RpcUrlType, WssUrlType};
 
-pub const DEFAULT_TIMEOUT_MS: u64 = 10_000;
+pub const DEFAULT_TIMEOUT_SECS: u64 = 10;
 
 #[derive(Default, Debug, Clone)]
 pub struct AccountToken {
@@ -82,7 +82,7 @@ pub async fn evaluate_transaction_fee(
 ) -> Result<u64> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -102,10 +102,9 @@ pub async fn evaluate_transaction_fee(
 
 pub async fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
     let connection = match props.timeout {
-        Some(timeout) => RpcClient::new_with_timeout(
-            props.rpc_url_ty.to_string(),
-            Duration::from_millis(timeout),
-        ),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
         None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
@@ -138,7 +137,7 @@ pub async fn get_balance(
 ) -> Result<u64> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -156,7 +155,7 @@ pub async fn fetch_token_account(
 ) -> Result<Option<UiTokenAccount>> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -175,7 +174,7 @@ pub async fn fetch_account_tokens(
 ) -> Result<Vec<AccountToken>> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -248,7 +247,7 @@ pub async fn number_of_token_holders(
 ) -> Result<usize> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -296,7 +295,7 @@ pub async fn request_airdrop(
 ) -> Result<Signature> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -318,7 +317,7 @@ pub async fn wait_signature_confirmed(
 ) -> Result<u64> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -347,7 +346,7 @@ pub async fn is_signature_confirmed(
 ) -> Result<()> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -404,7 +403,7 @@ pub async fn minimum_balance_for_rent_exemption(
 ) -> Result<u64> {
     let connection = match timeout {
         Some(timeout) => {
-            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_millis(timeout))
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
         }
         None => RpcClient::new(rpc_url_ty.to_string()),
     };
@@ -422,10 +421,9 @@ pub async fn minimum_balance_for_rent_exemption(
 
 pub async fn create_online_account(props: CreateOnlineAccountProps) -> Result<Signature> {
     let connection = match props.timeout {
-        Some(timeout) => RpcClient::new_with_timeout(
-            props.rpc_url_ty.to_string(),
-            Duration::from_millis(timeout),
-        ),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
         None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
@@ -481,10 +479,9 @@ pub async fn create_online_account_with_seed(
     props: CreateOnlineAccountWithSeedProps,
 ) -> Result<(Pubkey, Signature)> {
     let connection = match props.timeout {
-        Some(timeout) => RpcClient::new_with_timeout(
-            props.rpc_url_ty.to_string(),
-            Duration::from_millis(timeout),
-        ),
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
         None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
@@ -605,7 +602,7 @@ mod tests {
             sender_keypair,
             recipient_pubkey,
             lamports: 100,
-            timeout: Some(DEFAULT_TIMEOUT_MS),
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
         };
 
@@ -628,7 +625,7 @@ mod tests {
         let ret = fetch_account_tokens(
             RpcUrlType::Test,
             RECIPIENT_WALLET_ADDRESS,
-            Some(DEFAULT_TIMEOUT_MS),
+            Some(DEFAULT_TIMEOUT_SECS),
         )
         .await?;
         println!("{:?}", ret);
@@ -680,7 +677,7 @@ mod tests {
             sender_keypair,
             recipient_pubkey,
             lamports: 100,
-            timeout: Some(DEFAULT_TIMEOUT_MS),
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
         };
 
@@ -702,7 +699,7 @@ mod tests {
             sender_keypair,
             recipient_pubkey,
             lamports: 100,
-            timeout: Some(DEFAULT_TIMEOUT_MS),
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
         };
 
@@ -726,7 +723,7 @@ mod tests {
             sender_keypair,
             recipient_pubkey,
             lamports: 100,
-            timeout: Some(DEFAULT_TIMEOUT_MS),
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
         };
 
@@ -749,7 +746,7 @@ mod tests {
             sender_keypair,
             recipient_pubkey,
             lamports: 100,
-            timeout: Some(DEFAULT_TIMEOUT_MS),
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
         };
 
