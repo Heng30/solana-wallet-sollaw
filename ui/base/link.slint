@@ -4,6 +4,7 @@ export component Link inherits Text {
     in-out property <bool> is-read;
 
     callback clicked <=> touch.clicked;
+    out property has-hover <=> touch.has-hover;
 
     wrap: word-wrap;
     font-size: Theme.title5-font-size;

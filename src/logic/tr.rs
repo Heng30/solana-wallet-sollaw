@@ -11,6 +11,7 @@ pub fn tr(text: &str) -> String {
     items.insert("原因", "Reason");
     items.insert("取消", "Cancel");
     items.insert("确认", "Confirm");
+    items.insert("确定", "Confirm");
     items.insert("编辑", "Edit");
     items.insert("删除", "Delete");
     items.insert("清空", "Clear");
@@ -198,7 +199,7 @@ pub fn tr(text: &str) -> String {
     items.insert("内部错误", "Internal error");
     items.insert("密码错误", "Password is wrong");
     items.insert("组记词", "Mnemonic");
-    items.insert("地址簿", "AddressBook");
+    items.insert("地址簿", "Address Book");
     items.insert("移除地址", "Delete address");
     items.insert("是否删除地址？", "Delete address or not?");
     items.insert("地址名称", "Address name");
@@ -212,7 +213,7 @@ pub fn tr(text: &str) -> String {
     items.insert("删除所有账户成功", "Delete all accounts success");
     items.insert("打开成功", "Open link success");
     items.insert("打开失败", "Open link failed");
-    items.insert("安全与隐私", "Security && Privacy ");
+    items.insert("安全与隐私", "Security & Privacy ");
     items.insert("重置账户", "Reset account");
     items.insert("是否重置账户？", "Reset account or not?");
     items.insert("请输入旧密码", "Please input old password");
@@ -222,20 +223,30 @@ pub fn tr(text: &str) -> String {
     items.insert("主网络", "Main Network");
     items.insert("测试网络", "Test Network");
     items.insert("开发网络", "Dev Network");
-    items.insert("注意: 当前处于", "Warn: current network is ");
+    items.insert("未知网络", "Unknown Network");
+    items.insert("注意: 当前处于", "Warning: Current Network is ");
+    items.insert("主页", "Home");
+    items.insert("接收", "Recipient");
+    items.insert("历史", "History");
+    items.insert("历史记录", "History");
+    items.insert("开发者模式", "Developer Mode");
+    items.insert("账户名称", "Account name");
+    items.insert("显示组记词", "Show mnemonics");
+    items.insert("移除账户", "Remove account");
+    items.insert("更改密码", "Change password");
+    items.insert("位组记词", "mnemonics");
 
-    // TODO
     items.insert(
-        "订阅、搜索和预览RSS消息",
-        "Subscribe, search and review RSS message.",
+        "创建账户和使用组记词恢复账户",
+        "Create account and recover account from mnemonics",
     );
     items.insert(
-        "收藏喜欢的文章，以便以后重新阅读",
-        "Collecting the articals you like. You can read it latter.",
+        "查看、发送和接收Sol代币和Solana的通证",
+        "Show, send and receive Sol and tokens of Solana",
     );
     items.insert(
-        "欢迎使用，享受你的阅读之旅",
-        "Welcome! Enjoying you journey of reading.",
+        "欢迎使用，享受你的加密之旅",
+        "Welcome! Enjoying you journey of crypto.",
     );
 
     if let Some(txt) = items.get(text) {

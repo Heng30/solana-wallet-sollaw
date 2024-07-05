@@ -9,10 +9,12 @@ export component SettingDetail inherits Rectangle {
 
     in-out property <string> title;
     in-out property <bool> is-show-header: true;
+    in-out property <bool> is-show-divider;
 
     VerticalLayout {
         if is-show-header: Head {
             title: root.title;
+            is-show-divider: root.is-show-divider;
             hbox-alignment: LayoutAlignment.start;
             clicked => {
                 root.back();
@@ -25,8 +27,10 @@ export component SettingDetail inherits Rectangle {
 
 export component SettingDetailInner inherits Flickable {
     in-out property <LayoutAlignment> vbox-alignment: LayoutAlignment.start;
+    in-out property vbox-padding <=> vbox.padding;
+    in-out property vbox-spacing <=> vbox.spacing;
 
-    VerticalLayout {
+    vbox := VerticalLayout {
         alignment: root.vbox-alignment;
         padding: Theme.padding * 2;
         spacing: Theme.spacing * 4;

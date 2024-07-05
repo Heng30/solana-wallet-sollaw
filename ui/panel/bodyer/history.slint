@@ -1,7 +1,7 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Store } from "../../store.slint";
 import { Logic } from "../../logic.slint";
-import { Head, ElevatedBtn, NoMessageImg, TransactionTile, TransactionTileEntry, TransactionTileStatus, SettingDetailInner, SlideCard } from "../../base/widgets.slint";
+import { Divider, Head, ElevatedBtn, NoMessageImg, TransactionTile, TransactionTileEntry, TransactionTileStatus, SettingDetailInner, SlideCard } from "../../base/widgets.slint";
 
 export global HistorySetting {
     in-out property <[TransactionTileEntry]> entries: [
@@ -34,42 +34,42 @@ component TopHead inherits Head {
     icon: Icons.history;
     title: Logic.tr(Store.is-cn, "历史记录");
     hbox-alignment: LayoutAlignment.start;
+    is-show-divider: true;
 }
 
-component TransactionTiles inherits Rectangle {
-    SettingDetailInner {
-        for item[index] in HistorySetting.entries: Rectangle {
-            private property <length> item-height: 80px;
+component TransactionTiles inherits SettingDetailInner {
+    vbox-spacing: Theme.spacing * 2;
+    for item[index] in HistorySetting.entries: Rectangle {
+        private property <length> item-height: 80px;
 
-            height: item-height;
+        height: item-height;
 
-            SlideCard {
-                gap: Theme.padding * 2;
+        SlideCard {
+            gap: Theme.padding * 2;
 
-                icons: [
-                    {
-                        icon: Icons.delete,
-                        text: Logic.tr(Store.is-cn, "删除"),
-                        colorize: Colors.red,
-                    },
-                ];
+            icons: [
+                {
+                    icon: Icons.delete,
+                    text: Logic.tr(Store.is-cn, "删除"),
+                    colorize: Colors.red,
+                },
+            ];
 
-                TransactionTile {
-                    height: item-height;
-                    entry: item;
+            TransactionTile {
+                height: item-height;
+                entry: item;
 
-                    hash-clicked => {
-                        Logic.open-tx-detail(item.network, item.hash);
-                    }
-
-                    icon-clicked => {
-                        self.hash-clicked();
-                    }
+                hash-clicked => {
+                    Logic.open-tx-detail(item.network, item.hash);
                 }
 
                 icon-clicked => {
-                   Logic.remove-history(item.uuid);
+                    self.hash-clicked();
                 }
+            }
+
+            icon-clicked => {
+                Logic.remove-history(item.uuid);
             }
         }
     }
@@ -86,6 +86,5 @@ component Body inherits Rectangle {
 
 export component History inherits VerticalLayout {
     head := TopHead { }
-
     body := Body { }
 }

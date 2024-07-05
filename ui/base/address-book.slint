@@ -23,6 +23,11 @@ export global AddressBookSetting {
             uuid: "uuid-1",
             name: "Address-1",
             address: "0xf1199999751b1a3A74590adBf95401D19AB30014"
+        },
+        {
+            uuid: "uuid-1",
+            name: "Address-1",
+            address: "0xf1199999751b1a3A74590adBf95401D19AB30014"
         }
     ];
 
@@ -49,8 +54,10 @@ export component AddressBook inherits Rectangle {
 
     sd := SettingDetail {
         title: Logic.tr(Store.is-cn, "地址簿");
+        is-show-divider: true;
 
         SettingDetailInner {
+            vbox-spacing: Theme.spacing * 2;
             for item[index] in AddressBookSetting.entries: ListTile {
                 height: item-height;
                 background: self.has-hover ? Theme.base-background.darker(3%) : Theme.base-background;

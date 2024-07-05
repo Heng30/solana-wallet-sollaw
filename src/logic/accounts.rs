@@ -9,15 +9,15 @@ use crate::{
     message_success, message_warn,
     slint_generatedAppWindow::{
         AccountEntry as UIAccountEntry, AccountMnemonicSetting, AppWindow, IconsDialogSetting,
-        Logic, SettingDetailIndex, Store,
+        Logic, SettingDetailIndex, Store, Util,
     },
 };
 use anyhow::{bail, Context, Result};
 use cutil::crypto;
 use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, str::FromStr};
 use uuid::Uuid;
-use wallet::{mnemonic, prelude::*};
+use wallet::{mnemonic, network::NetworkType, prelude::*};
 
 #[macro_export]
 macro_rules! store_accounts {
@@ -507,6 +507,21 @@ pub fn init(ui: &AppWindow) {
             }
         });
     });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_open_account_detail(move |network, address| {
+            let ui = ui_handle.unwrap();
+            match NetworkType::from_str(&network) {
+                Ok(ty) => {
+                    let url = ty.address_detail_url(&address);
+                    ui.global::<Util>()
+                        .invoke_open_url("Default".into(), url.into());
+                    message_success!(ui, tr("打开成功"));
+                }
+                Err(e) => message_warn!(ui, format!("{}. {e:?}", tr("打开失败"))),
+            }
+        });
 }
 
 fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {

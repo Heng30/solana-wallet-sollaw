@@ -120,10 +120,12 @@ component Accounts inherits Rectangle {
 
     sd := SettingDetail {
         title: Logic.tr(Store.is-cn, "账户管理");
+        is-show-divider: true;
 
         private property <length> item-height: 80px;
 
         SettingDetailInner {
+            vbox-spacing: Theme.spacing * 2;
             for item[index] in Store.accounts: VerticalLayout {
                 alignment: LayoutAlignment.center;
 

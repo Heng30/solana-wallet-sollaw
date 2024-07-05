@@ -139,7 +139,7 @@ export component SignIn inherits Rectangle {
                 }
 
                 ConfirmBtn {
-                    text: Logic.tr(Store.is-cn, "确定");
+                    text: Logic.tr(Store.is-cn, "确认");
 
                     clicked => {
                         root.error-message = root.confirm(username-lineedit.text, password-first-lineedit.text, password-second-lineedit.text);

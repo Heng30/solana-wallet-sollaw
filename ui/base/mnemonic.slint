@@ -22,7 +22,7 @@ export component Mnemonic inherits Rectangle {
     private property <int> max-blocks: mnemonics.length == 24 ? 2 : (mnemonics.length == 12 ? 1 : 0);
 
     out property <bool> is-mnemonic-counts-12: max-blocks != 2;
-    private property <string> switch-mnemonic-counts-btn-text: Logic.tr(Store.is-cn, (is-mnemonic-counts-12 ? "24" : "12") + "位组记词");
+    private property <string> switch-mnemonic-counts-btn-text: (is-mnemonic-counts-12 ? "24" : "12") + Logic.tr(Store.is-cn, "位组记词");
 
     callback back();
     callback copy([string]);
@@ -211,7 +211,7 @@ export component Mnemonic inherits Rectangle {
                     }
 
                     ConfirmBtn {
-                        text: Logic.tr(Store.is-cn, "确定");
+                        text: Logic.tr(Store.is-cn, "确认");
                         clicked => {
                             root.confirm();
                         }

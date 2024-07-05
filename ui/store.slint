@@ -58,11 +58,19 @@ export struct SettingDeveloperMode {
 
 export global Store {
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
-    in-out property <TabIndex> current-tab-index: TabIndex.Home;
+    in-out property <TabIndex> current-tab-index: TabIndex.Recipient;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 
-    in-out property <AccountEntry> current-account;
+    in-out property <AccountEntry> current-account: {
+        uuid: "uuid-1",
+        name: "Account-1",
+        pubkey: "pubkey-test",
+        derive-index: 0,
+        avatar-index: 0,
+        balance: "100.21",
+    };
+
     in-out property <[AccountEntry]> accounts: [
         {
             uuid: "uuid-1",
