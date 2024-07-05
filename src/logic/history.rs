@@ -6,7 +6,7 @@ use crate::{
         def::{HistoryEntry, HISTORY_TABLE},
     },
     logic::message::async_message_success,
-    message_success, message_warn,
+    message_info, message_success, message_warn,
     slint_generatedAppWindow::{
         AppWindow, HistorySetting, Logic, TransactionTileEntry as UIHistoryEntry,
         TransactionTileStatus, Util,
