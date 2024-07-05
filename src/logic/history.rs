@@ -115,7 +115,12 @@ pub fn init_history(ui: &AppWindow, network: NetworkType) {
 }
 
 pub fn init(ui: &AppWindow) {
-    let network = NetworkType::from_str(&config::network().ty).unwrap_or(NetworkType::Main);
+    let network = if config::developer_mode().enabled {
+        NetworkType::from_str(&config::developer_mode().network).unwrap_or(NetworkType::Main)
+    } else {
+        NetworkType::Main
+    };
+
     init_history(ui, network);
 
     let ui_handle = ui.as_weak();
@@ -171,7 +176,6 @@ pub fn init(ui: &AppWindow) {
             match NetworkType::from_str(&network) {
                 Ok(ty) => {
                     init_history(&ui, ty);
-                    message_success!(ui, tr("刷新成功"));
                 }
                 Err(e) => message_warn!(ui, format!("{}. {e:?}", tr("刷新失败"))),
             }

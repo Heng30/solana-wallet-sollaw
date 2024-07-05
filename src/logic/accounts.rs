@@ -313,6 +313,19 @@ pub fn init(ui: &AppWindow) {
         },
     );
 
+    ui.global::<Logic>()
+        .on_is_valid_reset_password(move |password_first, password_second| {
+            if password_first != password_second {
+                return tr("密码不相同").into();
+            }
+
+            if password_first.len() < 8 || password_second.len() < 8 {
+                return tr("密码不能小于8位").into();
+            }
+
+            SharedString::new()
+        });
+
     ui.global::<Logic>().on_is_valid_password(move |password| {
         if password.len() < 8 {
             return tr("密码不能小于8位").into();

@@ -64,6 +64,8 @@ pub fn tr(text: &str) -> String {
     items.insert("超过1000字数限制", "Over the limit of 2048 word counts");
 
     items.insert("界 面", "UI");
+    items.insert("偏好设置", "Preference");
+    items.insert("账户管理", "Account");
     items.insert("阅 读", "Reading");
     items.insert("同 步", "Sync");
     items.insert("代 理", "Proxy");
@@ -192,7 +194,6 @@ pub fn tr(text: &str) -> String {
     items.insert("创建用户成功", "Create account success");
     items.insert("创建用户失败", "Create account failed");
     items.insert("账户管理", "Account Management");
-    items.insert("账 户", "Account");
     items.insert("是否删除账户？", "Delete account or not?");
     items.insert("内部错误", "Internal error");
     items.insert("密码错误", "Password is wrong");
@@ -211,6 +212,17 @@ pub fn tr(text: &str) -> String {
     items.insert("删除所有账户成功", "Delete all accounts success");
     items.insert("打开成功", "Open link success");
     items.insert("打开失败", "Open link failed");
+    items.insert("安全与隐私", "Security && Privacy ");
+    items.insert("重置账户", "Reset account");
+    items.insert("是否重置账户？", "Reset account or not?");
+    items.insert("请输入旧密码", "Please input old password");
+    items.insert("请输入新密码", "Please input new password");
+    items.insert("请再次输入新密码", "Please input new password again");
+    items.insert("测试模式", "Test model");
+    items.insert("主网络", "Main Network");
+    items.insert("测试网络", "Test Network");
+    items.insert("开发网络", "Dev Network");
+    items.insert("注意: 当前处于", "Warn: current network is ");
 
     // TODO
     items.insert(

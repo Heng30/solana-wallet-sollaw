@@ -65,8 +65,8 @@ pub fn ui() -> data::UI {
     CONFIG.lock().unwrap().ui.clone()
 }
 
-pub fn network() -> data::Network {
-    CONFIG.lock().unwrap().network.clone()
+pub fn developer_mode() -> data::DeveloperMode {
+    CONFIG.lock().unwrap().developer_mode.clone()
 }
 
 pub fn db_path() -> PathBuf {
@@ -125,7 +125,7 @@ impl Config {
                 Ok(c) => {
                     self.appid = c.appid;
                     self.ui = c.ui;
-                    self.network = c.network;
+                    self.developer_mode = c.developer_mode;
                     Ok(())
                 }
                 Err(_) => {

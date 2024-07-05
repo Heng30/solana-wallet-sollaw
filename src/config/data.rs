@@ -20,41 +20,29 @@ pub struct Config {
     pub appid: String,
 
     pub ui: UI,
-    pub network: Network,
+    pub developer_mode: DeveloperMode,
 }
 
 pub fn appid_default() -> String {
     Uuid::new_v4().to_string()
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Derivative)]
+#[derivative(Default)]
 pub struct UI {
+    #[derivative(Default(value = "16"))]
     pub font_size: u32,
+    #[derivative(Default(value = "\"Default\".to_string()"))]
     pub font_family: String,
+    #[derivative(Default(value = "\"cn\".to_string()"))]
     pub language: String,
     pub is_dark: bool,
 }
 
-impl Default for UI {
-    fn default() -> Self {
-        Self {
-            font_size: 16,
-            font_family: "Default".to_string(),
-            language: "cn".to_string(),
-            is_dark: false,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Network {
-    pub ty: String,
-}
-
-impl Default for Network {
-    fn default() -> Self {
-        Self {
-            ty: "Main".to_string(),
-        }
-    }
+#[derive(Serialize, Deserialize, Debug, Clone, Derivative)]
+#[derivative(Default)]
+pub struct DeveloperMode {
+    pub enabled: bool,
+    #[derivative(Default(value = "\"test\".to_string()"))]
+    pub network: String,
 }

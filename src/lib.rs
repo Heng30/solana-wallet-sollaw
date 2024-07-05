@@ -2,6 +2,9 @@
 
 slint::include_modules!();
 
+#[macro_use]
+extern crate derivative;
+
 mod config;
 mod db;
 mod logic;

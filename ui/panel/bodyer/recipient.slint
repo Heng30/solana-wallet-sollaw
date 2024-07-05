@@ -4,6 +4,7 @@ import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
 import { OkCancelDialogSetting, IconBtn, Head, Label, Tag, Link, NoDataImg, NoMessageImg, CenterLayout } from "../../base/widgets.slint";
 import { Theme } from "../../theme.slint";
+import { TestModeBanner } from "test-mode-banner.slint";
 
 component TopHead inherits Head {
     icon: Icons.recipient;
@@ -11,11 +12,16 @@ component TopHead inherits Head {
     hbox-alignment: LayoutAlignment.start;
 }
 
-component Body inherits Rectangle {
-    background: yellow;
-}
+component Body inherits Rectangle { }
 
 export component Recipient inherits VerticalLayout {
+    private property <string> network: Logic.get-current-network();
+
     head := TopHead { }
+
+    if network != "main": TestModeBanner {
+        network: root.network;
+    }
+
     body := Body { }
 }

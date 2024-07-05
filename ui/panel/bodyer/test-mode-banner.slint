@@ -1,0 +1,14 @@
+import { Theme, Icons } from "../../theme.slint";
+import { Store } from "../../store.slint";
+import { Logic } from "../../logic.slint";
+import {  Banner } from "../../base/widgets.slint";
+
+export component TestModeBanner inherits Banner {
+    in property <string> network;
+
+    height: 60px;
+    padding-top: Theme.padding * 2;
+    padding-bottom: Theme.padding * 2;
+    border-radius: Theme.border-radius;
+    text: Logic.tr(Store.is-cn, "注意: 当前处于") + Logic.tr(Store.is-cn, Logic.network-cn(root.network));
+}

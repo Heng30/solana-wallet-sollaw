@@ -1,6 +1,7 @@
 use super::tr::tr;
 use crate::{
     config,
+    slint_generatedAppWindow::SettingDeveloperMode,
     slint_generatedAppWindow::{AppWindow, Logic, Store, Theme},
 };
 use slint::ComponentHandle;
@@ -13,6 +14,9 @@ pub fn init(ui: &AppWindow) {
 
     ui.global::<Store>()
         .set_is_show_landing_page(config::is_first_run());
+
+    ui.global::<Logic>()
+        .on_tr(move |_is_cn, text| tr(text.as_str()).into());
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>().on_get_setting_ui(move || {
@@ -38,8 +42,31 @@ pub fn init(ui: &AppWindow) {
         _ = config::save(all);
     });
 
+    ui.global::<Logic>().on_get_current_network(move || {
+        let setting = config::developer_mode();
+        if setting.enabled {
+            setting.network.into()
+        } else {
+            "main".into()
+        }
+    });
+
+    ui.global::<Logic>().on_get_setting_developer_mode(move || {
+        let setting = config::developer_mode();
+
+        SettingDeveloperMode {
+            enabled: setting.enabled,
+            network: setting.network.into(),
+        }
+    });
+
     ui.global::<Logic>()
-        .on_tr(move |_is_cn, text| tr(text.as_str()).into());
+        .on_set_setting_developer_mode(move |setting| {
+            let mut all = config::all();
+            all.developer_mode.enabled = setting.enabled;
+            all.developer_mode.network = setting.network.into();
+            _ = config::save(all);
+        });
 }
 
 fn init_setting(ui: &AppWindow) {

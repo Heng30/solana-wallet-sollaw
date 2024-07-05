@@ -1,4 +1,4 @@
-import { Store, SetupIndex, SettingUI, AccountEntry } from "./store.slint";
+import { Store, SetupIndex, SettingUI, SettingDeveloperMode, AccountEntry } from "./store.slint";
 import { TransactionTileEntry, TransactionTileStatus } from "base/transaction-tile.slint";
 
 export global Logic {
@@ -8,33 +8,53 @@ export global Logic {
     pure callback is-valid-mnemonic([string]) -> bool;
     pure callback split-mnemonic(string) -> [string];
 
-    callback show-mnemonic(string); // (password) -> void
+    callback show-mnemonic(string);
+    // (password) -> void
 
-    pure callback is-valid-sign-in-info(string, string, string) -> string; // (username, password-first, password-second) -> error_message
-    pure callback is-valid-password(string) -> string; // (passwrod) -> error_message
+    pure callback is-valid-sign-in-info(string, string, string) -> string;
+    // (username, password-first, password-second) -> error_message
+    pure callback is-valid-reset-password(string, string) -> string;
+    // (password-first, password-second) -> error_message
+    pure callback is-valid-password(string) -> string;
+    // (passwrod) -> error_message
 
-    callback save-secret-info(string, string, [string]); // (username, password, mnemonics) -> void
-    callback update-password(string, string); // (old-password, new-password) -> void
+    callback save-secret-info(string, string, [string]);
+    // (username, password, mnemonics) -> void
+    callback update-password(string, string);
+    // (password-old, password-new) -> void
     callback update-current-derive-index(int);
 
-    callback new-account(string, string); // (name, password) -> void
-    callback update-account-name(string, string); // (uuid, name) -> void
-    callback update-account-avatar-index(string, int); // (uuid, icon-index) -> void
-    callback remove-account(string, string); // (password, uuid) -> void
-    callback remove-all-accounts(string); // (password) -> void
-    callback switch-account(string, string); // (old-uuid, new-uuid) -> void
+    callback new-account(string, string);
+    // (name, password) -> void
+    callback update-account-name(string, string);
+    // (uuid, name) -> void
+    callback update-account-avatar-index(string, int);
+    // (uuid, icon-index) -> void
+    callback remove-account(string, string);
+    // (password, uuid) -> void
+    callback remove-all-accounts(string);
+    // (password) -> void
+    callback switch-account(string, string);
+    // (old-uuid, new-uuid) -> void
 
     callback qr-code(string) -> image;
     callback add-address();
-    callback update-address-name(string, string); // (uuid, name) -> void
-    callback update-address(string, string); // (uuid, address) -> void
-    callback remove-address(string); // (uuid) -> void
+    callback update-address-name(string, string);
+    // (uuid, name) -> void
+    callback update-address(string, string);
+    // (uuid, address) -> void
+    callback remove-address(string);
+    // (uuid) -> void
 
     callback add-history(TransactionTileEntry);
-    callback remove-history(string); // (uuid) -> void
-    callback update-history-status(string, TransactionTileStatus); // (uuid, status) -> void
-    callback open-tx-detail(string, string); // (network, hash) -> void
-    callback switch-history-network(string); // (network) -> void
+    callback remove-history(string);
+    // (uuid) -> void
+    callback update-history-status(string, TransactionTileStatus);
+    // (uuid, status) -> void
+    callback open-tx-detail(string, string);
+    // (network, hash) -> void
+    callback switch-history-network(string);
+    // (network) -> void
 
     callback update-cache-size();
     callback remove-all-cache();
@@ -47,6 +67,24 @@ export global Logic {
     callback get-setting-ui() -> SettingUI;
     callback set-setting-ui(SettingUI);
 
+    pure callback get-current-network() -> string;
+    callback get-setting-developer-mode() -> SettingDeveloperMode;
+    callback set-setting-developer-mode(SettingDeveloperMode);
+
     pure callback tr(bool, string) -> string;
-    tr(is-cn, text) => { return text; }
+    tr(is-cn, text) => {
+        return text;
+    }
+
+    pure public function network-cn(network: string) -> string {
+        if (network == "main") {
+            return tr(Store.is-cn, "主网络");
+        } else if (network == "test") {
+            return tr(Store.is-cn, "测试网络");
+        } else if (network == "dev") {
+            return Logic.tr(Store.is-cn, "开发网络");
+        } else {
+            return Logic.tr(Store.is-cn, "未知网络");
+        }
+    }
 }

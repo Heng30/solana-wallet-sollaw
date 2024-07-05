@@ -50,6 +50,7 @@ export component Footer inherits Rectangle {
 
             clicked => {
                 Store.switch-tab(TabIndex.History);
+                Logic.switch-history-network(Logic.get-current-network());
             }
         }
 

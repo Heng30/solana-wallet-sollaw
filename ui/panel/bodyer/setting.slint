@@ -2,8 +2,8 @@ import { LineEdit, CheckBox, ComboBox } from "std-widgets.slint";
 import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
-import { Store,  SettingUI, SettingDetailIndex, AccountEntry } from "../../store.slint";
-import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar, AddressBook, AddressBookDetail, AddressBookEntry, AddressBookSetting, About } from "../../base/widgets.slint";
+import { Store,  SettingUI, SettingDeveloperMode, SettingDetailIndex, AccountEntry } from "../../store.slint";
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar,Help, AddressBook, AddressBookDetail, AddressBookEntry, SettingDetailSwitch, AddressBookSetting, About, ResetPassword } from "../../base/widgets.slint";
 
 export global AccountMnemonicSetting {
     in-out property <string> mnemonic;
@@ -14,7 +14,7 @@ export global AccountMnemonicSetting {
 }
 
 component UI inherits SettingDetail {
-    title: Logic.tr(Store.is-cn, "界 面");
+    title: Logic.tr(Store.is-cn, "偏好设置");
 
     public function get() -> SettingUI {
         font-size-lineedit.clear-focus();
@@ -171,26 +171,14 @@ component Accounts inherits Rectangle {
         }
     }
 
-    VerticalLayout {
-        x: root.width - Math.max(add-btn.width, delete-btn.width) - Theme.padding * 4;
-        y: root.height - add-btn.height - delete-btn.height - Theme.padding * 4 - Theme.footer-height;
+    ElevatedBtn {
+        x: root.width - self.width - Theme.padding * 4;
+        y: root.height - self.height - Theme.padding * 4 - Theme.footer-height;
 
-        spacing: Theme.padding * 4;
+        icon: Icons.add-small;
 
-        add-btn := ElevatedBtn {
-            icon: Icons.add-small;
-
-            clicked => {
-                PasswordSetting.set(true, "new-account", "");
-            }
-        }
-
-        delete-btn := ElevatedBtn {
-            icon: Icons.delete;
-
-            clicked => {
-                OkCancelDialogSetting.set(true, "warning", Logic.tr(Store.is-cn, "警告"), Logic.tr(Store.is-cn, "是否删除所有账户？"), "remove-all-accounts", "");
-            }
+        clicked => {
+            PasswordSetting.set(true, "new-account", "");
         }
     }
 }
@@ -322,14 +310,76 @@ component AccountMnemonic inherits SettingDetailInner {
     }
 }
 
-component Help inherits SettingDetail {
-    title: Logic.tr(Store.is-cn, "帮 助");
+component SecurityAndPrivacy inherits SettingDetail {
+    title: Logic.tr(Store.is-cn, "安全与隐私");
+    SettingDetailInner {
+        SettingEntry {
+            icon: Icons.password;
+            text: Logic.tr(Store.is-cn, "更改密码");
+            clicked => {
+                Store.current-setting-detail-index = SettingDetailIndex.ResetPassword;
+            }
+        }
 
-    Flickable {
-        SettingDetailInner {
-            Label {
-                text: Store.is-cn ? Store.help-dialog.text-cn : Store.help-dialog.text-en;
-                wrap: word-wrap;
+        VerticalLayout {
+            padding-top: Theme.padding * 5;
+            CancelBtn {
+                icon: Icons.reset-in-trash;
+                colorize: Theme.danger-color;
+                text-color: Theme.danger-color;
+                border-radius: Theme.border-radius;
+                font-size: Theme.title3-font-size;
+                text: Logic.tr(Store.is-cn, "重置账户");
+
+                clicked => {
+                    OkCancelDialogSetting.set(true, "warning", Logic.tr(Store.is-cn, "警告"), Logic.tr(Store.is-cn, "是否重置账户？"), "remove-all-accounts", "");
+                }
+            }
+        }
+    }
+}
+
+component DeveloperMode inherits SettingDetail {
+    title: Logic.tr(Store.is-cn, "开发者模式");
+
+    private property <string> network: "test";
+
+    public function get() -> SettingDeveloperMode {
+        return {
+            enabled: mode-switch.checked,
+            network: root.network,
+        };
+    }
+
+    public function set(setting: SettingDeveloperMode) {
+        mode-switch.checked = setting.enabled;
+        root.network = setting.network;
+    }
+
+    SettingDetailInner {
+        mode-switch := SettingDetailSwitch {
+            icon: Icons.debug-light;
+            text: Logic.tr(Store.is-cn,"测试模式");
+        }
+
+        if mode-switch.checked: HorizontalLayout {
+            HorizontalLayout {
+                width: 50%;
+                test-radio := RadioBtn {
+                    text: Logic.tr(Store.is-cn, "测试网络");
+                    checked: root.network == "test";
+                    check => {
+                        root.network = "test";
+                    }
+                }
+            }
+
+            dev-radio := RadioBtn {
+                text: Logic.tr(Store.is-cn, "开发网络");
+                checked: root.network == "dev";
+                check => {
+                    root.network = "dev";
+                }
             }
         }
     }
@@ -403,22 +453,30 @@ component Body inherits VerticalLayout {
             spacing: Theme.spacing * 2;
 
             SettingEntry {
-                text: Logic.tr(Store.is-cn, "界 面");
+                text: Logic.tr(Store.is-cn, "偏好设置");
                 icon: Icons.ui;
 
                 clicked => {
                     root.current-setting-detail-index = SettingDetailIndex.UI;
-                    root.switch(SettingDetailIndex.UI);
                 }
             }
 
             SettingEntry {
-                text: Logic.tr(Store.is-cn, "账 户");
-                icon: Icons.ui;
+                text: Logic.tr(Store.is-cn, "账户管理");
+                icon: Icons.account;
+                attach-text: Store.accounts.length;
 
                 clicked => {
                     root.current-setting-detail-index = SettingDetailIndex.Accounts;
-                    root.switch(SettingDetailIndex.Accounts);
+                }
+            }
+
+            SettingEntry {
+                text: Logic.tr(Store.is-cn, "安全与隐私");
+                icon: Icons.security;
+
+                clicked => {
+                    root.current-setting-detail-index = SettingDetailIndex.SecurityAndPrivacy;
                 }
             }
 
@@ -428,7 +486,15 @@ component Body inherits VerticalLayout {
 
                 clicked => {
                     root.current-setting-detail-index = SettingDetailIndex.AddressBook;
-                    root.switch(SettingDetailIndex.AddressBook);
+                }
+            }
+
+            SettingEntry {
+                text: Logic.tr(Store.is-cn, "开发者模式");
+                icon: Icons.developer;
+
+                clicked => {
+                    root.current-setting-detail-index = SettingDetailIndex.DeveloperMode;
                 }
             }
 
@@ -509,6 +575,49 @@ export component Setting inherits Rectangle {
             }
         }
 
+        if Store.current-setting-detail-index == SettingDetailIndex.SecurityAndPrivacy: SecurityAndPrivacy {
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
+            }
+        }
+
+        if Store.current-setting-detail-index == SettingDetailIndex.ResetPassword: ResetPassword {
+            private property <string> err;
+
+            init => {
+                self.focus();
+            }
+
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.SecurityAndPrivacy;
+            }
+
+            cancel => {
+                self.back();
+            }
+
+            confirm(password-old, password-new-first, password-new-second) => {
+                self.err = Logic.is-valid-reset-password(password-new-first, password-new-second);
+                if (self.err != "") {
+                    return self.err;
+                }
+                Logic.update-password(password-old, password-new-first);
+                Store.current-setting-detail-index = SettingDetailIndex.SecurityAndPrivacy;
+                return "";
+            }
+        }
+
+        if Store.current-setting-detail-index == SettingDetailIndex.DeveloperMode: DeveloperMode {
+            init => {
+                self.set(Logic.get-setting-developer-mode());
+            }
+
+            back => {
+                Store.current-setting-detail-index = SettingDetailIndex.Home;
+                Logic.set-setting-developer-mode(self.get());
+            }
+        }
+
         if Store.current-setting-detail-index == SettingDetailIndex.AddressBook: AddressBook {
             is-show-add-btn: true;
 
@@ -553,6 +662,7 @@ export component Setting inherits Rectangle {
         }
 
         if Store.current-setting-detail-index == SettingDetailIndex.Help: Help {
+            entries: Store.helps;
             back => {
                 Store.current-setting-detail-index = SettingDetailIndex.Home;
             }
