@@ -29,7 +29,7 @@ export global Theme {
     out property <duration> default-animate-duration: 200ms;
 
     out property <color> brand-color: is-dark ? #3F51B5 : #0000B8;
-    out property <color> secondary-brand-color: is-dark ? #324090: #3F51B5;
+    out property <color> secondary-brand-color: is-dark ? #324090 : #3F51B5;
     out property <color> third-brand-color: secondary-brand-color.brighter(50%);
     out property <color> success-color: is-dark ? #336633 : #67C23A;
     out property <color> warning-color: is-dark ? #996600 : #E6A23C;
@@ -51,7 +51,7 @@ export global Theme {
     out property <color> regular-text-color: is-dark ? primary-text-color.darker(20%) : primary-text-color.brighter(20%);
     out property <color> placeholder-text-color: is-dark ? #4B4B4B : #A8ABB2;
 
-    out property<color> avatar-color: primary-text-color.brighter(50%);
+    out property <color> avatar-color: primary-text-color.brighter(50%);
     out property <color> icon-color: is-dark ? #AAAAAA : #515151;
     out property <color> base-border-color: is-dark ? #2a2a2a : #DCDFE6;
 
@@ -142,18 +142,18 @@ export global Icons {
     out property <image> developer: @image-url("./images/developer.svg");
     out property <image> password: @image-url("./images/password.svg");
     out property <image> reset-in-trash: @image-url("./images/reset-in-trash.svg");
-    out property <image> debug-light : @image-url("./images/debug-light.svg");
-    out property <image> add-light : @image-url("./images/add-light.svg");
-    out property <image> management : @image-url("./images/management.svg");
+    out property <image> debug-light: @image-url("./images/debug-light.svg");
+    out property <image> add-light: @image-url("./images/add-light.svg");
+    out property <image> management: @image-url("./images/management.svg");
 
-    out property <image> solana : @image-url("./images/solana.svg");
-    out property <image> usdt : @image-url("./images/usdt.svg");
-    out property <image> usdc : @image-url("./images/usdc.svg");
-    out property <image> btc : @image-url("./images/btc.svg");
-    out property <image> eth : @image-url("./images/eth.svg");
-    out property <image> doge : @image-url("./images/doge.svg");
-    out property <image> curve : @image-url("./images/curve.svg");
-    out property <image> token : @image-url("./images/token.svg");
+    out property <image> solana: @image-url("./images/solana.svg");
+    out property <image> usdt: @image-url("./images/usdt.svg");
+    out property <image> usdc: @image-url("./images/usdc.svg");
+    out property <image> btc: @image-url("./images/btc.svg");
+    out property <image> eth: @image-url("./images/eth.svg");
+    out property <image> doge: @image-url("./images/doge.svg");
+    out property <image> curve: @image-url("./images/curve.svg");
+    out property <image> token: @image-url("./images/token.svg");
 
     out property <image> wechat-fill: @image-url("./images/wechat-fill.svg");
     out property <image> wechat-light: @image-url("./images/wechat-light.svg");
@@ -165,4 +165,9 @@ export global Icons {
     out property <image> landing-language-switch: @image-url("./images/landing-language-switch.svg");
     out property <image> landing-account: @image-url("./images/landing-account.svg");
     out property <image> landing-send: @image-url("./images/landing-send.svg");
+
+    // TODO
+    pure public function get-solana-token-icon(mint-address: string) -> image {
+        return Icons.token;
+    }
 }

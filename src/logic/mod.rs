@@ -4,12 +4,13 @@ mod about;
 mod accounts;
 mod address_book;
 mod clipboard;
+mod history;
 mod message;
 mod ok_cancel_dialog;
 mod setting;
+mod tokens;
 mod tr;
 mod util;
-mod history;
 
 pub fn init(ui: &AppWindow) {
     util::init(&ui);
@@ -20,6 +21,7 @@ pub fn init(ui: &AppWindow) {
     setting::init(&ui);
 
     accounts::init(&ui);
+    tokens::init(&ui);
     history::init(&ui);
     address_book::init(&ui);
 }

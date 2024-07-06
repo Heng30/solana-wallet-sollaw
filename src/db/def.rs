@@ -1,6 +1,7 @@
 use crate::slint_generatedAppWindow::{
     AccountEntry as UIAccountEntry, AddressBookEntry as UIAddressBookEntry,
-    TransactionTileEntry as UIHistoryEntry, TransactionTileStatus,
+    TokenTileEntry as UITokenTileEntry, TransactionTileEntry as UIHistoryEntry,
+    TransactionTileStatus,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::{serde_as, DeserializeAs, SerializeAs};
@@ -9,6 +10,7 @@ pub const SECRET_UUID: &str = "secret-uuid";
 pub const ACCOUNTS_TABLE: &str = "accounts";
 pub const ADDRESS_BOOK_TABLE: &str = "address_book";
 pub const HISTORY_TABLE: &str = "history";
+pub const TOKENS_TABLE: &str = "tokens";
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct AccountEntry {
@@ -146,6 +148,39 @@ impl From<HistoryEntry> for UIHistoryEntry {
             balance: entry.balance.into(),
             time: entry.time.into(),
             status: entry.status,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct TokenTileEntry {
+    pub uuid: String,
+    pub symbol: String,
+    pub mint_address: String,
+    pub balance: String,
+    pub balance_usdt: String,
+}
+
+impl From<UITokenTileEntry> for TokenTileEntry {
+    fn from(entry: UITokenTileEntry) -> Self {
+        TokenTileEntry {
+            uuid: entry.uuid.into(),
+            symbol: entry.symbol.into(),
+            mint_address: entry.mint_address.into(),
+            balance: entry.balance.into(),
+            balance_usdt: entry.balance_usdt.into(),
+        }
+    }
+}
+
+impl From<TokenTileEntry> for UITokenTileEntry {
+    fn from(entry: TokenTileEntry) -> Self {
+        UITokenTileEntry {
+            uuid: entry.uuid.into(),
+            symbol: entry.symbol.into(),
+            mint_address: entry.mint_address.into(),
+            balance: entry.balance.into(),
+            balance_usdt: entry.balance_usdt.into(),
         }
     }
 }

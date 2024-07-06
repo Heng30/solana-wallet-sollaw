@@ -1,8 +1,8 @@
+use super::tr::tr;
 use crate::{
     message_success, message_warn,
     slint_generatedAppWindow::{AppWindow, Logic},
 };
-use super::tr::tr;
 use anyhow::{bail, Result};
 use slint::ComponentHandle;
 

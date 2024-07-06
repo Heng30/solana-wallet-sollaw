@@ -1,12 +1,11 @@
 import { Switch } from "std-widgets.slint";
-import { Theme } from "../theme.slint";
+import { Theme, Icons } from "../theme.slint";
 import { ListTile } from "list-tile.slint";
 import { Label } from "label.slint";
 import { IconBtn } from "icon-btn.slint";
 
 export struct TokenTileEntry {
     uuid: string,
-    icon: image,
     symbol: string,
     mint-address: string,
     balance: string,
@@ -63,7 +62,7 @@ component Tile inherits Rectangle {
                     img := Image {
                         height: root.icon-size;
                         width: self.height;
-                        source: entry.icon;
+                        source: Icons.get-solana-token-icon(entry.mint-address);
                         colorize: root.icon-colorize;
                     }
                 }

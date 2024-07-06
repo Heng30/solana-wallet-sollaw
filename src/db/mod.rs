@@ -8,6 +8,10 @@ pub async fn init(db_path: &str) {
         .await
         .expect("account table failed");
 
+    entry::new(def::TOKENS_TABLE)
+        .await
+        .expect("tokens table failed");
+
     entry::new(def::ADDRESS_BOOK_TABLE)
         .await
         .expect("address_book table failed");

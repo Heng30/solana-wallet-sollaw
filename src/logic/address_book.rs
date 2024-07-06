@@ -1,3 +1,4 @@
+use super::tr::tr;
 use crate::{
     db::{
         self,
@@ -9,7 +10,6 @@ use crate::{
         SettingDetailIndex, Store,
     },
 };
-use super::tr::tr;
 use image::Rgb;
 use qrcode::QrCode;
 use slint::{ComponentHandle, Image, Model, Rgb8Pixel, SharedPixelBuffer, SharedString, VecModel};

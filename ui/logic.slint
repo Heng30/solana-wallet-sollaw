@@ -81,9 +81,15 @@ export global Logic {
     // (network) -> void
     callback switch-history-network(string);
 
-    // TODO
-    // (network, address) -> void
-    callback address-balance(string, string);
+    // (uuid, network, address) -> void
+    callback update-account-balance(string, string, string);
+
+    //  TODO
+    // (entry) -> void
+    callback add-token(TokenTileEntry);
+
+    // (uuid) -> void
+    callback remove-token(string);
 
     // (network, address) -> void
     callback refresh-tokens-management-entries(string, string);
@@ -94,11 +100,6 @@ export global Logic {
     // (network, mint-address) -> void
     callback open-token-detail(string, string);
 
-    // (entry) -> void
-    callback add-token(TokenTileEntry);
-
-    // (uuid) -> void
-    callback remove-token(string);
 
     callback update-cache-size();
     callback remove-all-cache();
