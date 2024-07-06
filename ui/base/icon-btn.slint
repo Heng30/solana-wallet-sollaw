@@ -2,6 +2,12 @@ import { Palette } from "std-widgets.slint";
 import { Theme } from "../theme.slint";
 import { Label } from "./label.slint";
 
+export enum RotationType {
+    Auto,
+    Click,
+    None,
+}
+
 export component IconBtn inherits Rectangle {
     in-out property icon <=> img.source;
     in-out property colorize <=> img.colorize;
@@ -9,17 +15,18 @@ export component IconBtn inherits Rectangle {
     in-out property icon-size <=> img.width;
     in-out property icon-rotation-angle <=> img.rotation-angle;
     in-out property mouse-cursor <=> touch.mouse-cursor;
-    in-out property enabled-toucharea<=> touch.enabled;
+    in-out property enabled-toucharea <=> touch.enabled;
     out property has-hover <=> touch.has-hover;
 
     in-out property <bool> show-icon-hover-background: true;
     in-out property <bool> is-ltr: true;
-    in-out property <bool> enable-rotation-animation: false;
+    in-out property <RotationType> rotation-type: RotationType.None;
     in-out property <bool> use-auto-size: false;
 
     in-out property <string> text;
     in-out property <length> font-size: Theme.title4-font-size;
     in-out property <color> text-color: root.colorize;
+    in-out property <int> icon-rotation-iteration-count;
 
     callback clicked();
 
@@ -65,6 +72,7 @@ export component IconBtn inherits Rectangle {
             animate rotation-angle {
                 duration: Theme.default-animate-duration;
                 easing: ease-in-out;
+                iteration-count: root.rotation-type == RotationType.Auto ? -1 : root.icon-rotation-iteration-count;
             }
         }
 
@@ -80,7 +88,7 @@ export component IconBtn inherits Rectangle {
     touch := TouchArea {
         mouse-cursor: MouseCursor.pointer;
         clicked => {
-            if (enable-rotation-animation) {
+            if (RotationType.Click == root.rotation-type) {
                 if (icon-rotation-angle == 0) {
                     icon-rotation-angle = 360deg;
                 } else {

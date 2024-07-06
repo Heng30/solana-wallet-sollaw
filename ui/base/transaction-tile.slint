@@ -1,11 +1,12 @@
 import { Theme, Icons } from "../theme.slint";
-import { IconBtn } from "./icon-btn.slint";
+import { IconBtn, RotationType } from "./icon-btn.slint";
 import { Label } from "./label.slint";
 
 export enum TransactionTileStatus {
     Success,
     Pending,
     Error,
+    Loading,
 }
 
 export struct TransactionTileEntry {
@@ -34,6 +35,8 @@ export component TransactionTile inherits Rectangle {
             return Icons.success-big-fill;
         } else if (status == TransactionTileStatus.Pending) {
             return Icons.pending-fill;
+        } else if (status == TransactionTileStatus.Loading) {
+            return Icons.loading;
         } else {
             return Icons.error-fill;
         }
@@ -44,6 +47,8 @@ export component TransactionTile inherits Rectangle {
             return Theme.success-color;
         } else if (status == TransactionTileStatus.Pending) {
             return Theme.warning-color;
+        } else if (status == TransactionTileStatus.Loading) {
+            return Theme.secondary-brand-color;
         } else {
             return Theme.danger-color;
         }
@@ -102,6 +107,8 @@ export component TransactionTile inherits Rectangle {
                 icon-size: root.icon-size;
                 colorize: root.icon-colorize;
                 icon: root.icon;
+                rotation-type: TransactionTileStatus.Loading == entry.status ? RotationType.Auto : RotationType.None;
+                icon-rotation-angle: TransactionTileStatus.Loading == entry.status ? 240deg * animation-tick() / 0.5s : 0;
             }
         }
     }

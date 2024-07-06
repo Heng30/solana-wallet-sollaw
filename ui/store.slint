@@ -30,6 +30,12 @@ export enum SetupIndex {
     SetPassword,
 }
 
+export enum HomeIndex {
+    Home,
+    Send,
+    Management,
+}
+
 export struct AccountEntry {
     uuid: string,
     name: string,
@@ -57,8 +63,9 @@ export struct SettingDeveloperMode {
 }
 
 export global Store {
+    in-out property <HomeIndex> current-home-index: HomeIndex.Home;
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
-    in-out property <TabIndex> current-tab-index: TabIndex.History;
+    in-out property <TabIndex> current-tab-index: TabIndex.Home;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 
@@ -68,7 +75,7 @@ export global Store {
         pubkey: "pubkey-test",
         derive-index: 0,
         avatar-index: 0,
-        balance: "100.21",
+        balance: "$100.21",
     };
 
     in-out property <[AccountEntry]> accounts: [
@@ -78,7 +85,7 @@ export global Store {
             pubkey: "pubkey-test",
             derive-index: 0,
             avatar-index: 0,
-            balance: "100.21",
+            balance: "$100.21",
         }
     ];
 

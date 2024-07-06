@@ -66,8 +66,8 @@ export global Logic {
     // (uuid) -> void
     callback remove-history(string);
 
-    // (uuid, status) -> void
-    callback update-history-status(string, TransactionTileStatus);
+    // (uuid, status, is-update-db) -> void
+    callback update-history-status(string, TransactionTileStatus, bool);
 
     callback refresh-all-pending-and-error-history();
 
@@ -79,6 +79,15 @@ export global Logic {
 
     // (network) -> void
     callback switch-history-network(string);
+
+    // (network, address) -> void
+    callback address-balance(string, string);
+
+    // (network, address) -> void
+    callback open-tokens-management(string, string);
+
+    // (network, uuid) -> void
+    callback open-send-token(string, string);
 
     callback update-cache-size();
     callback remove-all-cache();

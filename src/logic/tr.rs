@@ -235,6 +235,7 @@ pub fn tr(text: &str) -> String {
     items.insert("移除账户", "Remove account");
     items.insert("更改密码", "Change password");
     items.insert("位组记词", "mnemonics");
+    items.insert("刷新完成", "Refresh finished");
 
     items.insert(
         "创建账户和使用组记词恢复账户",

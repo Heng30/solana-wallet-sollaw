@@ -1,0 +1,21 @@
+import { Theme } from "../theme.slint";
+import { TokenTile, TokenTileEntry } from "token-tile.slint";
+import { SettingDetailInner } from "setting-detail.slint";
+
+
+export component TokenList inherits SettingDetailInner {
+    in-out property <[TokenTileEntry]> entries;
+
+    vbox-alignment: LayoutAlignment.start;
+    vbox-spacing: Theme.spacing * 2;
+
+    callback clicked(TokenTileEntry);
+
+    for item[index] in entries: TokenTile {
+        entry: item;
+
+        clicked => {
+            root.clicked(item);
+        }
+    }
+}

@@ -102,7 +102,7 @@ impl SerializeAs<TransactionTileStatus> for TranStatus {
         let status = match source {
             TransactionTileStatus::Success => "Success",
             TransactionTileStatus::Pending => "Pending",
-            TransactionTileStatus::Error => "Error",
+            _ => "Error",
         };
 
         serializer.serialize_str(status)

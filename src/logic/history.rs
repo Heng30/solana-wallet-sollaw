@@ -14,7 +14,7 @@ use crate::{
 };
 use anyhow::Result;
 use cutil::time::local_now;
-use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
+use slint::{ComponentHandle, Model, SharedString, VecModel};
 use std::str::FromStr;
 use uuid::Uuid;
 use wallet::{
@@ -152,14 +152,16 @@ pub fn init(ui: &AppWindow) {
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
-        .on_update_history_status(move |uuid, status| {
+        .on_update_history_status(move |uuid, status, is_update_db| {
             let ui = ui_handle.unwrap();
 
             if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
                 entry.status = status;
                 store_history_entries!(ui).set_row_data(index, entry.clone());
 
-                _update_entry(entry.into());
+                if is_update_db {
+                    _update_entry(entry.into());
+                }
             }
         });
 
@@ -167,9 +169,12 @@ pub fn init(ui: &AppWindow) {
     ui.global::<Logic>()
         .on_refresh_all_pending_and_error_history(move || {
             let ui = ui_handle.unwrap();
-            message_info!(ui, tr("正在刷新..."));
-            for item in get_pending_and_error_entries(&ui).into_iter() {
-                _refresh_pending_and_error_history(ui.as_weak(), item);
+            for (index, item) in get_pending_and_error_entries(&ui).into_iter().enumerate() {
+                if index == 0 {
+                    message_info!(ui, tr("正在刷新..."));
+                }
+
+                _refresh_pending_and_error_history(&ui, item);
             }
         });
 
@@ -240,8 +245,16 @@ fn _remove_entry(uuid: SharedString) {
     });
 }
 
-fn _refresh_pending_and_error_history(ui_handle: Weak<AppWindow>, item: UIHistoryEntry) {
+fn _refresh_pending_and_error_history(ui: &AppWindow, item: UIHistoryEntry) {
+    ui.global::<Logic>().invoke_update_history_status(
+        item.uuid.clone(),
+        TransactionTileStatus::Loading,
+        false,
+    );
+
     let rpc_url_ty = RpcUrlType::from_str(&item.network).unwrap_or(RpcUrlType::Main);
+
+    let ui_handle = ui.as_weak();
     match Signature::from_str(&item.hash) {
         Ok(signature) => {
             tokio::spawn(async move {
@@ -259,17 +272,14 @@ fn _refresh_pending_and_error_history(ui_handle: Weak<AppWindow>, item: UIHistor
                     }
                 };
 
-                if status != item.status {
-                    let ui_handle = ui_handle.clone();
-                    _ = slint::invoke_from_event_loop(move || {
-                        ui_handle
-                            .unwrap()
-                            .global::<Logic>()
-                            .invoke_update_history_status(item.uuid, status);
-                    });
-                }
+                let ui = ui_handle.clone();
+                _ = slint::invoke_from_event_loop(move || {
+                    ui.unwrap()
+                        .global::<Logic>()
+                        .invoke_update_history_status(item.uuid, status, true);
+                });
 
-                async_message_success(ui_handle, tr("刷新成功"));
+                async_message_success(ui_handle, tr("刷新完成"));
             });
         }
         Err(e) => message_warn!(ui_handle.unwrap(), e.to_string()),
