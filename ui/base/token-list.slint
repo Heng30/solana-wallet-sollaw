@@ -1,5 +1,5 @@
 import { Theme } from "../theme.slint";
-import { TokenTile, TokenTileEntry } from "token-tile.slint";
+import { TokenTile, TokenTileWithSwitch, TokenTileEntry, TokenTileWithSwitchEntry } from "token-tile.slint";
 import { SettingDetailInner } from "setting-detail.slint";
 
 
@@ -16,6 +16,30 @@ export component TokenList inherits SettingDetailInner {
 
         clicked => {
             root.clicked(item);
+        }
+    }
+}
+
+export component TokenListWithSwitch inherits SettingDetailInner {
+    in-out property <[TokenTileWithSwitchEntry]> entries;
+
+    vbox-alignment: LayoutAlignment.start;
+    vbox-spacing: Theme.spacing * 2;
+
+    callback clicked(TokenTileEntry);
+    callback toggled(bool, TokenTileEntry);
+
+    for item[index] in entries: TokenTileWithSwitch {
+        entry: item.entry;
+        checked: item.checked;
+        enabled: item.enabled;
+
+        clicked => {
+            root.clicked(item.entry);
+        }
+
+        toggled => {
+            root.toggled(self.checked, item.entry);
         }
     }
 }

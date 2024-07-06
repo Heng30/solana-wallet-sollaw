@@ -13,10 +13,16 @@ export struct TokenTileEntry {
     balance-usdt: string,
 }
 
+export struct TokenTileWithSwitchEntry {
+    entry: TokenTileEntry,
+    checked: bool,
+    enabled: bool,
+}
+
 component Tile inherits Rectangle {
     in-out property <TokenTileEntry> entry;
 
-    in property <length> icon-size: Theme.icon-size;
+    in property <length> icon-size: Theme.icon-size * 1.5;
     in property <color> icon-colorize;
 
     in property <length> symbol-font-size: Theme.title3-font-size;
@@ -44,13 +50,15 @@ component Tile inherits Rectangle {
 
         HorizontalLayout {
             horizontal-stretch: 1;
-            spacing: Theme.spacing * 2;
+            spacing: Theme.spacing * 4;
 
             VerticalLayout {
                 alignment: LayoutAlignment.center;
                 Rectangle {
                     width: root.icon-size + Theme.padding * 4;
                     height: self.width;
+                    background: Theme.secondary-background;
+                    border-radius: self.width / 2;
 
                     img := Image {
                         height: root.icon-size;
@@ -95,11 +103,11 @@ export component TokenTile inherits Tile {
     }
 }
 
-export component TokenTileWithSwitch inherits Rectangle {
+export component TokenTileWithSwitch inherits Tile {
     in-out property checked <=> sw.checked;
+    in-out property enabled <=> sw.enabled;
 
     callback toggled <=> sw.toggled;
 
-    sw := Switch {
-    }
+    sw := Switch { }
 }

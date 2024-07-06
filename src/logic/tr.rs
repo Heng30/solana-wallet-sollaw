@@ -236,6 +236,8 @@ pub fn tr(text: &str) -> String {
     items.insert("更改密码", "Change password");
     items.insert("位组记词", "mnemonics");
     items.insert("刷新完成", "Refresh finished");
+    items.insert("管理代币", "Manage token");
+    items.insert("发送代币", "Send token");
 
     items.insert(
         "创建账户和使用组记词恢复账户",

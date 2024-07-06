@@ -1,6 +1,7 @@
 import { Store, SetupIndex, SettingUI, SettingDeveloperMode, AccountEntry } from "store.slint";
 import { Icons } from "theme.slint";
 import { TransactionTileEntry, TransactionTileStatus } from "base/transaction-tile.slint";
+import { TokenTileEntry } from "base/token-tile.slint";
 
 export global Logic {
     pure callback new-mnemonics(int) -> [string];
@@ -80,14 +81,24 @@ export global Logic {
     // (network) -> void
     callback switch-history-network(string);
 
+    // TODO
     // (network, address) -> void
     callback address-balance(string, string);
 
     // (network, address) -> void
-    callback open-tokens-management(string, string);
+    callback refresh-tokens-management-entries(string, string);
 
     // (network, uuid) -> void
-    callback open-send-token(string, string);
+    callback open-send-token-page(string, string);
+
+    // (network, mint-address) -> void
+    callback open-token-detail(string, string);
+
+    // (entry) -> void
+    callback add-token(TokenTileEntry);
+
+    // (uuid) -> void
+    callback remove-token(string);
 
     callback update-cache-size();
     callback remove-all-cache();

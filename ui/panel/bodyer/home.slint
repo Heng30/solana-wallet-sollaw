@@ -1,63 +1,85 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Store, HomeIndex } from "../../store.slint";
 import { Logic } from "../../logic.slint";
-import { AccountBalance, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, TokenTile, TokenTileEntry, TokenList } from "../../base/widgets.slint";
+import { AccountBalance, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch } from "../../base/widgets.slint";
 import { TestModeBanner } from "test-mode-banner.slint";
 
 export global TokensSetting {
     in-out property <[TokenTileEntry]> entries: [
         {
             uuid: "uuid-1",
-            icon: Icons.account,
+            icon: Icons.solana,
             symbol: "SOL",
             balance: "100.34",
-            balance-usdt: "$12321.34"
+            balance-usdt: "$1221.34"
         },
         {
             uuid: "uuid-2",
-            icon: Icons.account,
+            icon: Icons.token,
+            symbol: "BOOM",
+            balance: "130.4",
+            balance-usdt: "$100.34",
+        },
+        {
+            uuid: "uuid-2",
+            icon: Icons.usdt,
             symbol: "USDT",
             balance: "100.34",
             balance-usdt: "$100.34",
         },
         {
             uuid: "uuid-3",
-            icon: Icons.account,
+            icon: Icons.usdc,
             symbol: "DOG",
             balance: "120.34",
-            balance-usdt: "$1100.4",
+            balance-usdt: "$190.7",
+        },
+        {
+            uuid: "uuid-3",
+            icon: Icons.doge,
+            symbol: "DOG",
+            balance: "120.34",
+            balance-usdt: "$300.4",
+        },
+        {
+            uuid: "uuid-3",
+            icon: Icons.btc,
+            symbol: "BTC",
+            balance: "120.34",
+            balance-usdt: "$5380.4",
+        },
+        {
+            uuid: "uuid-3",
+            icon: Icons.eth,
+            symbol: "ETH",
+            balance: "120.34",
+            balance-usdt: "$6360.4",
         },
     ];
 
-    in-out property <[TokenTileEntry]> all-account-tokens:[
+    in-out property <[TokenTileWithSwitchEntry]> all-account-tokens:[
         {
-            uuid: "uuid-1",
-            icon: Icons.account,
-            symbol: "SOL",
-            balance: "100.34",
-            balance-usdt: "$12321.34"
+            entry: {
+                uuid: "uuid-1",
+                icon: Icons.solana,
+                symbol: "SOL",
+                balance: "100.34",
+                balance-usdt: "$1221.34"
+            },
+            checked: true,
+            enabled: false,
         },
         {
-            uuid: "uuid-2",
-            icon: Icons.account,
-            symbol: "USDT",
-            balance: "100.34",
-            balance-usdt: "$100.34",
-        },
-        {
-            uuid: "uuid-3",
-            icon: Icons.account,
-            symbol: "DOG",
-            balance: "120.34",
-            balance-usdt: "$1100.4",
-        },
-        {
-            uuid: "uuid-3",
-            icon: Icons.account,
-            symbol: "BOOM",
-            balance: "130.34",
-            balance-usdt: "$1130.8",
-        },
+            entry: {
+                uuid: "uuid-1",
+                icon: Icons.usdt,
+                symbol: "USDT",
+                balance: "10.34",
+                balance-usdt: "$12.34"
+            },
+            checked: true,
+            enabled: true,
+        }
     ];
 }
 
@@ -88,15 +110,29 @@ component ManagementBtn inherits VerticalLayout {
         icon: Icons.management;
         text: Logic.tr(Store.is-cn, "管理代币");
         clicked => {
-            Logic.open-tokens-management(Logic.get-current-network(), Store.current-account.pubkey);
+            Logic.refresh-tokens-management-entries(Logic.get-current-network(), Store.current-account.pubkey);
             Store.current-home-index = HomeIndex.Management;
         }
     }
 }
 
 component Management inherits SettingDetail {
-    title: Logic.tr(Store.is-cn, "管理通证");
-    SettingDetailInner { }
+    title: Logic.tr(Store.is-cn, "管理代币");
+    TokenListWithSwitch {
+        entries: TokensSetting.all-account-tokens;
+
+        clicked(entry) => {
+            Logic.open-token-detail(Logic.get-current-network(), entry.uuid);
+        }
+
+        toggled(checked, entry) => {
+            if (checked) {
+                Logic.add-token(entry);
+            } else {
+                Logic.remove-token(entry.uuid);
+            }
+        }
+    }
 }
 
 component Send inherits SettingDetail {
@@ -115,7 +151,7 @@ component Body inherits Rectangle {
         TokenList {
             entries: TokensSetting.entries;
             clicked(entry) => {
-                Logic.open-send-token(Logic.get-current-network(), entry.uuid);
+                Logic.open-send-token-page(Logic.get-current-network(), entry.uuid);
                 Store.current-home-index = HomeIndex.Send;
             }
         }
