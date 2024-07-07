@@ -238,6 +238,7 @@ pub fn tr(text: &str) -> String {
     items.insert("刷新完成", "Refresh finished");
     items.insert("管理代币", "Manage token");
     items.insert("发送代币", "Send token");
+    items.insert("获取Token失败", "Fetch account tokens failed");
     items.insert("更新账户余额成功", "Refresh account balance success");
     items.insert(
         "更新账户余额失败. 账户不存在",

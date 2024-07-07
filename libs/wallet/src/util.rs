@@ -22,7 +22,7 @@ mod tests {
     use solana_sdk::native_token::LAMPORTS_PER_SOL;
 
     #[test]
-    fn test_lamports_to_sol() -> Result<()> {
+    fn test_lamports_to_sol() {
         let verify = vec![
             "100.00",
             "100.12",
@@ -53,7 +53,5 @@ mod tests {
         .collect::<Vec<_>>();
 
         assert_eq!(verify, output);
-
-        Ok(())
     }
 }

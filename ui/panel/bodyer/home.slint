@@ -1,34 +1,17 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Store, HomeIndex } from "../../store.slint";
 import { Logic } from "../../logic.slint";
-import { AccountBalance, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch } from "../../base/widgets.slint";
+import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch } from "../../base/widgets.slint";
 import { TestModeBanner } from "test-mode-banner.slint";
 
 export global TokensSetting {
     in-out property <[TokenTileEntry]> entries: [
-        {
-            uuid: "uuid-1",
-            symbol: "SOL",
-            balance: "100.34",
-            balance-usdt: "$1221.34"
-        },
-        {
-            uuid: "uuid-2",
-            symbol: "BOOM",
-            balance: "130.4",
-            balance-usdt: "$100.34",
-        },
+        { uuid: "uuid-1", symbol: "SOL", balance: "100.34", balance-usdt: "$1221.34" },
         {
             uuid: "uuid-2",
             symbol: "USDT",
             balance: "100.34",
             balance-usdt: "$100.34",
-        },
-        {
-            uuid: "uuid-3",
-            symbol: "DOG",
-            balance: "120.34",
-            balance-usdt: "$190.7",
         },
         {
             uuid: "uuid-3",
@@ -50,24 +33,14 @@ export global TokensSetting {
         },
     ];
 
-    in-out property <[TokenTileWithSwitchEntry]> all-account-tokens:[
+    in-out property <[TokenTileWithSwitchEntry]> management-entries:[
         {
-            entry: {
-                uuid: "uuid-1",
-                symbol: "SOL",
-                balance: "100.34",
-                balance-usdt: "$1221.34"
-            },
+            entry: { uuid: "uuid-1", symbol: "SOL", balance: "100.34", balance-usdt: "$1221.34" },
             checked: true,
             enabled: false,
         },
         {
-            entry: {
-                uuid: "uuid-1",
-                symbol: "USDT",
-                balance: "10.34",
-                balance-usdt: "$12.34"
-            },
+            entry: { uuid: "uuid-1", symbol: "USDT", balance: "10.34", balance-usdt: "$12.34" },
             checked: true,
             enabled: true,
         }
@@ -110,7 +83,7 @@ component ManagementBtn inherits VerticalLayout {
 component Management inherits SettingDetail {
     title: Logic.tr(Store.is-cn, "管理代币");
     TokenListWithSwitch {
-        entries: TokensSetting.all-account-tokens;
+        entries: TokensSetting.management-entries;
 
         clicked(entry) => {
             Logic.open-token-detail(Logic.get-current-network(), entry.uuid);
@@ -134,26 +107,35 @@ component Send inherits SettingDetail {
 }
 
 component Body inherits Rectangle {
+    callback clicked-entry <=> tl.clicked;
+
     VerticalLayout {
         spacing: Theme.spacing * 2;
 
         AccountDetail { }
 
-        TokenList {
+        tl := TokenList {
             entries: TokensSetting.entries;
-            clicked(entry) => {
-                Logic.open-send-token-page(Logic.get-current-network(), entry.uuid);
-                Store.current-home-index = HomeIndex.Send;
-            }
         }
 
         ManagementBtn { }
+    }
+
+    ElevatedBtn {
+        x: root.width - self.width - Theme.padding * 4;
+        y: root.height - self.height - Theme.padding * 4;
+        icon: Icons.refresh;
+
+        clicked => {
+            Logic.update-tokens-info(Logic.get-current-network());
+        }
     }
 }
 
 export component Home inherits Rectangle {
     private property <string> network: Logic.get-current-network();
     private property <TokenTileEntry> current-entry;
+    private property <TokenTileEntry> selected-entry;
 
     if Store.current-home-index == HomeIndex.Home: VerticalLayout {
         head := TopHead { }
@@ -162,7 +144,12 @@ export component Home inherits Rectangle {
             network: root.network;
         }
 
-        Body { }
+        Body {
+            clicked-entry(entry) => {
+                root.selected-entry = entry;
+                Store.current-home-index = HomeIndex.Send;
+            }
+        }
     }
 
     if Store.current-home-index == HomeIndex.Management: Management {
@@ -172,6 +159,7 @@ export component Home inherits Rectangle {
     }
 
     if Store.current-home-index == HomeIndex.Send: Send {
+        entry: root.selected-entry;
         back => {
             Store.current-home-index = HomeIndex.Home;
         }

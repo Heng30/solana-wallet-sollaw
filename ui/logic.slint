@@ -91,15 +91,14 @@ export global Logic {
     // (uuid) -> void
     callback remove-token(string);
 
+    // (network) -> void
+    callback update-tokens-info(string);
+
     // (network, address) -> void
     callback refresh-tokens-management-entries(string, string);
 
-    // (network, uuid) -> void
-    callback open-send-token-page(string, string);
-
     // (network, mint-address) -> void
     callback open-token-detail(string, string);
-
 
     callback update-cache-size();
     callback remove-all-cache();

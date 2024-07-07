@@ -3,7 +3,7 @@ import { Logic } from "./logic.slint";
 import { Store, SettingDetailIndex, SettingDeveloperMode } from "./store.slint";
 import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
-import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage, Password, PasswordSetting, Password, AddressBookEntry, AddressBookSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, TokenTileEntry } from "./base/widgets.slint";
+import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage, Password, PasswordSetting, Password, AddressBookEntry, AddressBookSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, TokenTileEntry, TokenTileWithSwitchEntry } from "./base/widgets.slint";
 import { Setup } from "./setup/panel.slint";
 import { CreateAccount } from "./setup/create-account.slint";
 import { AccountMnemonicSetting } from "./panel/bodyer/setting.slint";
@@ -119,7 +119,6 @@ export component AppWindow inherits Window {
             // background: pink;
             text: "切换主题";
             icon: Icons.history;
-
         }
 
         // AddressBookDetail {}
@@ -135,4 +134,4 @@ export component AppWindow inherits Window {
     }
 }
 
-export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, HistorySetting, SettingDeveloperMode, TokenTileEntry, TokensSetting }
+export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, HistorySetting, SettingDeveloperMode, TokenTileEntry, TokensSetting, TokenTileWithSwitchEntry }
