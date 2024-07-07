@@ -25,6 +25,7 @@ use spl_token::state::Mint;
 use std::{str::FromStr, string::ToString, time::Duration};
 
 pub const DEFAULT_TIMEOUT_SECS: u64 = 10;
+pub const DEFAULT_TRY_COUNTS: u64 = 500;
 
 #[derive(Default, Debug, Clone)]
 pub struct AccountToken {

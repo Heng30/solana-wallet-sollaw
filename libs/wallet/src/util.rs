@@ -12,7 +12,7 @@ fn pretty_sol_str(sol: f64) -> String {
     } else if sol >= 0.000_01_f64 {
         format!("{:.5}", sol)
     } else {
-        format!("{:.8}", sol)
+        format!("{:.6}", sol)
     }
 }
 

@@ -240,6 +240,9 @@ pub fn tr(text: &str) -> String {
     items.insert("发送代币", "Send token");
     items.insert("获取Token失败", "Fetch account tokens failed");
     items.insert("更新账户余额成功", "Refresh account balance success");
+    items.insert("请求空投", "Request airdrop");
+    items.insert("请求空投成功", "Request airdrop success");
+    items.insert("请求空投失败", "Request airdrop failed");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",

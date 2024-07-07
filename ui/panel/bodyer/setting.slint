@@ -134,8 +134,6 @@ component Accounts inherits Rectangle {
 
                     height: item-height;
                     background: self.has-hover ? Theme.base-background.darker(3%) : Theme.base-background;
-                    border-color: Theme.third-brand-color;
-                    border-width: is-current-account ? 1px : 0px;
                     border-radius: Theme.border-radius;
                     drop-shadow-blur: Theme.padding * 2;
                     drop-shadow-color: Theme.base-background-drop-shadow;
@@ -154,7 +152,8 @@ component Accounts inherits Rectangle {
                     middle-mouse-cursor: MouseCursor.pointer;
 
                     is-show-right-icon: true;
-                    right-icon: Icons.switch;
+                    right-icon: is-current-account ? Icons.success-fill : Icons.switch;
+                    right-colorize: is-current-account ? Theme.success-color : Colors.transparent;
 
                     left-clicked => {
                         IconsDialogSetting.set(true, "account", item.uuid);
@@ -363,23 +362,38 @@ component DeveloperMode inherits SettingDetail {
             text: Logic.tr(Store.is-cn,"测试模式");
         }
 
-        if mode-switch.checked: HorizontalLayout {
+        if mode-switch.checked: VerticalLayout {
+            spacing: Theme.spacing * 5;
+
             HorizontalLayout {
-                width: 50%;
-                test-radio := RadioBtn {
-                    text: Logic.tr(Store.is-cn, "测试网络");
-                    checked: root.network == "test";
+                HorizontalLayout {
+                    width: 50%;
+                    test-radio := RadioBtn {
+                        text: Logic.tr(Store.is-cn, "测试网络");
+                        checked: root.network == "test";
+                        check => {
+                            root.network = "test";
+                        }
+                    }
+                }
+
+                dev-radio := RadioBtn {
+                    text: Logic.tr(Store.is-cn, "开发网络");
+                    checked: root.network == "dev";
                     check => {
-                        root.network = "test";
+                        root.network = "dev";
                     }
                 }
             }
 
-            dev-radio := RadioBtn {
-                text: Logic.tr(Store.is-cn, "开发网络");
-                checked: root.network == "dev";
-                check => {
-                    root.network = "dev";
+            ConfirmBtn {
+                icon: Icons.airdrop;
+                border-radius: Theme.border-radius;
+                font-size: Theme.title3-font-size;
+                text: Logic.tr(Store.is-cn, "请求空投") + " 1SOL";
+
+                clicked => {
+                    Logic.request-airdrop-1-sol(Logic.get-current-network(), Store.current-account.pubkey);
                 }
             }
         }

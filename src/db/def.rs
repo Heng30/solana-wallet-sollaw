@@ -155,7 +155,9 @@ impl From<HistoryEntry> for UIHistoryEntry {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct TokenTileEntry {
     pub uuid: String,
+    pub network: String,
     pub symbol: String,
+    pub account_address: String,
     pub mint_address: String,
     pub balance: String,
     pub balance_usdt: String,
@@ -165,7 +167,9 @@ impl From<UITokenTileEntry> for TokenTileEntry {
     fn from(entry: UITokenTileEntry) -> Self {
         TokenTileEntry {
             uuid: entry.uuid.into(),
+            network: entry.network.into(),
             symbol: entry.symbol.into(),
+            account_address: entry.account_address.into(),
             mint_address: entry.mint_address.into(),
             balance: entry.balance.into(),
             balance_usdt: entry.balance_usdt.into(),
@@ -177,7 +181,9 @@ impl From<TokenTileEntry> for UITokenTileEntry {
     fn from(entry: TokenTileEntry) -> Self {
         UITokenTileEntry {
             uuid: entry.uuid.into(),
+            network: entry.network.into(),
             symbol: entry.symbol.into(),
+            account_address: entry.account_address.into(),
             mint_address: entry.mint_address.into(),
             balance: entry.balance.into(),
             balance_usdt: entry.balance_usdt.into(),

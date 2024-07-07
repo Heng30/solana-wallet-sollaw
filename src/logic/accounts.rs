@@ -183,7 +183,9 @@ fn init_accounts(ui: &AppWindow) {
                 }
 
                 _ = slint::invoke_from_event_loop(move || {
-                    init_accounts_in_event_loop(&ui_handle.unwrap(), secret_info, accounts);
+                    let ui = ui_handle.unwrap();
+                    init_accounts_in_event_loop(&ui, secret_info, accounts);
+                    super::tokens::init_tokens(&ui);
                 });
             }
             Err(e) => log::warn!("{e:?}"),
@@ -428,7 +430,6 @@ pub fn init(ui: &AppWindow) {
             }
         });
 
-    // TODO: should get all tokens balance of usdt
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_update_account_balance(move |uuid, network, address| {
@@ -471,6 +472,8 @@ pub fn init(ui: &AppWindow) {
                     return;
                 }
 
+                ui.global::<Logic>()
+                    .invoke_remove_tokens_when_remove_account(account.pubkey);
                 _remove_account(ui.as_weak(), password, uuid, index);
             }
         });
@@ -478,7 +481,10 @@ pub fn init(ui: &AppWindow) {
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_remove_all_accounts(move |password| {
-            _remove_all_accounts(ui_handle.clone(), password);
+            let ui = ui_handle.unwrap();
+            ui.global::<Logic>().invoke_remove_all_history();
+            ui.global::<Logic>().invoke_remove_all_tokens();
+            _remove_all_accounts(ui.as_weak(), password);
         });
 
     let ui_handle = ui.as_weak();
@@ -494,7 +500,7 @@ pub fn init(ui: &AppWindow) {
                     ui.global::<Logic>()
                         .invoke_update_current_derive_index(account.derive_index);
                     ui.global::<Store>().set_current_account(account);
-                    // TODO: fetch the account info from the blockchain
+                    super::tokens::init_tokens(&ui);
                     message_success!(ui, tr("切换账户成功"));
                 }
                 None => message_success!(ui, tr("切换账户失败. 账户不存在")),
@@ -573,12 +579,14 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
                             if store_accounts!(ui).row_count() == 0 {
                                 ui.global::<Store>()
                                     .set_current_account(account.clone().into());
-                                store_accounts!(ui).set_vec(vec![account.into()]);
+                                store_accounts!(ui).set_vec(vec![account.clone().into()]);
                             } else {
-                                store_accounts!(ui).push(account.into());
+                                store_accounts!(ui).push(account.clone().into());
                             }
 
                             ui.global::<Store>().set_is_show_setup_page(false);
+                            ui.global::<Logic>()
+                                .invoke_add_sol_token_when_create_account(account.pubkey.into());
                             message_success!(ui, tr("创建用户成功"));
                         });
                     }
@@ -681,7 +689,8 @@ fn _update_account_balance(
 
                     match get_account(&ui, &uuid) {
                         Some((index, mut account)) => {
-                            account.balance = slint::format!("{lamports} lamports");
+                            let sol = wallet::util::lamports_to_sol_str(lamports);
+                            account.balance = slint::format!("{sol} SOL");
 
                             if ui.global::<Store>().get_current_account().uuid == uuid {
                                 ui.global::<Store>().set_current_account(account.clone());

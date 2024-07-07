@@ -67,6 +67,8 @@ export global Logic {
     // (uuid) -> void
     callback remove-history(string);
 
+    callback remove-all-history();
+
     // (uuid, status, is-update-db) -> void
     callback update-history-status(string, TransactionTileStatus, bool);
 
@@ -84,12 +86,19 @@ export global Logic {
     // (uuid, network, address) -> void
     callback update-account-balance(string, string, string);
 
-    //  TODO
     // (entry) -> void
     callback add-token(TokenTileEntry);
 
+    // (account-address) -> void
+    callback add-sol-token-when-create-account(string);
+
     // (uuid) -> void
     callback remove-token(string);
+
+    callback remove-all-tokens();
+
+    // (account-address) -> void
+    callback remove-tokens-when-remove-account(string);
 
     // (network) -> void
     callback update-tokens-info(string);
@@ -99,6 +108,9 @@ export global Logic {
 
     // (network, mint-address) -> void
     callback open-token-detail(string, string);
+
+    // (network, address) -> void
+    callback request-airdrop-1-sol(string, string);
 
     callback update-cache-size();
     callback remove-all-cache();

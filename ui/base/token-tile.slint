@@ -6,7 +6,9 @@ import { IconBtn } from "icon-btn.slint";
 
 export struct TokenTileEntry {
     uuid: string,
+    network: string,
     symbol: string,
+    account_address: string,
     mint-address: string,
     balance: string,
     balance-usdt: string,
@@ -15,7 +17,6 @@ export struct TokenTileEntry {
 export struct TokenTileWithSwitchEntry {
     entry: TokenTileEntry,
     checked: bool,
-    enabled: bool,
 }
 
 component Tile inherits Rectangle {

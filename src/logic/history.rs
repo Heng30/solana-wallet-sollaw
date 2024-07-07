@@ -190,6 +190,12 @@ pub fn init(ui: &AppWindow) {
     });
 
     let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_remove_all_history(move || {
+        store_history_entries!(ui_handle.unwrap()).set_vec(vec![]);
+        _remove_all_entry();
+    });
+
+    let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_open_tx_detail(move |network, hash| {
             let ui = ui_handle.unwrap();
@@ -242,6 +248,12 @@ fn _update_entry(entry: HistoryEntry) {
 fn _remove_entry(uuid: SharedString) {
     tokio::spawn(async move {
         _ = db::entry::delete(HISTORY_TABLE, &uuid).await;
+    });
+}
+
+fn _remove_all_entry() {
+    tokio::spawn(async move {
+        _ = db::entry::delete_all(HISTORY_TABLE).await;
     });
 }
 

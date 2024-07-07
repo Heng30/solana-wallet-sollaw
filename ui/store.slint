@@ -63,10 +63,10 @@ export struct SettingDeveloperMode {
 }
 
 export global Store {
-    in-out property <HomeIndex> current-home-index: HomeIndex.Management;
-    in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
     in-out property <TabIndex> current-tab-index: TabIndex.Home;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
+    in-out property <HomeIndex> current-home-index: HomeIndex.Home;
+    in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 
     in-out property <AccountEntry> current-account: {
@@ -75,7 +75,7 @@ export global Store {
         pubkey: "pubkey-test",
         derive-index: 0,
         avatar-index: 0,
-        balance: "$100.21",
+        balance: "100.21 SOL",
     };
 
     in-out property <[AccountEntry]> accounts: [

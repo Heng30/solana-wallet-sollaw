@@ -1,7 +1,7 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Store, HomeIndex } from "../../store.slint";
 import { Logic } from "../../logic.slint";
-import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch } from "../../base/widgets.slint";
+import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, Loading, NoDataImg, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch } from "../../base/widgets.slint";
 import { TestModeBanner } from "test-mode-banner.slint";
 
 export global TokensSetting {
@@ -33,16 +33,15 @@ export global TokensSetting {
         },
     ];
 
+    in-out property <bool> management-entries-is-loading;
     in-out property <[TokenTileWithSwitchEntry]> management-entries:[
         {
             entry: { uuid: "uuid-1", symbol: "SOL", balance: "100.34", balance-usdt: "$1221.34" },
             checked: true,
-            enabled: false,
         },
         {
             entry: { uuid: "uuid-1", symbol: "USDT", balance: "10.34", balance-usdt: "$12.34" },
             checked: true,
-            enabled: true,
         }
     ];
 }
@@ -86,7 +85,7 @@ component Management inherits SettingDetail {
         entries: TokensSetting.management-entries;
 
         clicked(entry) => {
-            Logic.open-token-detail(Logic.get-current-network(), entry.uuid);
+            Logic.open-token-detail(Logic.get-current-network(), entry.mint-address);
         }
 
         toggled(checked, entry) => {
@@ -127,6 +126,7 @@ component Body inherits Rectangle {
         icon: Icons.refresh;
 
         clicked => {
+            Logic.update-account-balance(Store.current-account.uuid, Logic.get-current-network(), Store.current-account.pubkey);
             Logic.update-tokens-info(Logic.get-current-network());
         }
     }
@@ -152,9 +152,19 @@ export component Home inherits Rectangle {
         }
     }
 
-    if Store.current-home-index == HomeIndex.Management: Management {
-        back => {
-            Store.current-home-index = HomeIndex.Home;
+    if Store.current-home-index == HomeIndex.Management: Rectangle {
+        if TokensSetting.management-entries-is-loading: Loading {
+            loading-text: Logic.tr(Store.is-cn, "正在刷新...");
+            colorize: Theme.secondary-brand-color;
+            icon-size: parent.width * 0.2;
+        }
+
+        if TokensSetting.management-entries.length == 0 && !TokensSetting.management-entries-is-loading: NoDataImg { }
+
+        if TokensSetting.management-entries.length > 0 && !TokensSetting.management-entries-is-loading: Management {
+            back => {
+                Store.current-home-index = HomeIndex.Home;
+            }
         }
     }
 

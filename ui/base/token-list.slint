@@ -31,7 +31,6 @@ export component TokenListWithSwitch inherits SettingDetailInner {
     for item[index] in entries: TokenTileWithSwitch {
         entry: item.entry;
         checked: item.checked;
-        enabled: item.enabled;
 
         clicked => {
             root.clicked(item.entry);
