@@ -1,0 +1,116 @@
+import { Theme, Icons } from "../theme.slint";
+import { Logic } from "../logic.slint";
+import { Store } from "../store.slint";
+import { Label } from "label.slint";
+import { LineInput } from "line-input.slint";
+import { CancelBtn, ConfirmBtn } from "btn.slint";
+import { SettingDetail, SettingDetailInner, SettingDetailInnerVbox, SettingDetailLabel } from "setting-detail.slint";
+
+export component TransactionFee inherits SettingDetail {
+    in property network <=> network-input.text;
+    in property send-token <=> send-token-input.text;
+    in property send-address <=> send-address-input.text;
+    in property recipient-address <=> recipient-address-input.text;
+    in property send-amount <=> amount-input.text;
+    in property fee <=> fee-input.text;
+
+    title: Logic.tr(Store.is-cn, "交易信息");
+
+    callback cancel <=> cancel-btn.clicked;
+    callback confirm <=> confirm-btn.clicked;
+
+    SettingDetailInner {
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "区块网络");
+            }
+
+            network-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: "test";
+                enabled: false;
+                is-show-icon: false;
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "发送代币");
+            }
+
+            send-token-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: "ETH";
+                enabled: false;
+                is-show-icon: false;
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "发送地址");
+            }
+
+            send-address-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: "0xf1199999751b1a3A74590adBf95401D19AB30014";
+                enabled: false;
+                is-show-icon: false;
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "接收地址");
+            }
+
+            recipient-address-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: "GEScvfEF1Xt2oyrnJij5V5DYSmPjuUt45DfUs3VFrsED";
+                enabled: false;
+                is-show-icon: false;
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "发送数量");
+            }
+
+            amount-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: "0";
+                input-type: InputType.decimal;
+                is-show-icon: false;
+                enabled: false;
+            }
+        }
+
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "交易费用");
+            }
+
+            fee-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: "0";
+                is-show-icon: false;
+                enabled: false;
+            }
+        }
+
+        HorizontalLayout {
+            alignment: LayoutAlignment.center;
+            padding-top: Theme.padding * 10;
+            spacing: Theme.spacing * 10;
+
+            cancel-btn := CancelBtn {
+                text: Logic.tr(Store.is-cn, "取消");
+            }
+
+            confirm-btn := ConfirmBtn {
+                text: Logic.tr(Store.is-cn, "确认");
+            }
+        }
+    }
+}

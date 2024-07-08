@@ -40,7 +40,6 @@ impl NetworkType {
             NetworkType::Test => format!("{url}?cluster=testnet"),
             NetworkType::Dev => format!("{url}?cluster=devnet"),
         }
-
     }
 
     pub fn address_detail_url(&self, address: &str) -> String {
@@ -59,7 +58,6 @@ impl NetworkType {
             NetworkType::Test => format!("{url}/{hash}?cluster=testnet"),
             NetworkType::Dev => format!("{url}/{hash}?cluster=devnet"),
         }
-
     }
 }
 

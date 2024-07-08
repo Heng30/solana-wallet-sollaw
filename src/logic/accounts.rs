@@ -72,7 +72,7 @@ fn is_valid_secret_info(info: &SecretInfo) -> bool {
     !info.password.is_empty() && !info.mnemonic.is_empty() && info.current_derive_index >= 0
 }
 
-async fn is_valid_password_in_secret_info(password: &str) -> Result<()> {
+pub async fn is_valid_password_in_secret_info(password: &str) -> Result<()> {
     if get_secrect_info().await?.password != crypto::hash(password) {
         bail!("Wrong password");
     }

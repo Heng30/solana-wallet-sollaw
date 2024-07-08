@@ -7,16 +7,17 @@ use crate::{
     logic::message::{async_message_info, async_message_warn},
     message_info, message_success,
     slint_generatedAppWindow::{
-        AppWindow, Logic, SendTokenProps, Store, TokenTileEntry as UITokenTileEntry,
+        AppWindow, HomeIndex, Logic, SendTokenProps, Store, TokenTileEntry as UITokenTileEntry,
         TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry, TokensSetting, Util,
     },
 };
+use anyhow::Result;
 use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
 use std::str::FromStr;
 use uuid::Uuid;
 use wallet::{
     network::{NetworkType, RpcUrlType},
-    prelude::LAMPORTS_PER_SOL,
+    prelude::{lamports_to_sol, sol_to_lamports, Pubkey, LAMPORTS_PER_SOL},
     transaction::{self, DEFAULT_TIMEOUT_SECS, DEFAULT_TRY_COUNTS},
 };
 
@@ -234,8 +235,37 @@ pub fn init(ui: &AppWindow) {
         });
 
     let ui_handle = ui.as_weak();
-    ui.global::<Logic>().on_send_token(move |props| {
-        let ui = ui_handle.unwrap();
+    ui.global::<Logic>()
+        .on_evaluate_transaction_fee(move |password, props| {
+            let ui_handle = ui_handle.clone();
+            tokio::spawn(async move {
+                match super::accounts::is_valid_password_in_secret_info(&password).await {
+                    Err(e) => async_message_warn(ui_handle.clone(), format!("{e:?}")),
+                    _ => {
+                        if let Err(e) = if props.symbol == "SOL" {
+                            _evaluate_sol_transaction_fee(ui_handle.clone(), password, props).await
+                        } else {
+                            _evaluate_spl_token_transaction_fee(ui_handle.clone(), password, props)
+                                .await
+                        } {
+                            async_message_warn(ui_handle.clone(), format!("{e:?}"));
+                        }
+                    }
+                }
+            });
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_send_token(move |password, props| {
+        let ui_handle = ui_handle.clone();
+        tokio::spawn(async move {
+            match super::accounts::is_valid_password_in_secret_info(&password).await {
+                Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
+                _ => {
+                    // TODO
+                }
+            }
+        });
     });
 }
 
@@ -482,4 +512,53 @@ fn _add_sol_token_when_create_account(ui: &AppWindow, account_address: SharedStr
             .await;
         }
     });
+}
+
+async fn _evaluate_sol_transaction_fee(
+    ui: Weak<AppWindow>,
+    password: SharedString,
+    props: SendTokenProps,
+) -> Result<()> {
+    let rpc_url_ty =
+        RpcUrlType::from_str(&props.network).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let sender_pubkey = Pubkey::from_str(&props.send_address)?;
+    let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
+    let amount = props.amount.parse::<f64>()?;
+
+    let lamports = sol_to_lamports(amount);
+    let instructions =
+        transaction::send_lamports_instruction(&sender_pubkey, &recipient_pubkey, lamports);
+    let fee = transaction::evaluate_transaction_fee(
+        rpc_url_ty,
+        &instructions,
+        &sender_pubkey,
+        Some(DEFAULT_TIMEOUT_SECS),
+    )
+    .await?;
+
+    let fee = lamports_to_sol(fee);
+    _ = slint::invoke_from_event_loop(move || {
+        let ui = ui.unwrap();
+        let mut sender = ui.global::<TokensSetting>().get_sender();
+        sender.transaction_fee = slint::format!("{fee} SOL");
+        sender.password = password;
+        ui.global::<TokensSetting>().set_sender(sender);
+        ui.global::<Store>()
+            .set_current_home_index(HomeIndex::TransactionFee);
+    });
+
+    Ok(())
+}
+
+async fn _evaluate_spl_token_transaction_fee(
+    ui: Weak<AppWindow>,
+    password: SharedString,
+    props: SendTokenProps,
+) -> Result<()> {
+    let _sender_pubkey = Pubkey::from_str(&props.send_address)?;
+    let _recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
+    let _amount = props.amount.parse::<f64>()?;
+
+    Ok(())
+    // TODO
 }

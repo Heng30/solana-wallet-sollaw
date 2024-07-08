@@ -115,7 +115,11 @@ export global Logic {
     // (uuid, network, address) -> void
     callback request-airdrop-sol(string, string, string);
 
-    callback send-token(SendTokenProps);
+    // (password, props) -> void
+    callback evaluate-transaction-fee(string, SendTokenProps);
+
+    // (password, props) -> void
+    callback send-token(string, SendTokenProps);
 
     // (network) -> void
     callback open-blockchain-network(string);

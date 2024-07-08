@@ -10,6 +10,7 @@ export component LineInput inherits Rectangle {
     in property <image> icon;
     in property <string> placeholder-text;
     in property <bool> enabled <=> text-input.enabled;
+    in property <bool> is-show-icon: true;
 
     callback clicked <=> icon.clicked;
     callback edited <=> text-input.edited;
@@ -39,7 +40,7 @@ export component LineInput inherits Rectangle {
 
         Flickable {
             viewport-width: text-input.preferred-width + Theme.padding;
-            width: root.width - icon.width - parent.padding-left - parent.padding-right - parent.spacing * 2;
+            width: root.width - (is-show-icon ? icon.width : 0) - parent.padding-left - parent.padding-right - (is-show-icon ? parent.spacing * 2 : 0);
 
             Rectangle {
                 x: 0;
@@ -68,6 +69,7 @@ export component LineInput inherits Rectangle {
         }
 
         icon := IconBtn {
+            visible: root.is-show-icon;
             width: text-input.height;
             height: Theme.icon-size;
             icon: root.icon;
