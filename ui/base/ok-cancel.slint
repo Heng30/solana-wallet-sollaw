@@ -86,20 +86,20 @@ export component OkCancelDialogV2 inherits Rectangle {
             spacing: Theme.spacing * 4;
 
             TextBtn {
-                icon: Icons.success;
-                text: Logic.tr(Store.is-cn, "确认");
+                text: Logic.tr(Store.is-cn, "取消");
+                icon: Icons.cancel;
 
                 clicked => {
-                    Logic.handle-ok-cancel-dialog(OkCancelDialogSetting.handle-type, OkCancelDialogSetting.user-data);
                     OkCancelDialogSetting.show = false;
                 }
             }
 
             TextBtn {
-                text: Logic.tr(Store.is-cn, "取消");
-                icon: Icons.cancel;
+                icon: Icons.success;
+                text: Logic.tr(Store.is-cn, "确认");
 
                 clicked => {
+                    Logic.handle-ok-cancel-dialog(OkCancelDialogSetting.handle-type, OkCancelDialogSetting.user-data);
                     OkCancelDialogSetting.show = false;
                 }
             }

@@ -243,6 +243,7 @@ pub fn tr(text: &str) -> String {
     items.insert("请求空投", "Request airdrop");
     items.insert("请求空投成功", "Request airdrop success");
     items.insert("请求空投失败", "Request airdrop failed");
+    items.insert("请耐心等待...", "It may takes a long time. Please wait...");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",

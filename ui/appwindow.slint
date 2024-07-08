@@ -1,6 +1,6 @@
 import { Theme, Icons } from "./theme.slint";
 import { Logic } from "./logic.slint";
-import { Store, SettingDetailIndex, SettingDeveloperMode } from "./store.slint";
+import { Store, SettingDetailIndex, SettingDeveloperMode, SendTokenProps } from "./store.slint";
 import { Util } from "./util.slint";
 import { Panel } from "./panel/panel.slint";
 import { Toast, IconsDialogSetting, IconsDialog, OkCancelDialogV2, Blanket, LanguageDialog, OkCancelDialogSetting, LandingPage, Password, PasswordSetting, Password, AddressBookEntry, AddressBookSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, TokenTileEntry, TokenTileWithSwitchEntry } from "./base/widgets.slint";
@@ -10,7 +10,7 @@ import { AccountMnemonicSetting } from "./panel/bodyer/setting.slint";
 import { HistorySetting } from "./panel/bodyer/history.slint";
 import { TokensSetting } from "./panel/bodyer/home.slint";
 
-import { Help, SettingDetailSwitch } from "./base/widgets.slint";
+import { Help, TokenSender } from "./base/widgets.slint";
 
 export component AppWindow inherits Window {
     default-font-size: Theme.default-font-size;
@@ -115,11 +115,7 @@ export component AppWindow inherits Window {
     Rectangle {
         visible: false;
         background: white;
-        SettingDetailSwitch {
-            // background: pink;
-            text: "切换主题";
-            icon: Icons.history;
-        }
+        TokenSender { }
 
         // AddressBookDetail {}
         // AddressBook {}
@@ -134,4 +130,4 @@ export component AppWindow inherits Window {
     }
 }
 
-export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, HistorySetting, SettingDeveloperMode, TokenTileEntry, TokensSetting, TokenTileWithSwitchEntry }
+export { Util, Logic, Store, Theme, Icons, IconsDialogSetting, SettingDetailIndex, AccountMnemonicSetting, AddressBookEntry, AddressBookSetting, PasswordSetting, AboutSetting, TransactionTileEntry, TransactionTileStatus, HistorySetting, SettingDeveloperMode, TokenTileEntry, TokensSetting, TokenTileWithSwitchEntry, SendTokenProps }

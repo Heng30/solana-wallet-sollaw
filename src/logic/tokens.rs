@@ -4,10 +4,10 @@ use crate::{
         self,
         def::{TokenTileEntry, TOKENS_TABLE},
     },
-    logic::message::{async_message_success, async_message_warn},
-    message_info,
+    logic::message::{async_message_info, async_message_warn},
+    message_info, message_success,
     slint_generatedAppWindow::{
-        AppWindow, Logic, Store, TokenTileEntry as UITokenTileEntry,
+        AppWindow, Logic, SendTokenProps, Store, TokenTileEntry as UITokenTileEntry,
         TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry, TokensSetting, Util,
     },
 };
@@ -41,10 +41,6 @@ macro_rules! store_tokens_setting_management_entries {
             .expect("We know we set a VecModel earlier")
     };
 }
-
-//  TODO:
-// 2. Save the token info when refresh then token info
-// 3. Should remove the history and token table when deleting an account
 
 async fn get_from_db(network: &str, account_address: &str) -> Vec<UITokenTileEntry> {
     match db::entry::select_all(TOKENS_TABLE).await {
@@ -123,7 +119,6 @@ async fn get_entries_by_account_address(account_address: &str) -> Vec<TokenTileE
             vec![]
         }
     }
-
 }
 
 pub fn init_tokens(ui: &AppWindow) {
@@ -173,10 +168,10 @@ pub fn init(ui: &AppWindow) {
         _remove_all_entry();
     });
 
-    ui.global::<Logic>().on_remove_tokens_when_remove_account(move |account_address| {
-        _remove_tokens_when_remove_account(account_address);
-    });
-
+    ui.global::<Logic>()
+        .on_remove_tokens_when_remove_account(move |account_address| {
+            _remove_tokens_when_remove_account(account_address);
+        });
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>().on_update_tokens_info(move |network| {
@@ -187,6 +182,21 @@ pub fn init(ui: &AppWindow) {
             _update_token_info(ui.as_weak(), network.clone(), entry);
         }
     });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_update_token_name(move |uuid, name| {
+            if name.is_empty() {
+                return;
+            }
+
+            let ui = ui_handle.unwrap();
+            if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
+                entry.symbol = name;
+                store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
+                _update_token_db(entry);
+            }
+        });
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
@@ -208,9 +218,25 @@ pub fn init(ui: &AppWindow) {
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
-        .on_request_airdrop_1_sol(move |network, address| {
-            _request_airdrop_1_sol(ui_handle.clone(), network, address);
+        .on_request_airdrop_sol(move |uuid, network, address| {
+            _request_airdrop_sol(ui_handle.clone(), uuid, network, address);
         });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
+        .on_open_blockchain_network(move |network| {
+            let ui = ui_handle.unwrap();
+            let url = NetworkType::from_str(&network)
+                .unwrap_or(NetworkType::Test)
+                .homepage();
+            ui.global::<Util>()
+                .invoke_open_url("Default".into(), url.into());
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_send_token(move |props| {
+        let ui = ui_handle.unwrap();
+    });
 }
 
 fn _add_token(entry: TokenTileEntry) {
@@ -243,7 +269,6 @@ fn _remove_tokens_when_remove_account(account_address: SharedString) {
             _ = db::entry::delete(TOKENS_TABLE, &entry.uuid).await;
         }
     });
-
 }
 
 fn _update_token_in_event_loop(ui: Weak<AppWindow>, entry: UITokenTileEntry) {
@@ -267,7 +292,8 @@ fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UIT
             {
                 entry.balance = wallet::util::lamports_to_sol_str(lamports).into();
                 entry.balance_usdt = "TODO".into();
-                _update_token_in_event_loop(ui, entry);
+                _update_token_in_event_loop(ui, entry.clone());
+                _update_token_db(entry);
             }
         });
         return;
@@ -287,8 +313,20 @@ fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UIT
         {
             entry.balance = ta.token_amount.ui_amount_string.into();
             entry.balance_usdt = "$0.00".into();
-            _update_token_in_event_loop(ui, entry);
+            _update_token_in_event_loop(ui, entry.clone());
+            _update_token_db(entry);
         }
+    });
+}
+
+fn _update_token_db(entry: UITokenTileEntry) {
+    tokio::spawn(async move {
+        _ = db::entry::update(
+            TOKENS_TABLE,
+            &entry.uuid.clone(),
+            &serde_json::to_string::<TokenTileEntry>(&entry.into()).unwrap(),
+        )
+        .await;
     });
 }
 
@@ -312,32 +350,28 @@ fn _refresh_tokens_management_entries(
             .await
         {
             Ok(tokens) => {
+                // Get the tokens not favorite
                 let tokens = tokens
                     .into_iter()
-                    .map(|token| {
+                    .filter_map(|token| {
                         let mint_address = token.mint_address.to_string();
                         match entries
                             .iter()
                             .position(|entry| entry.mint_address == mint_address)
                         {
-                            Some(i) => UITokenTileWithSwitchEntry {
-                                entry: entries[i].clone(),
-                                checked: true,
-                            },
-                            None => {
-                                UITokenTileWithSwitchEntry {
-                                    entry: UITokenTileEntry {
-                                        uuid: Uuid::new_v4().to_string().into(),
-                                        network: current_network.clone(),
-                                        symbol: mint_address.clone().into(), // TODO: Get the real token symbol
-                                        account_address: account_address.clone(),
-                                        mint_address: mint_address.clone().into(),
-                                        balance: slint::format!("{}", token.amount()),
-                                        balance_usdt: "$0.00".into(),
-                                    },
-                                    checked: false,
-                                }
-                            }
+                            None => Some(UITokenTileWithSwitchEntry {
+                                entry: UITokenTileEntry {
+                                    uuid: Uuid::new_v4().to_string().into(),
+                                    network: current_network.clone(),
+                                    symbol: mint_address.clone().into(), // TODO: Get the real token symbol
+                                    account_address: account_address.clone(),
+                                    mint_address: mint_address.clone().into(),
+                                    balance: slint::format!("{}", token.amount()),
+                                    balance_usdt: "$0.00".into(),
+                                },
+                                checked: false,
+                            }),
+                            _ => None,
                         }
                     })
                     .collect::<Vec<_>>();
@@ -371,17 +405,20 @@ fn _refresh_tokens_management_entries(
     });
 }
 
-fn _request_airdrop_1_sol(
+fn _request_airdrop_sol(
     ui_handle: Weak<AppWindow>,
+    uuid: SharedString,
     network: SharedString,
     address: SharedString,
 ) {
     tokio::spawn(async move {
+        async_message_info(ui_handle.clone(), tr("请耐心等待..."));
+
         let ty = RpcUrlType::from_str(&network).unwrap_or(RpcUrlType::Test);
         match transaction::request_airdrop(
             ty.clone(),
             &address,
-            LAMPORTS_PER_SOL,
+            LAMPORTS_PER_SOL / 10,
             Some(DEFAULT_TIMEOUT_SECS),
         )
         .await
@@ -393,7 +430,17 @@ fn _request_airdrop_1_sol(
                     Err(e) => {
                         async_message_warn(ui_handle, format!("{}. {e:?}", tr("请求空投失败")))
                     }
-                    _ => async_message_success(ui_handle, tr("请求空投成功")),
+                    _ => {
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+                            let current_uuid = ui.global::<Store>().get_current_account().uuid;
+                            if current_uuid == uuid {
+                                ui.global::<Logic>()
+                                    .invoke_update_account_balance(uuid, network, address);
+                                message_success!(ui, tr("请求空投成功"));
+                            }
+                        });
+                    }
                 }
             }
             Err(e) => async_message_warn(ui_handle, format!("{}. {e:?}", tr("请求空投失败"))),
@@ -418,7 +465,7 @@ fn _add_sol_token_when_create_account(ui: &AppWindow, account_address: SharedStr
             };
 
             if current_network == item {
-                store_tokens_setting_entries!(ui).push(entry.clone().into());
+                store_tokens_setting_entries!(ui).set_vec(vec![entry.clone().into()]);
             }
 
             entry

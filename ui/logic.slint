@@ -1,4 +1,4 @@
-import { Store, SetupIndex, SettingUI, SettingDeveloperMode, AccountEntry } from "store.slint";
+import { Store, SetupIndex, SettingUI, SettingDeveloperMode, AccountEntry, SendTokenProps } from "store.slint";
 import { Icons } from "theme.slint";
 import { TransactionTileEntry, TransactionTileStatus } from "base/transaction-tile.slint";
 import { TokenTileEntry } from "base/token-tile.slint";
@@ -103,14 +103,22 @@ export global Logic {
     // (network) -> void
     callback update-tokens-info(string);
 
+    // (uuid, name) -> void
+    callback update-token-name(string, string);
+
     // (network, address) -> void
     callback refresh-tokens-management-entries(string, string);
 
     // (network, mint-address) -> void
     callback open-token-detail(string, string);
 
-    // (network, address) -> void
-    callback request-airdrop-1-sol(string, string);
+    // (uuid, network, address) -> void
+    callback request-airdrop-sol(string, string, string);
+
+    callback send-token(SendTokenProps);
+
+    // (network) -> void
+    callback open-blockchain-network(string);
 
     callback update-cache-size();
     callback remove-all-cache();

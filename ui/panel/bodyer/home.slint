@@ -1,8 +1,12 @@
 import { Theme, Icons } from "../../theme.slint";
-import { Store, HomeIndex } from "../../store.slint";
+import { Store, HomeIndex, SendTokenProps } from "../../store.slint";
 import { Logic } from "../../logic.slint";
-import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, Loading, NoDataImg, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch } from "../../base/widgets.slint";
+import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, Loading, NoDataImg, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, TokenListWithSwitch, TokenSender, IconsDialogSetting, AddressBook } from "../../base/widgets.slint";
 import { TestModeBanner } from "test-mode-banner.slint";
+
+struct SenderSetting {
+    recipient-address: string,
+}
 
 export global TokensSetting {
     in-out property <[TokenTileEntry]> entries: [
@@ -44,6 +48,7 @@ export global TokensSetting {
             checked: true,
         }
     ];
+    in-out property <SenderSetting> sender;
 }
 
 component TopHead inherits Head {
@@ -98,13 +103,6 @@ component Management inherits SettingDetail {
     }
 }
 
-component Send inherits SettingDetail {
-    in-out property <TokenTileEntry> entry;
-
-    title: Logic.tr(Store.is-cn, "发送代币");
-    SettingDetailInner { }
-}
-
 component Body inherits Rectangle {
     callback clicked-entry <=> tl.clicked;
 
@@ -134,7 +132,6 @@ component Body inherits Rectangle {
 
 export component Home inherits Rectangle {
     private property <string> network: Logic.get-current-network();
-    private property <TokenTileEntry> current-entry;
     private property <TokenTileEntry> selected-entry;
 
     if Store.current-home-index == HomeIndex.Home: VerticalLayout {
@@ -168,10 +165,63 @@ export component Home inherits Rectangle {
         }
     }
 
-    if Store.current-home-index == HomeIndex.Send: Send {
-        entry: root.selected-entry;
+    if Store.current-home-index == HomeIndex.Send: TokenSender {
+        avatar: IconsDialogSetting.icon(Store.current-account.avatar-index);
+        name: Store.current-account.name;
+        network: Logic.get-current-network();
+        send-token: root.selected-entry.symbol;
+        send-address: Store.current-account.pubkey;
+        recipient-address: TokensSetting.sender.recipient-address;
+        total-balance: root.selected-entry.balance;
+        total-balance-usdt: root.selected-entry.balance-usdt;
+
+        private property <SendTokenProps> send-token-props;
+
         back => {
             Store.current-home-index = HomeIndex.Home;
+        }
+
+        update-send-token-name => {
+            Logic.update-token-name(root.selected-entry.uuid, self.send-token);
+        }
+
+        copy-send-address => {
+            Logic.copy-to-clipboard(self.send-address);
+        }
+
+        open-address-book => {
+            Store.current-home-index = HomeIndex.AddressBook;
+        }
+
+        open-network => {
+            Logic.open-blockchain-network(self.network);
+        }
+
+        cancel => {
+            self.back();
+        }
+
+        confirm => {
+            send-token-props = {
+                network: self.network,
+                send-address: self.send-address,
+                recipient-address: self.recipient-address,
+                mint_address: root.selected-entry.mint-address,
+                symbol: root.selected-entry.symbol,
+                amount: self.send-amount,
+            };
+            Logic.send-token(send-token-props);
+        }
+    }
+
+    if Store.current-home-index == HomeIndex.AddressBook: AddressBook {
+        back => {
+            Store.current-home-index = HomeIndex.Send;
+        }
+
+        tap(entry) => {
+            TokensSetting.sender.recipient-address = entry.address;
+            self.back();
         }
     }
 }

@@ -472,19 +472,14 @@ pub fn init(ui: &AppWindow) {
                     return;
                 }
 
-                ui.global::<Logic>()
-                    .invoke_remove_tokens_when_remove_account(account.pubkey);
-                _remove_account(ui.as_weak(), password, uuid, index);
+                _remove_account(ui.as_weak(), password, uuid, index, account.pubkey);
             }
         });
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_remove_all_accounts(move |password| {
-            let ui = ui_handle.unwrap();
-            ui.global::<Logic>().invoke_remove_all_history();
-            ui.global::<Logic>().invoke_remove_all_tokens();
-            _remove_all_accounts(ui.as_weak(), password);
+            _remove_all_accounts(ui_handle.clone(), password);
         });
 
     let ui_handle = ui.as_weak();
@@ -567,7 +562,7 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
                             pubkey: kp.pubkey().to_string(),
                             derive_index,
                             avatar_index,
-                            balance: String::from("0"),
+                            balance: String::from("0.00"),
                         };
 
                         let data = serde_json::to_string(&account).unwrap();
@@ -616,6 +611,7 @@ fn _remove_account(
     password: SharedString,
     uuid: SharedString,
     index: usize,
+    account_address: SharedString,
 ) {
     tokio::spawn(async move {
         match is_valid_password_in_secret_info(&password).await {
@@ -625,6 +621,9 @@ fn _remove_account(
                 _ = slint::invoke_from_event_loop(move || {
                     let ui = ui_handle.unwrap();
                     store_accounts!(ui).remove(index);
+
+                    ui.global::<Logic>()
+                        .invoke_remove_tokens_when_remove_account(account_address);
                     ui.global::<Store>()
                         .set_current_setting_detail_index(SettingDetailIndex::Accounts);
                     message_success!(ui, tr("移除账户成功"));
@@ -642,6 +641,8 @@ fn _remove_all_accounts(ui_handle: Weak<AppWindow>, password: SharedString) {
                 _ = db::entry::delete_all(ACCOUNTS_TABLE).await;
                 _ = slint::invoke_from_event_loop(move || {
                     let ui = ui_handle.unwrap();
+                    ui.global::<Logic>().invoke_remove_all_history();
+                    ui.global::<Logic>().invoke_remove_all_tokens();
                     store_accounts!(ui).set_vec(vec![]);
                     message_success!(ui, tr("删除所有账户成功"));
                     ui.global::<Store>().set_is_show_setup_page(true);

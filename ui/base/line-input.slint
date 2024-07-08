@@ -4,7 +4,7 @@ import { Label } from "./label.slint";
 import { IconBtn } from "./icon-btn.slint";
 
 export component LineInput inherits Rectangle {
-    in property text <=> text-input.text;
+    in-out property text <=> text-input.text;
     in property input-type <=> text-input.input-type;
 
     in property <image> icon;

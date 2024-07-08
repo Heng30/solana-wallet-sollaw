@@ -34,6 +34,7 @@ export enum HomeIndex {
     Home,
     Send,
     Management,
+    AddressBook,
 }
 
 export struct AccountEntry {
@@ -60,6 +61,15 @@ export struct SettingUI {
 export struct SettingDeveloperMode {
     enabled: bool,
     network: string,
+}
+
+export struct SendTokenProps {
+    network: string,
+    send-address: string,
+    recipient-address: string,
+    mint_address: string,
+    symbol: string,
+    amount: string,
 }
 
 export global Store {

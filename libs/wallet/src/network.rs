@@ -33,6 +33,16 @@ impl ToString for NetworkType {
 }
 
 impl NetworkType {
+    pub fn homepage(&self) -> String {
+        let url = "https://explorer.solana.com/address";
+        match *self {
+            NetworkType::Main => format!("{url}"),
+            NetworkType::Test => format!("{url}?cluster=testnet"),
+            NetworkType::Dev => format!("{url}?cluster=devnet"),
+        }
+
+    }
+
     pub fn address_detail_url(&self, address: &str) -> String {
         let url = "https://explorer.solana.com/address";
         match *self {

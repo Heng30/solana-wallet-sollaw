@@ -3,7 +3,7 @@ import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
 import { Store,  SettingUI, SettingDeveloperMode, SettingDetailIndex, AccountEntry } from "../../store.slint";
-import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar,Help, AddressBook, AddressBookDetail, AddressBookEntry, SettingDetailSwitch, AddressBookSetting, About, ResetPassword } from "../../base/widgets.slint";
+import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar, Help, AddressBook, AddressBookDetail, AddressBookEntry, SettingDetailSwitch, AddressBookSetting, About, ResetPassword } from "../../base/widgets.slint";
 
 export global AccountMnemonicSetting {
     in-out property <string> mnemonic;
@@ -198,7 +198,7 @@ component AccountDetail inherits SettingDetail {
             Avatar {
                 height: 80%;
                 width: self.height;
-                background: Theme.third-brand-color;
+                background: Theme.base-background.darker(3%);
                 icon: IconsDialogSetting.icons[icon-index];
 
                 clicked => {
@@ -390,10 +390,10 @@ component DeveloperMode inherits SettingDetail {
                 icon: Icons.airdrop;
                 border-radius: Theme.border-radius;
                 font-size: Theme.title3-font-size;
-                text: Logic.tr(Store.is-cn, "请求空投") + " 1SOL";
+                text: Logic.tr(Store.is-cn, "请求空投") + " 0.1SOL";
 
                 clicked => {
-                    Logic.request-airdrop-1-sol(Logic.get-current-network(), Store.current-account.pubkey);
+                    Logic.request-airdrop-sol(Store.current-account.uuid, Logic.get-current-network(), Store.current-account.pubkey);
                 }
             }
         }
