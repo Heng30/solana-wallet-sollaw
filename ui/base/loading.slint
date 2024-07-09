@@ -10,6 +10,7 @@ export component Loading inherits Rectangle {
     in property <color> colorize: Theme.primary-text-color;
     in property <length> font-size: Theme.default-font-size;
     in property <length> gap: Theme.spacing * 2;
+    in property <bool> is-show-animation: true;
 
     public function close() {
         self.visible = false;
@@ -28,7 +29,7 @@ export component Loading inherits Rectangle {
             icon := Image {
                 height: root.icon-size;
                 width: self.height;
-                rotation-angle: !root.visible ? 0deg : 240deg * animation-tick() / root.duration;
+                rotation-angle: !root.is-show-animation ? 0deg : 240deg * animation-tick() / root.duration;
                 source: root.loading-icon;
                 colorize: root.colorize;
                 animate rotation-angle {

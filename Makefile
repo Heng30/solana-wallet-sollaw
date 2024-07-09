@@ -39,11 +39,24 @@ debug-mold:
 debug-local:
 	$(run-evn) ./target/debug/sollet-desktop
 
+
+release-local:
+	$(run-evn) ./target/release/sollet-desktop
+
+build-desktop-debug-mold:
+	$(build-evn) $(run-evn) mold --run cargo build --bin sollet-desktop --features=desktop
+
+build-desktop-debug-job1:
+	$(build-evn) $(run-evn) cargo build --jobs 1 --bin sollet-desktop --features=desktop
+
 build-desktop-debug:
 	$(build-evn) $(run-evn) cargo build --bin sollet-desktop --features=desktop
 
 build-desktop-release:
 	$(build-evn) $(run-evn) cargo build --release --bin sollet-desktop --features=desktop
+
+build-desktop-release-job1:
+	$(build-evn) $(run-evn) cargo build --release --jobs 1 --bin sollet-desktop --features=desktop
 
 install-desktop:
 	cp -f target/release/sollet-desktop ~/bin/sollet-desktop

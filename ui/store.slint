@@ -36,6 +36,7 @@ export enum HomeIndex {
     Management,
     AddressBook,
     TransactionFee,
+    WaitTransactionConfirmed,
 }
 
 export struct AccountEntry {
@@ -65,6 +66,7 @@ export struct SettingDeveloperMode {
 }
 
 export struct SendTokenProps {
+    derive_index: int,
     network: string,
     send-address: string,
     recipient-address: string,
@@ -76,7 +78,7 @@ export struct SendTokenProps {
 export global Store {
     in-out property <TabIndex> current-tab-index: TabIndex.Home;
     private property <TabIndex> current-tab-index-tmp: TabIndex.None;
-    in-out property <HomeIndex> current-home-index: HomeIndex.TransactionFee;
+    in-out property <HomeIndex> current-home-index: HomeIndex.Home;
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
 

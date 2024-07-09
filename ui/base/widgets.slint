@@ -1,3 +1,4 @@
+import { LoadingStatus } from "def.slint";
 import { Toast } from "toast.slint";
 import { TabBtn } from "tab-btn.slint";
 import { IconBtn, RotationType } from "icon-btn.slint";
@@ -45,8 +46,10 @@ import { TokenTile, TokenTileEntry, TokenTileWithSwitchEntry } from "token-tile.
 import { TokenList, TokenListWithSwitch } from "token-list.slint";
 import { TokenSender } from "token-sender.slint";
 import { TransactionFee } from "transaction-fee.slint";
+import { WaitTransactionConfirmed } from "wait-transaction-confirmed.slint";
 
 export {
+    LoadingStatus,
     Toast,
     TabBtn,
     IconBtn,
@@ -114,5 +117,6 @@ export {
     TokenList,
     TokenListWithSwitch,
     TokenSender,
-    TransactionFee
+    TransactionFee,
+    WaitTransactionConfirmed
 }

@@ -36,7 +36,7 @@ macro_rules! store_history_entries {
 
 async fn add_mock_entries_to_db(count: u32) -> Result<()> {
     let row = db::entry::row_counts(HISTORY_TABLE).await.unwrap_or(0);
-    let count = u32::max(0, count - row as u32);
+    let count = i32::max(0, count as i32 - row as i32) as u32;
 
     for index in 0..count {
         let entry = HistoryEntry {
@@ -215,9 +215,7 @@ pub fn init(ui: &AppWindow) {
         .on_switch_history_network(move |network| {
             let ui = ui_handle.unwrap();
             match NetworkType::from_str(&network) {
-                Ok(ty) => {
-                    init_history(&ui, ty);
-                }
+                Ok(ty) => init_history(&ui, ty),
                 Err(e) => message_warn!(ui, format!("{}. {e:?}", tr("刷新失败"))),
             }
         });

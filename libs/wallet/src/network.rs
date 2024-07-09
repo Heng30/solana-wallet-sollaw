@@ -25,9 +25,9 @@ impl FromStr for NetworkType {
 impl ToString for NetworkType {
     fn to_string(&self) -> String {
         String::from(match self {
-            NetworkType::Main => "Main",
-            NetworkType::Test => "Test",
-            NetworkType::Dev => "Dev",
+            NetworkType::Main => "main",
+            NetworkType::Test => "test",
+            NetworkType::Dev => "dev",
         })
     }
 }

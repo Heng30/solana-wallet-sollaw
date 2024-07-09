@@ -8,23 +8,19 @@ import { SettingDetail, SettingDetailInner, SettingDetailInnerVbox, SettingDetai
 import { Loading } from "loading.slint";
 import { LoadingStatus } from "def.slint";
 
-export component TransactionFee inherits SettingDetail {
+export component WaitTransactionConfirmed inherits SettingDetail {
     in property network <=> network-input.text;
     in property send-token <=> send-token-input.text;
-    in property send-address <=> send-address-input.text;
-    in property recipient-address <=> recipient-address-input.text;
     in property send-amount <=> amount-input.text;
-    in property <string> fee;
-
+    in property signature <=> signature-input.text;
     in property <LoadingStatus> loading-status;
 
-    callback cancel();
-    callback confirm();
+    callback open-signature <=> signature-input.clicked;
 
-    title: Logic.tr(Store.is-cn, "交易信息");
+    title: Logic.tr(Store.is-cn, "交易记录");
 
     if loading-status == LoadingStatus.Loading: Loading {
-        loading-text: Logic.tr(Store.is-cn, "正在估计交易费用...");
+        loading-text: Logic.tr(Store.is-cn, "等待交易确认...");
         colorize: Theme.secondary-brand-color;
         icon-size: Theme.icon-size * 2;
     }
@@ -58,32 +54,6 @@ export component TransactionFee inherits SettingDetail {
 
         SettingDetailInnerVbox {
             SettingDetailLabel {
-                text: Logic.tr(Store.is-cn, "发送地址");
-            }
-
-            send-address-input := LineInput {
-                width: root.width - Theme.spacing * 4;
-                text: "0xf1199999751b1a3A74590adBf95401D19AB30014";
-                enabled: false;
-                is-show-icon: false;
-            }
-        }
-
-        SettingDetailInnerVbox {
-            SettingDetailLabel {
-                text: Logic.tr(Store.is-cn, "接收地址");
-            }
-
-            recipient-address-input := LineInput {
-                width: root.width - Theme.spacing * 4;
-                text: "GEScvfEF1Xt2oyrnJij5V5DYSmPjuUt45DfUs3VFrsED";
-                enabled: false;
-                is-show-icon: false;
-            }
-        }
-
-        SettingDetailInnerVbox {
-            SettingDetailLabel {
                 text: Logic.tr(Store.is-cn, "发送数量");
             }
 
@@ -96,16 +66,15 @@ export component TransactionFee inherits SettingDetail {
             }
         }
 
-        if loading-status == LoadingStatus.Success: SettingDetailInnerVbox {
+        SettingDetailInnerVbox {
             SettingDetailLabel {
-                text: Logic.tr(Store.is-cn, "交易费用");
+                text: Logic.tr(Store.is-cn, "交易记录");
             }
 
-            LineInput {
+            signature-input := LineInput {
                 width: root.width - Theme.spacing * 4;
-                text: root.fee;
-                is-show-icon: false;
                 enabled: false;
+                icon: Icons.browser-access;
             }
         }
 
@@ -114,16 +83,16 @@ export component TransactionFee inherits SettingDetail {
 
             if loading-status == LoadingStatus.Loading: CancelBtn {
                 border-radius: Theme.border-radius;
-                text: Logic.tr(Store.is-cn, "取消");
+                text: Logic.tr(Store.is-cn, "关闭");
                 clicked => {
-                    root.cancel();
+                    root.back();
                 }
             }
 
             if loading-status == LoadingStatus.Fail: CancelBtn {
                 border-radius: Theme.border-radius;
                 bg-color: Theme.warning-color;
-                text: Logic.tr(Store.is-cn, "估计交易费用失败");
+                text: Logic.tr(Store.is-cn, "交易失败");
                 icon: Icons.warning;
                 clicked => {
                     root.back();
@@ -132,9 +101,9 @@ export component TransactionFee inherits SettingDetail {
 
             if loading-status == LoadingStatus.Success: ConfirmBtn {
                 border-radius: Theme.border-radius;
-                text: Logic.tr(Store.is-cn, "确认");
+                text: Logic.tr(Store.is-cn, "交易成功");
                 clicked => {
-                    root.confirm();
+                    root.back();
                 }
             }
         }

@@ -35,7 +35,7 @@ macro_rules! store_accounts {
     };
 }
 
-async fn get_secrect_info() -> Result<SecretInfo> {
+pub async fn get_secrect_info() -> Result<SecretInfo> {
     let cm = db::entry::select(ACCOUNTS_TABLE, SECRET_UUID)
         .await
         .with_context(|| "Get SecretInfo failed")?;
@@ -222,7 +222,7 @@ fn init_accounts_in_event_loop(
     }
 }
 
-fn get_keypair(password: &str, mnemonic: &str, derive_index: i32) -> Result<Keypair> {
+pub fn get_keypair(password: &str, mnemonic: &str, derive_index: i32) -> Result<Keypair> {
     let mnemonic = crypto::decrypt(password, mnemonic)
         .with_context(|| "Decrypt mnemonic with password failed")?;
     let mnemonic = std::str::from_utf8(&mnemonic).with_context(|| "Mnemonic is not valid utf8")?;

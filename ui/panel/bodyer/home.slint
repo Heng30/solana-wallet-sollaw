@@ -1,7 +1,7 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Store, HomeIndex, SendTokenProps } from "../../store.slint";
 import { Logic } from "../../logic.slint";
-import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, Loading, NoDataImg, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, PasswordSetting, TokenListWithSwitch, TokenSender, IconsDialogSetting, AddressBook, TransactionFee } from "../../base/widgets.slint";
+import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Link, SettingDetail, SettingDetailInner, Loading, NoDataImg, TokenTile, TokenTileEntry, TokenTileWithSwitchEntry, TokenList, PasswordSetting, TokenListWithSwitch, TokenSender, IconsDialogSetting, AddressBook, TransactionFee, WaitTransactionConfirmed, LoadingStatus } from "../../base/widgets.slint";
 import { TestModeBanner } from "test-mode-banner.slint";
 
 struct SenderSetting {
@@ -10,6 +10,10 @@ struct SenderSetting {
     transaction-fee: string,
     send-amount: string,
     password: string,
+    signature: string,
+
+    transaction-fee-loading-status: LoadingStatus,
+    waiting-transaction-confirmed-loading-status: LoadingStatus,
 }
 
 export global TokensSetting {
@@ -57,6 +61,18 @@ export global TokensSetting {
     public function clear-password() {
         sender.password = "";
     }
+
+    public function set-signature(sig: string) {
+        sender.signature = sig;
+    }
+
+    public function transaction-fee-loading-status(status: LoadingStatus) {
+        sender.transaction-fee-loading-status = status;
+    }
+
+    public function waiting-transaction-confirmed-loading-status(status: LoadingStatus) {
+        sender.waiting-transaction-confirmed-loading-status = status;
+    }
 }
 
 component TopHead inherits Head {
@@ -94,8 +110,10 @@ component ManagementBtn inherits VerticalLayout {
 
 component Management inherits SettingDetail {
     title: Logic.tr(Store.is-cn, "管理代币");
+
     TokenListWithSwitch {
         entries: TokensSetting.management-entries;
+        is-loading: TokensSetting.management-entries-is-loading;
 
         clicked(entry) => {
             Logic.open-token-detail(Logic.get-current-network(), entry.mint-address);
@@ -157,19 +175,9 @@ export component Home inherits Rectangle {
         }
     }
 
-    if Store.current-home-index == HomeIndex.Management: Rectangle {
-        if TokensSetting.management-entries-is-loading: Loading {
-            loading-text: Logic.tr(Store.is-cn, "正在刷新...");
-            colorize: Theme.secondary-brand-color;
-            icon-size: parent.width * 0.2;
-        }
-
-        if TokensSetting.management-entries.length == 0 && !TokensSetting.management-entries-is-loading: NoDataImg { }
-
-        if TokensSetting.management-entries.length > 0 && !TokensSetting.management-entries-is-loading: Management {
-            back => {
-                Store.current-home-index = HomeIndex.Home;
-            }
+    if Store.current-home-index == HomeIndex.Management: Management {
+        back => {
+            Store.current-home-index = HomeIndex.Home;
         }
     }
 
@@ -211,6 +219,7 @@ export component Home inherits Rectangle {
             TokensSetting.sender.send-amount = self.send-amount;
 
             TokensSetting.sender.props = {
+                derive_index: Store.current-account.derive-index,
                 network: self.network,
                 send-address: self.send-address,
                 recipient-address: self.recipient-address,
@@ -219,7 +228,7 @@ export component Home inherits Rectangle {
                 amount: self.send-amount,
             };
 
-            PasswordSetting.set(true, "send-token", "");
+            PasswordSetting.set(true, "evaluate-transaction-fee", "");
         }
     }
 
@@ -242,6 +251,8 @@ export component Home inherits Rectangle {
         send-amount: TokensSetting.sender.send-amount;
         fee: TokensSetting.sender.transaction-fee;
 
+        loading-status: TokensSetting.sender.transaction-fee-loading-status;
+
         back => {
             Store.current-home-index = HomeIndex.Send;
         }
@@ -252,6 +263,24 @@ export component Home inherits Rectangle {
 
         confirm => {
             Logic.send-token(TokensSetting.sender.password, TokensSetting.sender.props);
+            TokensSetting.clear-password();
+        }
+    }
+
+    if Store.current-home-index == HomeIndex.WaitTransactionConfirmed: WaitTransactionConfirmed {
+        network: Logic.get-current-network();
+        send-token: root.selected-entry.symbol;
+        send-amount: TokensSetting.sender.send-amount;
+        signature: TokensSetting.sender.signature;
+
+        loading-status: TokensSetting.sender.waiting-transaction-confirmed-loading-status;
+
+        back => {
+            Store.current-home-index = HomeIndex.Home;
+        }
+
+        open-signature => {
+            Logic.open-tx-detail(self.network, self.signature);
         }
     }
 }

@@ -244,6 +244,21 @@ pub fn tr(text: &str) -> String {
     items.insert("请求空投成功", "Request airdrop success");
     items.insert("请求空投失败", "Request airdrop failed");
     items.insert("请耐心等待...", "It may takes a long time. Please wait...");
+    items.insert("估计交易费用失败", "Evaluating transaction fee failed");
+    items.insert("正在估计交易费用...", "Evaluating gas fee...");
+    items.insert("交易记录", "Transaction history");
+    items.insert("区块网络", "Blockchain network");
+    items.insert("发送数量", "Send amount");
+    items.insert("交易记录", "Transaction history");
+    items.insert("关闭", "Close");
+    items.insert("交易失败", "Transaction failed");
+    items.insert("等待交易确认...", "Waiting transaction confirmed...");
+    items.insert("交易信息", "Transaction detail");
+    items.insert("发送地址", "Send address");
+    items.insert("接收地址", "Recipient address");
+    items.insert("交易费用", "Transaction fee");
+    items.insert("交易已经确认", "Transaction has been confirmed");
+    items.insert("交易成功", "Transaction success");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",

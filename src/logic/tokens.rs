@@ -2,23 +2,25 @@ use super::tr::tr;
 use crate::{
     db::{
         self,
-        def::{TokenTileEntry, TOKENS_TABLE},
+        def::{HistoryEntry, TokenTileEntry, TOKENS_TABLE},
     },
     logic::message::{async_message_info, async_message_warn},
-    message_info, message_success,
+    message_info, message_success, message_warn,
     slint_generatedAppWindow::{
-        AppWindow, HomeIndex, Logic, SendTokenProps, Store, TokenTileEntry as UITokenTileEntry,
-        TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry, TokensSetting, Util,
+        AppWindow, HomeIndex, LoadingStatus, Logic, SendTokenProps, Store,
+        TokenTileEntry as UITokenTileEntry, TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry,
+        TokensSetting, TransactionTileStatus, Util,
     },
 };
-use anyhow::Result;
+use anyhow::{bail, Result};
+use cutil::time::local_now;
 use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
 use std::str::FromStr;
 use uuid::Uuid;
 use wallet::{
     network::{NetworkType, RpcUrlType},
-    prelude::{lamports_to_sol, sol_to_lamports, Pubkey, LAMPORTS_PER_SOL},
-    transaction::{self, DEFAULT_TIMEOUT_SECS, DEFAULT_TRY_COUNTS},
+    prelude::*,
+    transaction::{self, SendLamportsProps, DEFAULT_TIMEOUT_SECS, DEFAULT_TRY_COUNTS},
 };
 
 #[macro_export]
@@ -237,35 +239,13 @@ pub fn init(ui: &AppWindow) {
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
         .on_evaluate_transaction_fee(move |password, props| {
-            let ui_handle = ui_handle.clone();
-            tokio::spawn(async move {
-                match super::accounts::is_valid_password_in_secret_info(&password).await {
-                    Err(e) => async_message_warn(ui_handle.clone(), format!("{e:?}")),
-                    _ => {
-                        if let Err(e) = if props.symbol == "SOL" {
-                            _evaluate_sol_transaction_fee(ui_handle.clone(), password, props).await
-                        } else {
-                            _evaluate_spl_token_transaction_fee(ui_handle.clone(), password, props)
-                                .await
-                        } {
-                            async_message_warn(ui_handle.clone(), format!("{e:?}"));
-                        }
-                    }
-                }
-            });
+            _evaluate_transaction_fee(ui_handle.clone(), password, props);
         });
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>().on_send_token(move |password, props| {
         let ui_handle = ui_handle.clone();
-        tokio::spawn(async move {
-            match super::accounts::is_valid_password_in_secret_info(&password).await {
-                Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
-                _ => {
-                    // TODO
-                }
-            }
-        });
+        _send_token(ui_handle.clone(), password, props);
     });
 }
 
@@ -543,8 +523,6 @@ async fn _evaluate_sol_transaction_fee(
         sender.transaction_fee = slint::format!("{fee} SOL");
         sender.password = password;
         ui.global::<TokensSetting>().set_sender(sender);
-        ui.global::<Store>()
-            .set_current_home_index(HomeIndex::TransactionFee);
     });
 
     Ok(())
@@ -559,6 +537,209 @@ async fn _evaluate_spl_token_transaction_fee(
     let _recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let _amount = props.amount.parse::<f64>()?;
 
-    Ok(())
     // TODO
+    Ok(())
+}
+
+async fn _send_sol(
+    ui: Weak<AppWindow>,
+    password: SharedString,
+    props: SendTokenProps,
+    history_uuid: String,
+) -> Result<()> {
+    let rpc_url_ty =
+        RpcUrlType::from_str(&props.network).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let sender_pubkey = Pubkey::from_str(&props.send_address)?;
+    let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
+    let amount = props.amount.parse::<f64>()?;
+
+    let info = super::accounts::get_secrect_info().await?;
+    let sender_keypair =
+        super::accounts::get_keypair(&password, &info.mnemonic, props.derive_index)?;
+
+    if sender_pubkey.to_string() != sender_keypair.pubkey().to_string() {
+        bail!(
+            "can not match sender pubkey: [{}] with sender keypair",
+            sender_pubkey.to_string()
+        );
+    }
+
+    let send_props = SendLamportsProps {
+        rpc_url_ty: rpc_url_ty.clone(),
+        sender_keypair,
+        recipient_pubkey,
+        lamports: sol_to_lamports(amount),
+        timeout: None,
+        is_wait_confirmed: false,
+    };
+    let signature = transaction::send_lamports(send_props).await?;
+
+    let hash = signature.to_string();
+    let history = HistoryEntry {
+        uuid: history_uuid,
+        network: props.network.clone().into(),
+        hash,
+        balance: props.amount.clone().into(),
+        time: local_now("%y-%m-%d %H:%M:%S"),
+        status: TransactionTileStatus::Pending,
+    };
+
+    let ui_handle = ui.clone();
+    _ = slint::invoke_from_event_loop(move || {
+        let ui = ui_handle.unwrap();
+        ui.global::<TokensSetting>()
+            .invoke_set_signature(history.hash.clone().into());
+        ui.global::<Logic>().invoke_add_history(history.into());
+    });
+
+    transaction::wait_signature_confirmed(rpc_url_ty, &signature, DEFAULT_TRY_COUNTS, None).await?;
+    Ok(())
+}
+
+async fn _send_spl_token(
+    ui: Weak<AppWindow>,
+    password: SharedString,
+    props: SendTokenProps,
+    history_uuid: String,
+) -> Result<()> {
+    let _sender_pubkey = Pubkey::from_str(&props.send_address)?;
+    let _recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
+    let _amount = props.amount.parse::<f64>()?;
+
+    Ok(())
+}
+
+fn _evaluate_transaction_fee(
+    ui_handle: Weak<AppWindow>,
+    password: SharedString,
+    props: SendTokenProps,
+) {
+    tokio::spawn(async move {
+        match super::accounts::is_valid_password_in_secret_info(&password).await {
+            Err(e) => {
+                let ui_handle = ui_handle.clone();
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui_handle.unwrap();
+                    message_warn!(ui, format!("{e:?}"));
+                });
+            }
+            _ => {
+                let ui = ui_handle.clone();
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui.unwrap();
+                    ui.global::<TokensSetting>()
+                        .invoke_transaction_fee_loading_status(LoadingStatus::Loading);
+                    ui.global::<Store>()
+                        .set_current_home_index(HomeIndex::TransactionFee);
+                });
+
+                match if props.symbol == "SOL" {
+                    _evaluate_sol_transaction_fee(ui_handle.clone(), password, props).await
+                } else {
+                    _evaluate_spl_token_transaction_fee(ui_handle.clone(), password, props).await
+                } {
+                    Err(e) => {
+                        let ui_handle = ui_handle.clone();
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+                            ui.global::<TokensSetting>()
+                                .invoke_transaction_fee_loading_status(LoadingStatus::Fail);
+
+                            message_warn!(ui, format!("{e:?}"));
+                        });
+                    }
+                    _ => {
+                        let ui_handle = ui_handle.clone();
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+                            ui.global::<TokensSetting>()
+                                .invoke_transaction_fee_loading_status(LoadingStatus::Success);
+                        });
+                    }
+                }
+            }
+        }
+    });
+}
+
+fn _send_token(ui_handle: Weak<AppWindow>, password: SharedString, props: SendTokenProps) {
+    tokio::spawn(async move {
+        match super::accounts::is_valid_password_in_secret_info(&password).await {
+            Err(e) => {
+                let ui_handle = ui_handle.clone();
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui_handle.unwrap();
+                    message_warn!(ui, format!("{e:?}"));
+                });
+            }
+            _ => {
+                let ui = ui_handle.clone();
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui.unwrap();
+                    ui.global::<TokensSetting>()
+                        .invoke_waiting_transaction_confirmed_loading_status(
+                            LoadingStatus::Loading,
+                        );
+                    ui.global::<Store>()
+                        .set_current_home_index(HomeIndex::WaitTransactionConfirmed);
+                });
+
+                let history_uuid = Uuid::new_v4().to_string();
+                match if props.symbol == "SOL" {
+                    _send_sol(
+                        ui_handle.clone(),
+                        password,
+                        props.clone(),
+                        history_uuid.clone(),
+                    )
+                    .await
+                } else {
+                    _send_spl_token(
+                        ui_handle.clone(),
+                        password,
+                        props.clone(),
+                        history_uuid.clone(),
+                    )
+                    .await
+                } {
+                    Err(e) => {
+                        let ui_handle = ui_handle.clone();
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+                            ui.global::<TokensSetting>()
+                                .invoke_waiting_transaction_confirmed_loading_status(
+                                    LoadingStatus::Fail,
+                                );
+
+                            ui.global::<Logic>().invoke_update_history_status(
+                                history_uuid.into(),
+                                TransactionTileStatus::Error,
+                                true,
+                            );
+
+                            message_warn!(ui, format!("{}. {e:?}", tr("交易失败")));
+                        });
+                    }
+                    _ => {
+                        let ui_handle = ui_handle.clone();
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+                            ui.global::<TokensSetting>()
+                                .invoke_waiting_transaction_confirmed_loading_status(
+                                    LoadingStatus::Success,
+                                );
+
+                            ui.global::<Logic>().invoke_update_history_status(
+                                history_uuid.into(),
+                                TransactionTileStatus::Success,
+                                true,
+                            );
+
+                            message_success!(ui, tr("交易已经确认"));
+                        });
+                    }
+                }
+            }
+        }
+    });
 }
