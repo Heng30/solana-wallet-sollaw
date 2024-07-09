@@ -15,7 +15,12 @@ solana-client = "=2.0.1"
 solana-zk-token-sdk = "=2.0.1"
 solana-account-decoder = "=2.0.1"
 solana-transaction-status = "=2.0.1"
+pyth-sdk-solana = { version = "=0.10.1", optional = true }
 
 [dev-dependencies]
-rand = "=0.8.5"
-tokio = { version = "=1.38.0", features = ["full"] }
+rand = "^0.8"
+tokio = { version = "^1", features = ["full"] }
+
+[features]
+default = []
+pyth = ["dep:pyth-sdk-solana"]

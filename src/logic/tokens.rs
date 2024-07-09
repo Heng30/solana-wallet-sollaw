@@ -188,6 +188,15 @@ pub fn init(ui: &AppWindow) {
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
+        .on_update_token_info(move |network, uuid| {
+            let ui = ui_handle.unwrap();
+            if let Some((_, entry)) = get_entry(&ui, &uuid) {
+                _update_token_info(ui.as_weak(), network, entry);
+            }
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>()
         .on_update_token_name(move |uuid, name| {
             if name.is_empty() {
                 return;
@@ -301,7 +310,7 @@ fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UIT
                     .await
             {
                 entry.balance = wallet::util::lamports_to_sol_str(lamports).into();
-                entry.balance_usdt = "TODO".into();
+                entry.balance_usdt = "$0.00".into();
                 _update_token_in_event_loop(ui, entry.clone());
                 _update_token_db(entry);
             }
@@ -733,6 +742,16 @@ fn _send_token(ui_handle: Weak<AppWindow>, password: SharedString, props: SendTo
                                 history_uuid.into(),
                                 TransactionTileStatus::Success,
                                 true,
+                            );
+
+                            ui.global::<Logic>()
+                                .invoke_update_token_info(props.network.clone(), props.token_uuid);
+
+                            let account = ui.global::<Store>().get_current_account();
+                            ui.global::<Logic>().invoke_update_account_balance(
+                                account.uuid,
+                                props.network,
+                                account.pubkey,
                             );
 
                             message_success!(ui, tr("交易已经确认"));

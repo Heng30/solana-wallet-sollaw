@@ -8,7 +8,7 @@ import { TestModeBanner } from "test-mode-banner.slint";
 
 component TopHead inherits Head {
     icon: Icons.recipient;
-    title: Logic.tr(Store.is-cn, "接收");
+    title: Logic.tr(Store.is-cn, "接收代币");
     hbox-alignment: LayoutAlignment.start;
 }
 
@@ -20,7 +20,7 @@ component Body inherits SettingDetailInner {
         alignment: LayoutAlignment.center;
 
         Label {
-            font-size: Theme.title3-font-size;
+            font-size: Theme.title2-font-size;
             font-weight: 0.5;
             text: Store.current-account.name;
         }

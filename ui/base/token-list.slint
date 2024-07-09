@@ -54,7 +54,9 @@ export component TokenListWithSwitch inherits SettingDetail {
         icon-size: Theme.icon-size * 2;
     }
 
-    if !is-loading && entries.length == 0: NoDataImg {
-        text: Logic.tr(Store.is-cn, "没有数据");
+    if !is-loading && entries.length == 0: Rectangle {
+        NoDataImg {
+            text: Logic.tr(Store.is-cn, "没有数据");
+        }
     }
 }

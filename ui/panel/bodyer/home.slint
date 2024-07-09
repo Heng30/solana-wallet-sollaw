@@ -5,8 +5,9 @@ import { AccountBalance, ElevatedBtn, Head, IconBtn, TextBtn, Banner, Label, Lin
 import { TestModeBanner } from "test-mode-banner.slint";
 
 struct SenderSetting {
-    recipient-address: string,
     props: SendTokenProps,
+
+    recipient-address: string,
     transaction-fee: string,
     send-amount: string,
     password: string,
@@ -18,7 +19,12 @@ struct SenderSetting {
 
 export global TokensSetting {
     in-out property <[TokenTileEntry]> entries: [
-        { uuid: "uuid-1", symbol: "SOL", balance: "100.34", balance-usdt: "$1221.34" },
+        {
+            uuid: "uuid-1",
+            symbol: "SOL",
+            balance: "100.34",
+            balance-usdt: "$1221.34",
+        },
         {
             uuid: "uuid-2",
             symbol: "USDT",
@@ -48,11 +54,21 @@ export global TokensSetting {
     in-out property <bool> management-entries-is-loading;
     in-out property <[TokenTileWithSwitchEntry]> management-entries:[
         {
-            entry: { uuid: "uuid-1", symbol: "SOL", balance: "100.34", balance-usdt: "$1221.34" },
+            entry: {
+                uuid: "uuid-1",
+                symbol: "SOL",
+                balance: "100.34",
+                balance-usdt: "$1221.34",
+            },
             checked: true,
         },
         {
-            entry: { uuid: "uuid-1", symbol: "USDT", balance: "10.34", balance-usdt: "$12.34" },
+            entry: {
+                uuid: "uuid-1",
+                symbol: "USDT",
+                balance: "10.34",
+                balance-usdt: "$12.34",
+            },
             checked: true,
         }
     ];
@@ -214,6 +230,7 @@ export component Home inherits Rectangle {
             TokensSetting.sender.send-amount = self.send-amount;
 
             TokensSetting.sender.props = {
+                token-uuid: root.selected-entry.uuid,
                 derive_index: Store.current-account.derive-index,
                 network: self.network,
                 send-address: self.send-address,

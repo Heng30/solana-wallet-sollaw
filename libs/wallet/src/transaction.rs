@@ -11,6 +11,7 @@ use solana_client::{
     rpc_response::Response,
 };
 use solana_sdk::{
+    account::Account,
     commitment_config::CommitmentConfig,
     instruction::Instruction,
     message::Message,
@@ -24,7 +25,7 @@ use solana_transaction_status::UiTransactionEncoding;
 use spl_token::state::Mint;
 use std::{str::FromStr, string::ToString, time::Duration};
 
-pub const DEFAULT_TIMEOUT_SECS: u64 = 10;
+pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 pub const DEFAULT_TRY_COUNTS: u64 = 500;
 
 #[derive(Default, Debug, Clone)]
@@ -32,7 +33,7 @@ pub struct AccountToken {
     pub token_account_address: Pubkey,
     pub mint_address: Pubkey,
     amount: u64,
-    decimals: u8,
+    pub decimals: u8,
 }
 
 impl AccountToken {
@@ -47,6 +48,19 @@ pub struct SendLamportsProps {
     pub sender_keypair: Keypair,
     pub recipient_pubkey: Pubkey,
     pub lamports: u64,
+    pub timeout: Option<u64>,
+    pub is_wait_confirmed: bool,
+}
+
+#[derive(Debug)]
+pub struct SendSplTokenProps {
+    pub rpc_url_ty: RpcUrlType,
+    pub token_program_id: Pubkey,
+    pub sender_keypair: Keypair,
+    pub recipient_pubkey: Pubkey,
+    pub mint_pubkey: Pubkey,
+    pub amount: u64,
+    pub decimals: u8,
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
 }
@@ -130,6 +144,52 @@ pub async fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
     .with_context(|| "Send and confirm transation failed")
 }
 
+pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
+    let connection = match props.timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
+    };
+
+    let token_info = fetch_token_info(
+        props.rpc_url_ty,
+        &props.mint_pubkey.to_string(),
+        props.timeout,
+    )
+    .await?;
+    let token_info = parse_token_info_data(token_info.data.as_slice())?;
+
+    if token_info.decimals != props.decimals {
+        bail!("props decimal: {} != {}", props.decimals, token_info.decimals);
+    }
+
+    let instruction = spl_token::instruction::transfer_checked(
+        &props.token_program_id,
+        &props.sender_keypair.pubkey(),
+        &props.mint_pubkey,
+        &props.recipient_pubkey,
+        &props.sender_keypair.pubkey(),
+        &[&props.sender_keypair.pubkey()],
+        props.amount,
+        props.decimals,
+    )?;
+
+    let recent_blockhash = connection
+        .get_latest_blockhash()
+        .await
+        .with_context(|| "Get latest blockhash failed")?;
+
+    let message = Message::new(&[instruction], Some(&props.sender_keypair.pubkey()));
+    let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
+
+    match props.is_wait_confirmed {
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
+    }
+    .with_context(|| "Send and confirm transation failed")
+}
+
 // return the balance of lamports
 pub async fn get_balance(
     rpc_url_ty: RpcUrlType,
@@ -147,6 +207,29 @@ pub async fn get_balance(
         .get_balance(&pubkey)
         .await
         .with_context(|| format!("Get {pubkey} balance failed."))
+}
+
+pub async fn fetch_token_info(
+    rpc_url_ty: RpcUrlType,
+    mint_address: &str,
+    timeout: Option<u64>,
+) -> Result<Account> {
+    let connection = match timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
+    };
+
+    let mint_address_pubkey = Pubkey::from_str(mint_address)?;
+    connection
+        .get_account(&mint_address_pubkey)
+        .await
+        .with_context(|| format!("Get account {mint_address_pubkey} failed"))
+}
+
+pub fn parse_token_info_data(data: &[u8]) -> Result<Mint> {
+    Mint::unpack_from_slice(data).with_context(|| "Mint unpack from slice failed")
 }
 
 pub async fn fetch_token_account(
@@ -232,7 +315,13 @@ pub async fn fetch_account_tokens(
                     item.token_account_address
                 )
             })?;
-        let mint = Mint::unpack_from_slice(mint_account_data.as_slice()).unwrap();
+        let mint = Mint::unpack_from_slice(mint_account_data.as_slice()).with_context(|| {
+            format!(
+                "Mint unpack from slice failed for {:?}",
+                item.token_account_address
+            )
+        })?;
+
         item.decimals = mint.decimals;
 
         items.push(item);
@@ -614,6 +703,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_send_token() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
+        // TODO
+        // let props = SendLamportsProps {
+        //     rpc_url_ty: RpcUrlType::Test,
+        //     sender_keypair,
+        //     recipient_pubkey,
+        //     lamports: 100,
+        //     timeout: Some(DEFAULT_TIMEOUT_SECS),
+        //     is_wait_confirmed: true,
+        // };
+
+        // let signature = send_lamports(props).await?;
+        // println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_get_balance() -> Result<()> {
         let lamports = get_balance(RpcUrlType::Test, SENDER_WALLET_ADDRESS, None).await?;
         println!("Balance: {lamports} lamports");
@@ -655,6 +764,18 @@ mod tests {
     #[tokio::test]
     async fn test_fetch_token_account() -> Result<()> {
         let ret = fetch_token_account(RpcUrlType::Test, TOKEN_ACCOUNT_ADDRESS, None).await?;
+        println!("{:?}", ret);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fetch_token_info() -> Result<()> {
+        let ret =
+            fetch_token_info(RpcUrlType::Test, USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS, None).await?;
+        println!("{:?}", ret);
+
+        let ret = parse_token_info_data(ret.data.as_slice())?;
         println!("{:?}", ret);
 
         Ok(())

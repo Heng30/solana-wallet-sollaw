@@ -66,6 +66,7 @@ export struct SettingDeveloperMode {
 }
 
 export struct SendTokenProps {
+    token-uuid: string,
     derive_index: int,
     network: string,
     send-address: string,
@@ -115,13 +116,15 @@ export global Store {
     };
 
     in-out property <[string]> helps: is-cn ? [
-        "点击[订阅]选项卡右上角的列表图标打开RSS列表。",
-        "向右滑动[订阅]和[收藏夹]的条目，可收藏或删除条目。",
-        "设置后，点击左上角的返回按钮。对设置进行保存。",
+        "配置文件保存目录: ~/.config/sollet",
+        "数据库保存目录: ~/.local/share/sollet",
+        "清空配置目录和数据目录，可以重置整个程序",
+        "程序不会保存明文密码，而是通过Hash算法保存密码的Hash值"
     ] : [
-        "Click the top-right list icon of the [RSS] selected card to open the RSS list.",
-        "Swipe right on the [RSS] and [Collection] items to collect or delete items.",
-        "After setting, click the back button in the upper left corner. Save the settings."
+        "Config directory: ~/.config/sollet",
+        "Data directory: ~/.local/share/sollet",
+        "Remove all files in config directory and data directory which can reset the application",
+        "It don't save your password in plaintext format. However, It will calculate the Hash value of the password and saves it int database"
     ];
 
     public function switch-tab(tab-index: TabIndex) {

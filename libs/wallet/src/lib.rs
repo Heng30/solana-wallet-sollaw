@@ -6,6 +6,10 @@ pub mod seed;
 pub mod transaction;
 pub mod util;
 
+
+#[cfg(feature = "pyth")]
+pub mod pyth;
+
 pub mod prelude {
     pub use bip39::MnemonicType;
     pub use solana_sdk::{

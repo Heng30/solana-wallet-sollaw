@@ -91,7 +91,7 @@ pub async fn desktop_main() {
 
     ui_before().await;
     let ui = AppWindow::new().unwrap();
-    ui.global::<Theme>().set_default_height(800.0);
+    // ui.global::<Theme>().set_default_height(800.0);
     ui_after(&ui);
 
     ui.run().unwrap();

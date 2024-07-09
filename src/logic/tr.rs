@@ -227,6 +227,7 @@ pub fn tr(text: &str) -> String {
     items.insert("注意: 当前处于", "Warning: Current Network is ");
     items.insert("主页", "Home");
     items.insert("接收", "Recipient");
+    items.insert("接收代币", "Recipient");
     items.insert("历史", "History");
     items.insert("历史记录", "History");
     items.insert("开发者模式", "Developer Mode");

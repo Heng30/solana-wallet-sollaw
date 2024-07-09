@@ -39,6 +39,9 @@ export global Logic {
     // (uuid, icon-index) -> void
     callback update-account-avatar-index(string, int);
 
+    // (uuid, network, address) -> void
+    callback update-account-balance(string, string, string);
+
     // (password, uuid) -> void
     callback remove-account(string, string);
 
@@ -83,9 +86,6 @@ export global Logic {
     // (network) -> void
     callback switch-history-network(string);
 
-    // (uuid, network, address) -> void
-    callback update-account-balance(string, string, string);
-
     // (entry) -> void
     callback add-token(TokenTileEntry);
 
@@ -102,6 +102,9 @@ export global Logic {
 
     // (network) -> void
     callback update-tokens-info(string);
+
+    // (network, uuid) -> void
+    callback update-token-info(string, string);
 
     // (uuid, name) -> void
     callback update-token-name(string, string);

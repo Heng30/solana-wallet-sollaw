@@ -393,7 +393,7 @@ component DeveloperMode inherits SettingDetail {
                 text: Logic.tr(Store.is-cn, "请求空投") + " 0.1SOL";
 
                 clicked => {
-                    Logic.request-airdrop-sol(Store.current-account.uuid, Logic.get-current-network(), Store.current-account.pubkey);
+                    Logic.request-airdrop-sol(Store.current-account.uuid, root.network, Store.current-account.pubkey);
                 }
             }
         }
