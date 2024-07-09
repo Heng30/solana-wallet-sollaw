@@ -14,7 +14,9 @@ export component TransactionFee inherits SettingDetail {
     in property send-address <=> send-address-input.text;
     in property recipient-address <=> recipient-address-input.text;
     in property send-amount <=> amount-input.text;
+    in property <string> send-amount-usdt;
     in property <string> fee;
+    in property <string> fee-usdt;
 
     in property <LoadingStatus> loading-status;
 
@@ -94,6 +96,11 @@ export component TransactionFee inherits SettingDetail {
                 is-show-icon: false;
                 enabled: false;
             }
+
+            if send-amount-usdt != "": Label {
+                text: root.send-amount-usdt;
+                color: Theme.have-read-text-color;
+            }
         }
 
         if loading-status == LoadingStatus.Success: SettingDetailInnerVbox {
@@ -106,6 +113,11 @@ export component TransactionFee inherits SettingDetail {
                 text: root.fee;
                 is-show-icon: false;
                 enabled: false;
+            }
+
+            if fee-usdt != "": Label {
+                text: root.fee-usdt;
+                color: Theme.have-read-text-color;
             }
         }
 

@@ -12,6 +12,7 @@ export component WaitTransactionConfirmed inherits SettingDetail {
     in property network <=> network-input.text;
     in property send-token <=> send-token-input.text;
     in property send-amount <=> amount-input.text;
+    in property <string> send-amount-usdt;
     in property signature <=> signature-input.text;
     in property <LoadingStatus> loading-status;
 
@@ -63,6 +64,11 @@ export component WaitTransactionConfirmed inherits SettingDetail {
                 input-type: InputType.decimal;
                 is-show-icon: false;
                 enabled: false;
+            }
+
+            if send-amount-usdt != "": Label {
+                text: root.send-amount-usdt;
+                color: Theme.have-read-text-color;
             }
         }
 

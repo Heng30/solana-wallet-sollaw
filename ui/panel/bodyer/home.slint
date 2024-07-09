@@ -108,27 +108,6 @@ component ManagementBtn inherits VerticalLayout {
     }
 }
 
-component Management inherits SettingDetail {
-    title: Logic.tr(Store.is-cn, "管理代币");
-
-    TokenListWithSwitch {
-        entries: TokensSetting.management-entries;
-        is-loading: TokensSetting.management-entries-is-loading;
-
-        clicked(entry) => {
-            Logic.open-token-detail(Logic.get-current-network(), entry.mint-address);
-        }
-
-        toggled(checked, entry) => {
-            if (checked) {
-                Logic.add-token(entry);
-            } else {
-                Logic.remove-token(entry.uuid);
-            }
-        }
-    }
-}
-
 component Body inherits Rectangle {
     callback clicked-entry <=> tl.clicked;
 
@@ -175,7 +154,23 @@ export component Home inherits Rectangle {
         }
     }
 
-    if Store.current-home-index == HomeIndex.Management: Management {
+    if Store.current-home-index == HomeIndex.Management: TokenListWithSwitch {
+        title: Logic.tr(Store.is-cn, "管理代币");
+        entries: TokensSetting.management-entries;
+        is-loading: TokensSetting.management-entries-is-loading;
+
+        clicked(entry) => {
+            Logic.open-token-detail(Logic.get-current-network(), entry.mint-address);
+        }
+
+        toggled(checked, entry) => {
+            if (checked) {
+                Logic.add-token(entry);
+            } else {
+                Logic.remove-token(entry.uuid);
+            }
+        }
+
         back => {
             Store.current-home-index = HomeIndex.Home;
         }
