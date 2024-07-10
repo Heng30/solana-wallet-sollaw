@@ -121,8 +121,8 @@ export global Logic {
     // (password, props) -> void
     callback evaluate-transaction-fee(string, SendTokenProps);
 
-    // (password, props) -> void
-    callback send-token(string, SendTokenProps);
+    // (password, props, is-token-account-exist) -> void
+    callback send-token(string, SendTokenProps, bool);
 
     // (network) -> void
     callback open-blockchain-network(string);

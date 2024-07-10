@@ -252,10 +252,10 @@ pub fn init(ui: &AppWindow) {
         });
 
     let ui_handle = ui.as_weak();
-    ui.global::<Logic>().on_send_token(move |password, props| {
-        let ui_handle = ui_handle.clone();
-        _send_token(ui_handle.clone(), password, props);
-    });
+    ui.global::<Logic>()
+        .on_send_token(move |password, props, is_token_account_exist| {
+            _send_token(ui_handle.clone(), password, props, is_token_account_exist);
+        });
 }
 
 fn _add_token(entry: TokenTileEntry) {
@@ -318,20 +318,21 @@ fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UIT
         return;
     }
 
-    if entry.mint_address.is_empty() {
+    if entry.token_account_address.is_empty() {
         return;
     }
 
     tokio::spawn(async move {
         if let Ok(Some(ta)) = transaction::fetch_token_account(
             rpc_url_ty,
-            &entry.mint_address,
+            &entry.token_account_address,
             Some(DEFAULT_TIMEOUT_SECS),
         )
         .await
         {
             entry.balance = ta.token_amount.ui_amount_string.into();
             entry.balance_usdt = "$0.00".into();
+
             _update_token_in_event_loop(ui, entry.clone());
             _update_token_db(entry);
         }
@@ -384,7 +385,10 @@ fn _refresh_tokens_management_entries(
                                     network: current_network.clone(),
                                     symbol: mint_address.clone().into(), // TODO: Get the real token symbol
                                     account_address: account_address.clone(),
-                                    token_account_address: token.token_account_address.to_string().into(),
+                                    token_account_address: token
+                                        .token_account_address
+                                        .to_string()
+                                        .into(),
                                     mint_address: mint_address.clone().into(),
                                     balance: slint::format!("{}", token.amount()),
                                     balance_usdt: "$0.00".into(),
@@ -546,11 +550,87 @@ async fn _evaluate_spl_token_transaction_fee(
     password: SharedString,
     props: SendTokenProps,
 ) -> Result<()> {
-    let _sender_pubkey = Pubkey::from_str(&props.send_address)?;
-    let _recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
-    let _amount = props.amount.parse::<f64>()?;
+    let rpc_url_ty =
+        RpcUrlType::from_str(&props.network).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let sender_pubkey = Pubkey::from_str(&props.send_address)?;
+    let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
+    let mint_pubkey = Pubkey::from_str(&props.mint_address)?;
 
-    // TODO
+    let info = super::accounts::get_secrect_info().await?;
+    let sender_keypair =
+        super::accounts::get_keypair(&password, &info.mnemonic, props.derive_index)?;
+
+    if sender_pubkey.to_string() != sender_keypair.pubkey().to_string() {
+        bail!(
+            "can not match sender pubkey: [{}] with sender keypair",
+            sender_pubkey.to_string()
+        );
+    }
+
+    let sender_token_account_pubkey =
+        transaction::derive_token_account_address(&sender_pubkey, &mint_pubkey);
+    let recipient_token_account_pubkey =
+        transaction::derive_token_account_address(&recipient_pubkey, &mint_pubkey);
+
+    let amount = props.amount.parse::<f64>()?;
+    let amount = (amount * 10_usize.pow(props.spl_token_decimals as u32) as f64) as u64;
+
+    let send_spl_token_props = transaction::SendSplTokenProps {
+        rpc_url_ty: rpc_url_ty.clone(),
+        sender_keypair,
+        sender_token_account_pubkey,
+        recipient_token_account_pubkey,
+        mint_pubkey,
+        amount,
+        decimals: props.spl_token_decimals as u8,
+        timeout: Some(DEFAULT_TIMEOUT_SECS),
+        is_wait_confirmed: true,
+    };
+    let instructions = transaction::send_spl_token_instruction(&send_spl_token_props)?;
+    let fee = transaction::evaluate_transaction_fee(
+        rpc_url_ty.clone(),
+        &instructions,
+        &sender_pubkey,
+        Some(DEFAULT_TIMEOUT_SECS),
+    )
+    .await?;
+
+    let fee = lamports_to_sol(fee);
+    match transaction::fetch_account_token(
+        rpc_url_ty.clone(),
+        &props.recipient_address,
+        &props.mint_address,
+        Some(DEFAULT_TIMEOUT_SECS),
+    )
+    .await?
+    {
+        Some(_) => {
+            _ = slint::invoke_from_event_loop(move || {
+                let ui = ui.unwrap();
+                let mut sender = ui.global::<TokensSetting>().get_sender();
+                sender.transaction_fee = slint::format!("{fee} SOL");
+                sender.password = password;
+                sender.create_token_account_fee = SharedString::new();
+                sender.is_token_account_exist = true;
+                ui.global::<TokensSetting>().set_sender(sender);
+            });
+        }
+        None => {
+            _ = slint::invoke_from_event_loop(move || {
+                let ui = ui.unwrap();
+                let mut sender = ui.global::<TokensSetting>().get_sender();
+                sender.transaction_fee = slint::format!("{fee} SOL");
+                sender.password = password;
+                sender.create_token_account_fee = slint::format!(
+                    "{} SOL",
+                    lamports_to_sol(transaction::DEFAULT_CREATE_TOKEN_ACCOUNT_RENT_LAMPORTS)
+                );
+                sender.is_token_account_exist = false;
+                ui.global::<TokensSetting>().set_sender(sender);
+            });
+        }
+    }
+
     Ok(())
 }
 
@@ -597,9 +677,8 @@ async fn _send_sol(
         status: TransactionTileStatus::Pending,
     };
 
-    let ui_handle = ui.clone();
     _ = slint::invoke_from_event_loop(move || {
-        let ui = ui_handle.unwrap();
+        let ui = ui.unwrap();
         ui.global::<TokensSetting>()
             .invoke_set_signature(history.hash.clone().into());
         ui.global::<Logic>().invoke_add_history(history.into());
@@ -614,10 +693,81 @@ async fn _send_spl_token(
     password: SharedString,
     props: SendTokenProps,
     history_uuid: String,
+    is_token_account_exist: bool,
 ) -> Result<()> {
-    let _sender_pubkey = Pubkey::from_str(&props.send_address)?;
-    let _recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
-    let _amount = props.amount.parse::<f64>()?;
+    let rpc_url_ty =
+        RpcUrlType::from_str(&props.network).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let sender_pubkey = Pubkey::from_str(&props.send_address)?;
+    let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
+    let mint_pubkey = Pubkey::from_str(&props.mint_address)?;
+
+    let info = super::accounts::get_secrect_info().await?;
+    let sender_keypair =
+        super::accounts::get_keypair(&password, &info.mnemonic, props.derive_index)?;
+
+    if sender_pubkey.to_string() != sender_keypair.pubkey().to_string() {
+        bail!(
+            "can not match sender pubkey: [{}] with sender keypair",
+            sender_pubkey.to_string()
+        );
+    }
+
+    let amount = props.amount.parse::<f64>()?;
+    let amount = (amount * 10_usize.pow(props.spl_token_decimals as u32) as f64) as u64;
+
+    let signature = if is_token_account_exist {
+        let sender_token_account_pubkey =
+            transaction::derive_token_account_address(&sender_pubkey, &mint_pubkey);
+        let recipient_token_account_pubkey =
+            transaction::derive_token_account_address(&recipient_pubkey, &mint_pubkey);
+
+        let send_spl_token_props = transaction::SendSplTokenProps {
+            rpc_url_ty: rpc_url_ty.clone(),
+            sender_keypair,
+            sender_token_account_pubkey,
+            recipient_token_account_pubkey,
+            mint_pubkey,
+            amount,
+            decimals: props.spl_token_decimals as u8,
+            timeout: None,
+            is_wait_confirmed: false,
+        };
+
+        transaction::send_spl_token(send_spl_token_props).await?
+    } else {
+        let send_spl_token_props = transaction::SendSplTokenWithCreateProps {
+            rpc_url_ty: rpc_url_ty.clone(),
+            sender_keypair,
+            recipient_pubkey: recipient_pubkey.clone(),
+            mint_pubkey,
+            amount,
+            decimals: props.spl_token_decimals as u8,
+            timeout: None,
+            is_wait_confirmed: false,
+        };
+
+        transaction::send_spl_token_with_create(send_spl_token_props).await?
+    };
+
+    let hash = signature.to_string();
+    let history = HistoryEntry {
+        uuid: history_uuid,
+        network: props.network.clone().into(),
+        hash,
+        balance: props.amount.clone().into(),
+        time: local_now("%y-%m-%d %H:%M:%S"),
+        status: TransactionTileStatus::Pending,
+    };
+
+    _ = slint::invoke_from_event_loop(move || {
+        let ui = ui.unwrap();
+        ui.global::<TokensSetting>()
+            .invoke_set_signature(history.hash.clone().into());
+        ui.global::<Logic>().invoke_add_history(history.into());
+    });
+
+    transaction::wait_signature_confirmed(rpc_url_ty.clone(), &signature, DEFAULT_TRY_COUNTS, None)
+        .await?;
 
     Ok(())
 }
@@ -675,7 +825,12 @@ fn _evaluate_transaction_fee(
     });
 }
 
-fn _send_token(ui_handle: Weak<AppWindow>, password: SharedString, props: SendTokenProps) {
+fn _send_token(
+    ui_handle: Weak<AppWindow>,
+    password: SharedString,
+    props: SendTokenProps,
+    is_token_account_exist: bool,
+) {
     tokio::spawn(async move {
         match super::accounts::is_valid_password_in_secret_info(&password).await {
             Err(e) => {
@@ -712,6 +867,7 @@ fn _send_token(ui_handle: Weak<AppWindow>, password: SharedString, props: SendTo
                         password,
                         props.clone(),
                         history_uuid.clone(),
+                        is_token_account_exist,
                     )
                     .await
                 } {

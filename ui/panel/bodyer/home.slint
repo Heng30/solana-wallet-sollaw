@@ -9,6 +9,8 @@ struct SenderSetting {
 
     recipient-address: string,
     transaction-fee: string,
+    create-token-account-fee: string,
+    is-token-account-exist: bool,
     send-amount: string,
     password: string,
     signature: string,
@@ -238,8 +240,11 @@ export component Home inherits Rectangle {
                 mint_address: root.selected-entry.mint-address,
                 symbol: root.selected-entry.symbol,
                 amount: self.send-amount,
+                spl-token-account-address: root.selected-entry.token-account-address,
+                spl-token-decimals: root.selected-entry.decimals,
             };
 
+            TokensSetting.sender.signature = "";
             PasswordSetting.set(true, "evaluate-transaction-fee", "");
         }
     }
@@ -262,6 +267,7 @@ export component Home inherits Rectangle {
         recipient-address: TokensSetting.sender.recipient-address;
         send-amount: TokensSetting.sender.send-amount;
         fee: TokensSetting.sender.transaction-fee;
+        create-token-account-fee: TokensSetting.sender.create-token-account-fee;
 
         loading-status: TokensSetting.sender.transaction-fee-loading-status;
 
@@ -274,7 +280,7 @@ export component Home inherits Rectangle {
         }
 
         confirm => {
-            Logic.send-token(TokensSetting.sender.password, TokensSetting.sender.props);
+            Logic.send-token(TokensSetting.sender.password, TokensSetting.sender.props, TokensSetting.sender.is-token-account-exist);
             TokensSetting.clear-password();
         }
     }

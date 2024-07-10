@@ -17,6 +17,8 @@ export component TransactionFee inherits SettingDetail {
     in property <string> send-amount-usdt;
     in property <string> fee;
     in property <string> fee-usdt;
+    in property <string> create-token-account-fee;
+    in property <string> create-token-account-fee-usdt;
 
     in property <LoadingStatus> loading-status;
 
@@ -117,6 +119,24 @@ export component TransactionFee inherits SettingDetail {
 
             if fee-usdt != "": Label {
                 text: root.fee-usdt;
+                color: Theme.have-read-text-color;
+            }
+        }
+
+        if loading-status == LoadingStatus.Success && root.create-token-account-fee != "": SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "创建用户费用");
+            }
+
+            LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: root.create-token-account-fee;
+                is-show-icon: false;
+                enabled: false;
+            }
+
+            if root.create-token-account-fee-usdt != "": Label {
+                text: root.create-token-account-fee-usdt;
                 color: Theme.have-read-text-color;
             }
         }
