@@ -30,6 +30,7 @@ use std::{str::FromStr, string::ToString, time::Duration};
 
 pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 pub const DEFAULT_TRY_COUNTS: u64 = 500;
+pub const DEFAULT_CREATE_TOKEN_ACCOUNT_RENT_LAMPORTS: u64 = 2_000_000;
 
 #[derive(Default, Debug, Clone)]
 pub struct AccountToken {
@@ -86,6 +87,15 @@ pub struct CreateSplTokenAccountProps {
     pub payer_keypair: Keypair,
     pub wallet_pubkey: Pubkey,
     pub mint_pubkey: Pubkey,
+    pub timeout: Option<u64>,
+    pub is_wait_confirmed: bool,
+}
+
+#[derive(Debug)]
+pub struct CloseSplTokenAccountProps {
+    pub rpc_url_ty: RpcUrlType,
+    pub owner_keypair: Keypair,
+    pub token_account_pubkey: Pubkey,
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
 }
@@ -199,6 +209,43 @@ pub async fn create_spl_token_account(props: CreateSplTokenAccountProps) -> Resu
     .with_context(|| "Send and confirm transation failed")
 }
 
+pub async fn close_spl_token_account(props: CloseSplTokenAccountProps) -> Result<Signature> {
+    let connection = match props.timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
+    };
+
+    let recent_blockhash = connection
+        .get_latest_blockhash()
+        .await
+        .with_context(|| "Get latest blockhash failed")?;
+
+    let instruction = spl_token::instruction::close_account(
+        &spl_token::ID,
+        &props.token_account_pubkey,
+        &props.owner_keypair.pubkey(),
+        &props.owner_keypair.pubkey(),
+        &[&props.owner_keypair.pubkey()],
+    )
+    .with_context(|| {
+        format!(
+            "close account {} failed",
+            props.token_account_pubkey.to_string()
+        )
+    })?;
+
+    let message = Message::new(&[instruction], Some(&props.owner_keypair.pubkey()));
+    let transaction = Transaction::new(&[props.owner_keypair], message, recent_blockhash);
+
+    match props.is_wait_confirmed {
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
+    }
+    .with_context(|| "Send and confirm transation failed")
+}
+
 pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
     let connection = match props.timeout {
         Some(timeout) => {
@@ -281,9 +328,9 @@ pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> R
     );
 
     let sender_token_account_pubkey =
-        derive_account_token_address(&props.sender_keypair.pubkey(), &props.mint_pubkey);
+        derive_token_account_address(&props.sender_keypair.pubkey(), &props.mint_pubkey);
     let recipient_token_account_pubkey =
-        derive_account_token_address(&props.recipient_pubkey, &props.mint_pubkey);
+        derive_token_account_address(&props.recipient_pubkey, &props.mint_pubkey);
 
     let send_instruction = spl_token::instruction::transfer_checked(
         &spl_token::ID,
@@ -376,7 +423,7 @@ pub async fn fetch_token_account(
 }
 
 // derive the account token address locally
-pub fn derive_account_token_address(
+pub fn derive_token_account_address(
     wallet_address: &Pubkey,
     token_mint_address: &Pubkey,
 ) -> Pubkey {
@@ -388,7 +435,7 @@ pub async fn fetch_account_token(
     wallet_address: &str,
     mint_address: &str,
     timeout: Option<u64>,
-) -> Result<AccountToken> {
+) -> Result<Option<AccountToken>> {
     let connection = match timeout {
         Some(timeout) => {
             RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
@@ -427,7 +474,7 @@ pub async fn fetch_account_token(
         })?;
 
     if accounts.first().is_none() {
-        bail!("Can't find the token account with the mint_address={mint_address}, wallet_address={wallet_address}");
+        return Ok(None);
     }
 
     let account = accounts.first().unwrap();
@@ -463,7 +510,7 @@ pub async fn fetch_account_token(
     })?;
 
     item.decimals = mint.decimals;
-    Ok(item)
+    Ok(Some(item))
 }
 
 pub async fn fetch_account_tokens(
@@ -991,7 +1038,7 @@ mod tests {
 
         let new_address_keypair = Keypair::new();
         let recipient_token_account_pubkey =
-            derive_account_token_address(&new_address_keypair.pubkey(), &mint_pubkey);
+            derive_token_account_address(&new_address_keypair.pubkey(), &mint_pubkey);
 
         let create_instructions = create_spl_token_account_instruction(
             &sender_keypair.pubkey(),
@@ -1044,20 +1091,46 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_spl_token_account() -> Result<()> {
+    async fn test_create_and_close_spl_token_account() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let new_address_keypair = Keypair::new();
         let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
 
+        println!("{}", new_address_keypair.pubkey().to_string());
+
         let props = CreateSplTokenAccountProps {
             rpc_url_ty: RpcUrlType::Test,
-            payer_keypair: sender_keypair,
+            payer_keypair: Keypair::from_bytes(&sender_keypair.to_bytes())?,
             wallet_pubkey: new_address_keypair.pubkey(),
-            mint_pubkey,
+            mint_pubkey: mint_pubkey.clone(),
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
         };
         let signature = create_spl_token_account(props).await?;
+        println!("{signature:?}");
+
+        let props = SendLamportsProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair: Keypair::from_bytes(&sender_keypair.to_bytes())?,
+            recipient_pubkey: new_address_keypair.pubkey().clone(),
+            lamports: 1_000_000,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+        let signature = send_lamports(props).await?;
+        println!("{signature:?}");
+
+        let props = CloseSplTokenAccountProps {
+            rpc_url_ty: RpcUrlType::Test,
+            token_account_pubkey: derive_token_account_address(
+                &new_address_keypair.pubkey(),
+                &mint_pubkey,
+            ),
+            owner_keypair: new_address_keypair,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+        let signature = close_spl_token_account(props).await?;
         println!("{signature:?}");
 
         Ok(())
@@ -1139,7 +1212,7 @@ mod tests {
         let recipient_address = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
 
-        let address = derive_account_token_address(&recipient_address, &mint_pubkey);
+        let address = derive_token_account_address(&recipient_address, &mint_pubkey);
         println!("{}", address.to_string());
 
         assert_eq!(address.to_string(), TOKEN_ACCOUNT_ADDRESS_RECIPENT);
@@ -1171,7 +1244,7 @@ mod tests {
         )
         .await;
         println!("{:?}", ret);
-        assert!(ret.is_err());
+        assert!(ret.is_err() || ret.unwrap().is_none());
 
         Ok(())
     }
