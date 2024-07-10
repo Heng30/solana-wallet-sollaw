@@ -69,6 +69,28 @@ pub struct SendSplTokenProps {
 }
 
 #[derive(Debug)]
+pub struct SendSplTokenWithCreateProps {
+    pub rpc_url_ty: RpcUrlType,
+    pub sender_keypair: Keypair,
+    pub recipient_pubkey: Pubkey,
+    pub mint_pubkey: Pubkey,
+    pub amount: u64,
+    pub decimals: u8,
+    pub timeout: Option<u64>,
+    pub is_wait_confirmed: bool,
+}
+
+#[derive(Debug)]
+pub struct CreateSplTokenAccountProps {
+    pub rpc_url_ty: RpcUrlType,
+    pub payer_keypair: Keypair,
+    pub wallet_pubkey: Pubkey,
+    pub mint_pubkey: Pubkey,
+    pub timeout: Option<u64>,
+    pub is_wait_confirmed: bool,
+}
+
+#[derive(Debug)]
 pub struct CreateOnlineAccountProps {
     pub rpc_url_ty: RpcUrlType,
     pub from_keypair: Keypair,
@@ -147,6 +169,36 @@ pub async fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
     .with_context(|| "Send and confirm transation failed")
 }
 
+pub async fn create_spl_token_account(props: CreateSplTokenAccountProps) -> Result<Signature> {
+    let connection = match props.timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
+    };
+
+    let recent_blockhash = connection
+        .get_latest_blockhash()
+        .await
+        .with_context(|| "Get latest blockhash failed")?;
+
+    let instruction = create_associated_token_account(
+        &props.payer_keypair.pubkey(),
+        &props.wallet_pubkey,
+        &props.mint_pubkey,
+        &spl_token::ID,
+    );
+
+    let message = Message::new(&[instruction], Some(&props.payer_keypair.pubkey()));
+    let transaction = Transaction::new(&[props.payer_keypair], message, recent_blockhash);
+
+    match props.is_wait_confirmed {
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
+    }
+    .with_context(|| "Send and confirm transation failed")
+}
+
 pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
     let connection = match props.timeout {
         Some(timeout) => {
@@ -188,6 +240,71 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
         .with_context(|| "Get latest blockhash failed")?;
 
     let message = Message::new(&[instruction], Some(&props.sender_keypair.pubkey()));
+    let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
+
+    match props.is_wait_confirmed {
+        true => connection.send_and_confirm_transaction(&transaction).await,
+        false => connection.send_transaction(&transaction).await,
+    }
+    .with_context(|| "Send and confirm transation failed")
+}
+
+pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> Result<Signature> {
+    let connection = match props.timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(props.rpc_url_ty.to_string()),
+    };
+
+    let token_info = fetch_token_info(
+        props.rpc_url_ty,
+        &props.mint_pubkey.to_string(),
+        props.timeout,
+    )
+    .await?;
+    let token_info = parse_token_info_data(token_info.data.as_slice())?;
+
+    if token_info.decimals != props.decimals {
+        bail!(
+            "props decimal: {} != {}",
+            props.decimals,
+            token_info.decimals
+        );
+    }
+
+    let create_instruction = create_associated_token_account(
+        &props.sender_keypair.pubkey(),
+        &props.recipient_pubkey,
+        &props.mint_pubkey,
+        &spl_token::ID,
+    );
+
+    let sender_token_account_pubkey =
+        derive_account_token_address(&props.sender_keypair.pubkey(), &props.mint_pubkey);
+    let recipient_token_account_pubkey =
+        derive_account_token_address(&props.recipient_pubkey, &props.mint_pubkey);
+
+    let send_instruction = spl_token::instruction::transfer_checked(
+        &spl_token::ID,
+        &sender_token_account_pubkey,
+        &props.mint_pubkey,
+        &recipient_token_account_pubkey,
+        &props.sender_keypair.pubkey(),
+        &[&props.sender_keypair.pubkey()],
+        props.amount,
+        props.decimals,
+    )?;
+
+    let recent_blockhash = connection
+        .get_latest_blockhash()
+        .await
+        .with_context(|| "Get latest blockhash failed")?;
+
+    let message = Message::new(
+        &[create_instruction, send_instruction],
+        Some(&props.sender_keypair.pubkey()),
+    );
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -755,7 +872,7 @@ pub fn send_spl_token_instruction(props: &SendSplTokenProps) -> Result<[Instruct
     )?])
 }
 
-pub fn create_spl_token_token_account_instruction(
+pub fn create_spl_token_account_instruction(
     payer_address: &Pubkey,
     wallet_address: &Pubkey,
     token_mint_address: &Pubkey,
@@ -842,6 +959,72 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_evaluate_transaction_fee_create_spl_token_account() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let new_address_keypair = Keypair::new();
+        let token_mint_address = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let instructions = create_spl_token_account_instruction(
+            &sender_keypair.pubkey(),
+            &new_address_keypair.pubkey(),
+            &token_mint_address,
+        );
+
+        let fee = evaluate_transaction_fee(
+            RpcUrlType::Test,
+            &instructions,
+            &sender_keypair.pubkey(),
+            None,
+        )
+        .await?;
+        println!("fee: {fee}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_transaction_fee_create_account_and_send_spl_token() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let sender_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_SENDER)?;
+        let token_mint_address = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let new_address_keypair = Keypair::new();
+        let recipient_token_account_pubkey =
+            derive_account_token_address(&new_address_keypair.pubkey(), &mint_pubkey);
+
+        let create_instructions = create_spl_token_account_instruction(
+            &sender_keypair.pubkey(),
+            &new_address_keypair.pubkey(),
+            &token_mint_address,
+        );
+
+        let props = SendSplTokenProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair: Keypair::from_bytes(&sender_keypair.to_bytes())?,
+            sender_token_account_pubkey,
+            recipient_token_account_pubkey,
+            mint_pubkey,
+            amount: 1000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+        let send_instructions = send_spl_token_instruction(&props)?;
+
+        let fee = evaluate_transaction_fee(
+            RpcUrlType::Test,
+            &[create_instructions[0].clone(), send_instructions[0].clone()],
+            &sender_keypair.pubkey(),
+            None,
+        )
+        .await?;
+        println!("fee: {fee}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_send_lamports() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
@@ -861,7 +1044,27 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_send_token() -> Result<()> {
+    async fn test_create_spl_token_account() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let new_address_keypair = Keypair::new();
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let props = CreateSplTokenAccountProps {
+            rpc_url_ty: RpcUrlType::Test,
+            payer_keypair: sender_keypair,
+            wallet_pubkey: new_address_keypair.pubkey(),
+            mint_pubkey,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+        let signature = create_spl_token_account(props).await?;
+        println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_spl_token() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let sender_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_SENDER)?;
         let recipient_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_RECIPENT)?;
@@ -881,6 +1084,44 @@ mod tests {
 
         let signature = send_spl_token(props).await?;
         println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_spl_token_with_create() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+        let recipient_keypair = Keypair::new();
+        let recipient_pubkey = recipient_keypair.pubkey();
+
+        let props = SendSplTokenWithCreateProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            recipient_pubkey: recipient_pubkey.clone(),
+            mint_pubkey,
+            amount: 1_000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+
+        println!(
+            "recipient_pubkey: {}",
+            recipient_keypair.pubkey().to_string()
+        );
+
+        let signature = send_spl_token_with_create(props).await?;
+        println!("{signature:?}");
+
+        let info = fetch_account_token(
+            RpcUrlType::Test,
+            &recipient_pubkey.to_string(),
+            USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS,
+            Some(DEFAULT_TIMEOUT_SECS),
+        )
+        .await?;
+        println!("{info:?}");
 
         Ok(())
     }
