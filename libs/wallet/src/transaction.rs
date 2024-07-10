@@ -22,6 +22,9 @@ use solana_sdk::{
     transaction::Transaction,
 };
 use solana_transaction_status::UiTransactionEncoding;
+use spl_associated_token_account::{
+    get_associated_token_address, instruction::create_associated_token_account,
+};
 use spl_token::state::Mint;
 use std::{str::FromStr, string::ToString, time::Duration};
 
@@ -32,8 +35,8 @@ pub const DEFAULT_TRY_COUNTS: u64 = 500;
 pub struct AccountToken {
     pub token_account_address: Pubkey,
     pub mint_address: Pubkey,
-    amount: u64,
     pub decimals: u8,
+    amount: u64,
 }
 
 impl AccountToken {
@@ -55,9 +58,9 @@ pub struct SendLamportsProps {
 #[derive(Debug)]
 pub struct SendSplTokenProps {
     pub rpc_url_ty: RpcUrlType,
-    pub token_program_id: Pubkey,
     pub sender_keypair: Keypair,
-    pub recipient_pubkey: Pubkey,
+    pub sender_token_account_pubkey: Pubkey,
+    pub recipient_token_account_pubkey: Pubkey,
     pub mint_pubkey: Pubkey,
     pub amount: u64,
     pub decimals: u8,
@@ -161,14 +164,18 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
     let token_info = parse_token_info_data(token_info.data.as_slice())?;
 
     if token_info.decimals != props.decimals {
-        bail!("props decimal: {} != {}", props.decimals, token_info.decimals);
+        bail!(
+            "props decimal: {} != {}",
+            props.decimals,
+            token_info.decimals
+        );
     }
 
     let instruction = spl_token::instruction::transfer_checked(
-        &props.token_program_id,
-        &props.sender_keypair.pubkey(),
+        &spl_token::ID,
+        &props.sender_token_account_pubkey,
         &props.mint_pubkey,
-        &props.recipient_pubkey,
+        &props.recipient_token_account_pubkey,
         &props.sender_keypair.pubkey(),
         &[&props.sender_keypair.pubkey()],
         props.amount,
@@ -249,6 +256,97 @@ pub async fn fetch_token_account(
         .get_token_account(&token_account_pubkey)
         .await
         .with_context(|| format!("Get token account {token_account_address} failed"))
+}
+
+// derive the account token address locally
+pub fn derive_account_token_address(
+    wallet_address: &Pubkey,
+    token_mint_address: &Pubkey,
+) -> Pubkey {
+    get_associated_token_address(wallet_address, token_mint_address)
+}
+
+pub async fn fetch_account_token(
+    rpc_url_ty: RpcUrlType,
+    wallet_address: &str,
+    mint_address: &str,
+    timeout: Option<u64>,
+) -> Result<AccountToken> {
+    let connection = match timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
+    };
+
+    let filters = Some(vec![
+        RpcFilterType::Memcmp(Memcmp::new(
+            0,
+            MemcmpEncodedBytes::Base58(mint_address.to_string()),
+        )),
+        RpcFilterType::Memcmp(Memcmp::new(
+            32,
+            MemcmpEncodedBytes::Base58(wallet_address.to_string()),
+        )),
+        RpcFilterType::DataSize(165),
+    ]);
+
+    let accounts = connection
+        .get_program_accounts_with_config(
+            &spl_token::ID,
+            RpcProgramAccountsConfig {
+                filters,
+                account_config: RpcAccountInfoConfig {
+                    encoding: Some(UiAccountEncoding::Base64),
+                    commitment: Some(connection.commitment()),
+                    ..RpcAccountInfoConfig::default()
+                },
+                ..RpcProgramAccountsConfig::default()
+            },
+        )
+        .await
+        .with_context(|| {
+            format!("Get program accounts with config failed. wallet address: {wallet_address}")
+        })?;
+
+    if accounts.first().is_none() {
+        bail!("Can't find the token account with the mint_address={mint_address}, wallet_address={wallet_address}");
+    }
+
+    let account = accounts.first().unwrap();
+    let mut item = AccountToken::default();
+    item.token_account_address = account.0;
+
+    let mint_token_account = spl_token::state::Account::unpack_from_slice(
+        account.1.data.as_slice(),
+    )
+    .with_context(|| {
+        format!(
+            "unpack from slice failed for {:?}",
+            item.token_account_address
+        )
+    })?;
+    item.mint_address = mint_token_account.mint;
+    item.amount = mint_token_account.amount;
+
+    let mint_account_data = connection
+        .get_account_data(&mint_token_account.mint)
+        .await
+        .with_context(|| {
+            format!(
+                "Get account data failed for {:?}",
+                item.token_account_address
+            )
+        })?;
+    let mint = Mint::unpack_from_slice(mint_account_data.as_slice()).with_context(|| {
+        format!(
+            "Mint unpack from slice failed for {:?}",
+            item.token_account_address
+        )
+    })?;
+
+    item.decimals = mint.decimals;
+    Ok(item)
 }
 
 pub async fn fetch_account_tokens(
@@ -644,6 +742,32 @@ pub fn send_lamports_instruction(
     )]
 }
 
+pub fn send_spl_token_instruction(props: &SendSplTokenProps) -> Result<[Instruction; 1]> {
+    Ok([spl_token::instruction::transfer_checked(
+        &spl_token::ID,
+        &props.sender_token_account_pubkey,
+        &props.mint_pubkey,
+        &props.recipient_token_account_pubkey,
+        &props.sender_keypair.pubkey(),
+        &[&props.sender_keypair.pubkey()],
+        props.amount,
+        props.decimals,
+    )?])
+}
+
+pub fn create_spl_token_token_account_instruction(
+    payer_address: &Pubkey,
+    wallet_address: &Pubkey,
+    token_mint_address: &Pubkey,
+) -> [Instruction; 1] {
+    [create_associated_token_account(
+        payer_address,
+        wallet_address,
+        token_mint_address,
+        &spl_token::ID,
+    )]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -659,12 +783,14 @@ mod tests {
 
     const SENDER_WALLET_ADDRESS: &str = "GEWRDjNHTHdWZAzF8E4zHiqqnCEFWqhqHXnNKW2wdZN7";
     const RECIPIENT_WALLET_ADDRESS: &str = "5p6rcsWRHpkZmsusbuhsz9rgcPJWnbHcaDLgENTSUxY8";
-    const TOKEN_ACCOUNT_ADDRESS: &str = "AF6344WNH5rAkfyfx4wwEysNNH3gu7byrtD4eH7Mz294";
-    const USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS: &str =
+    const TOKEN_ACCOUNT_ADDRESS_RECIPENT: &str = "AF6344WNH5rAkfyfx4wwEysNNH3gu7byrtD4eH7Mz294";
+    const TOKEN_ACCOUNT_ADDRESS_SENDER: &str = "DDgMQe32RioZGf3RHSBSAiGTzwQXFf3C5XfahzaSg6eu";
+    const USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS: &str =
         "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr";
+    const NO_USDC_TOKEN_WALLET_ADDRESS: &str = "9njVzYc7S9CkyZiJDu85gJ1U7XURD1BSyEBzq8DLq2Fk";
 
     #[tokio::test]
-    async fn test_evaluate_transaction_fee() -> Result<()> {
+    async fn test_evaluate_transaction_fee_send_sol() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
 
@@ -675,6 +801,38 @@ mod tests {
             RpcUrlType::Test,
             &instructions,
             &sender_keypair.pubkey(),
+            None,
+        )
+        .await?;
+        println!("fee: {fee}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_transaction_fee_send_spl_token() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let sender_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_SENDER)?;
+        let recipient_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_RECIPENT)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let props = SendSplTokenProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            sender_token_account_pubkey,
+            recipient_token_account_pubkey,
+            mint_pubkey,
+            amount: 1000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+
+        let instructions = send_spl_token_instruction(&props)?;
+        let fee = evaluate_transaction_fee(
+            RpcUrlType::Test,
+            &instructions,
+            &props.sender_keypair.pubkey(),
             None,
         )
         .await?;
@@ -705,19 +863,24 @@ mod tests {
     #[tokio::test]
     async fn test_send_token() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
-        let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
-        // TODO
-        // let props = SendLamportsProps {
-        //     rpc_url_ty: RpcUrlType::Test,
-        //     sender_keypair,
-        //     recipient_pubkey,
-        //     lamports: 100,
-        //     timeout: Some(DEFAULT_TIMEOUT_SECS),
-        //     is_wait_confirmed: true,
-        // };
+        let sender_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_SENDER)?;
+        let recipient_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_RECIPENT)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
 
-        // let signature = send_lamports(props).await?;
-        // println!("{signature:?}");
+        let props = SendSplTokenProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            sender_token_account_pubkey,
+            recipient_token_account_pubkey,
+            mint_pubkey,
+            amount: 1000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+        };
+
+        let signature = send_spl_token(props).await?;
+        println!("{signature:?}");
 
         Ok(())
     }
@@ -730,11 +893,66 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_derive_account_token_address() -> Result<()> {
+        let recipient_address = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let address = derive_account_token_address(&recipient_address, &mint_pubkey);
+        println!("{}", address.to_string());
+
+        assert_eq!(address.to_string(), TOKEN_ACCOUNT_ADDRESS_RECIPENT);
+
+        Ok(())
+    }
+
     #[tokio::test]
-    async fn test_fetch_account_tokens() -> Result<()> {
+    async fn test_fetch_account_token_recipent() -> Result<()> {
+        let ret = fetch_account_token(
+            RpcUrlType::Test,
+            RECIPIENT_WALLET_ADDRESS,
+            USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS,
+            Some(DEFAULT_TIMEOUT_SECS),
+        )
+        .await?;
+        println!("{:?}", ret);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fetch_account_token_no_usdc_wallet_address() -> Result<()> {
+        let ret = fetch_account_token(
+            RpcUrlType::Test,
+            NO_USDC_TOKEN_WALLET_ADDRESS,
+            USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS,
+            Some(DEFAULT_TIMEOUT_SECS),
+        )
+        .await;
+        println!("{:?}", ret);
+        assert!(ret.is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fetch_account_tokens_recipent() -> Result<()> {
         let ret = fetch_account_tokens(
             RpcUrlType::Test,
             RECIPIENT_WALLET_ADDRESS,
+            Some(DEFAULT_TIMEOUT_SECS),
+        )
+        .await?;
+        println!("{:?}", ret);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fetch_account_tokens_sender() -> Result<()> {
+        let ret = fetch_account_tokens(
+            RpcUrlType::Test,
+            SENDER_WALLET_ADDRESS,
             Some(DEFAULT_TIMEOUT_SECS),
         )
         .await?;
@@ -754,7 +972,7 @@ mod tests {
     #[tokio::test]
     async fn test_number_of_token_holders() -> Result<()> {
         let ret =
-            number_of_token_holders(RpcUrlType::Test, USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS, None)
+            number_of_token_holders(RpcUrlType::Test, USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS, None)
                 .await?;
         println!("{:?}", ret);
 
@@ -763,7 +981,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_token_account() -> Result<()> {
-        let ret = fetch_token_account(RpcUrlType::Test, TOKEN_ACCOUNT_ADDRESS, None).await?;
+        let ret =
+            fetch_token_account(RpcUrlType::Test, TOKEN_ACCOUNT_ADDRESS_RECIPENT, None).await?;
         println!("{:?}", ret);
 
         Ok(())
@@ -772,7 +991,7 @@ mod tests {
     #[tokio::test]
     async fn test_fetch_token_info() -> Result<()> {
         let ret =
-            fetch_token_info(RpcUrlType::Test, USDT_TOKEN_CONTRACT_TEST_NET_ADDRESS, None).await?;
+            fetch_token_info(RpcUrlType::Test, USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS, None).await?;
         println!("{:?}", ret);
 
         let ret = parse_token_info_data(ret.data.as_slice())?;

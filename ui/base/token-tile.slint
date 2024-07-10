@@ -8,10 +8,12 @@ export struct TokenTileEntry {
     uuid: string,
     network: string,
     symbol: string,
-    account_address: string,
+    account-address: string,
+    token-account-address: string, // for spl token
     mint-address: string,
     balance: string,
     balance-usdt: string,
+    decimals: int, // for spl token
 }
 
 export struct TokenTileWithSwitchEntry {

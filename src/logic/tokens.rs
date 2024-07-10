@@ -384,9 +384,11 @@ fn _refresh_tokens_management_entries(
                                     network: current_network.clone(),
                                     symbol: mint_address.clone().into(), // TODO: Get the real token symbol
                                     account_address: account_address.clone(),
+                                    token_account_address: token.token_account_address.to_string().into(),
                                     mint_address: mint_address.clone().into(),
                                     balance: slint::format!("{}", token.amount()),
                                     balance_usdt: "$0.00".into(),
+                                    decimals: token.decimals as i32,
                                 },
                                 checked: false,
                             }),
@@ -478,9 +480,11 @@ fn _add_sol_token_when_create_account(ui: &AppWindow, account_address: SharedStr
                 network: item.to_string(),
                 symbol: "SOL".to_string(),
                 account_address: account_address.clone().into(),
+                token_account_address: String::default(),
                 mint_address: String::default(),
                 balance: "0.00".to_string(),
                 balance_usdt: "$0.00".to_string(),
+                decimals: 0,
             };
 
             if current_network == item {

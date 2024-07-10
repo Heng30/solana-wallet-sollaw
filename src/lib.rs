@@ -85,13 +85,10 @@ async fn android_main(app: slint::android::AndroidApp) {
 
 #[cfg(not(target_os = "android"))]
 pub async fn desktop_main() {
-    use crate::slint_generatedAppWindow::Theme;
-
     log::debug!("start...");
 
     ui_before().await;
     let ui = AppWindow::new().unwrap();
-    // ui.global::<Theme>().set_default_height(800.0);
     ui_after(&ui);
 
     ui.run().unwrap();
