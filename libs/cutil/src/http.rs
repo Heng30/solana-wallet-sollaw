@@ -1,7 +1,10 @@
+use anyhow::Result;
+use bytes::Bytes;
 use reqwest::{
     header::{HeaderMap, ACCEPT, CACHE_CONTROL, USER_AGENT},
-    Client, Proxy, Result,
+    Client, Proxy, Url,
 };
+use std::{ffi::OsStr, path::Path, time::Duration};
 
 pub enum ProxyType {
     Http,
@@ -19,7 +22,6 @@ impl From<&str> for ProxyType {
     }
 }
 
-#[allow(dead_code)]
 pub fn headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
     headers.insert(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36".parse().unwrap());
@@ -29,7 +31,6 @@ pub fn headers() -> HeaderMap {
     headers
 }
 
-#[allow(dead_code)]
 pub fn client(conf: Option<(ProxyType, String, u16)>) -> Result<Client> {
     match conf {
         Some((proxy, url, port)) => {
@@ -41,5 +42,41 @@ pub fn client(conf: Option<(ProxyType, String, u16)>) -> Result<Client> {
             Ok(Client::builder().proxy(proxy_url).build()?)
         }
         None => Ok(Client::new()),
+    }
+}
+
+pub async fn get_bytes(url: &str, conf: Option<(ProxyType, String, u16)>) -> Result<Bytes> {
+    let client = client(conf)?;
+    let data = client
+        .get(url)
+        .timeout(Duration::from_secs(60))
+        .send()
+        .await?
+        .bytes()
+        .await?;
+    Ok(data)
+}
+
+pub fn file_extension(url: &str) -> Result<Option<String>> {
+    let url = Url::parse(url)?;
+    let path = url.path();
+
+    Ok(Path::new(path)
+        .file_name()
+        .and_then(|item| Some(Path::new(item)))
+        .and_then(Path::extension)
+        .and_then(OsStr::to_str)
+        .and_then(|item| Some(String::from(item))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_file_extension() -> Result<()> {
+        let url = "https://www.example.com/test.pdf";
+        assert_eq!(Some("pdf".to_string()), file_extension(url)?);
+        Ok(())
     }
 }

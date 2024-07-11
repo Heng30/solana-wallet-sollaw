@@ -157,11 +157,13 @@ pub struct TokenTileEntry {
     pub uuid: String,
     pub network: String,
     pub symbol: String,
+    pub icon_extension: String,
     pub account_address: String,
-    pub token_account_address: String,
     pub mint_address: String,
     pub balance: String,
     pub balance_usdt: String,
+
+    pub token_account_address: String,
     pub decimals: u8,
 }
 
@@ -171,11 +173,13 @@ impl From<UITokenTileEntry> for TokenTileEntry {
             uuid: entry.uuid.into(),
             network: entry.network.into(),
             symbol: entry.symbol.into(),
+            icon_extension: entry.icon_extension.into(),
             account_address: entry.account_address.into(),
-            token_account_address: entry.token_account_address.into(),
             mint_address: entry.mint_address.into(),
             balance: entry.balance.into(),
             balance_usdt: entry.balance_usdt.into(),
+
+            token_account_address: entry.token_account_address.into(),
             decimals: entry.decimals as u8,
         }
     }
@@ -187,11 +191,13 @@ impl From<TokenTileEntry> for UITokenTileEntry {
             uuid: entry.uuid.into(),
             network: entry.network.into(),
             symbol: entry.symbol.into(),
+            icon_extension: entry.icon_extension.into(),
             account_address: entry.account_address.into(),
-            token_account_address: entry.token_account_address.into(),
             mint_address: entry.mint_address.into(),
             balance: entry.balance.into(),
             balance_usdt: entry.balance_usdt.into(),
+
+            token_account_address: entry.token_account_address.into(),
             decimals: entry.decimals as i32,
         }
     }

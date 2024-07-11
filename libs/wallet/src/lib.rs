@@ -6,9 +6,11 @@ pub mod seed;
 pub mod transaction;
 pub mod util;
 
-
 #[cfg(feature = "pyth")]
 pub mod pyth;
+
+#[cfg(feature = "helius")]
+pub mod helius;
 
 pub mod prelude {
     pub use bip39::MnemonicType;

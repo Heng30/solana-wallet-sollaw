@@ -73,7 +73,6 @@ pub fn db_path() -> PathBuf {
     CONFIG.lock().unwrap().db_path.clone()
 }
 
-#[allow(dead_code)]
 pub fn cache_dir() -> PathBuf {
     CONFIG.lock().unwrap().cache_dir.clone()
 }

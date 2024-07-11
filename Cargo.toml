@@ -28,11 +28,16 @@ tokio = { version = "=1.38.0", features = ["full"] }
 serde = { version = "=1.0.203", features = ["serde_derive"] }
 
 sqldb = { version = "0.1.0", path = "./libs/sqldb" }
-wallet = { version = "0.1.0", path = "./libs/wallet", features = ["default", "pyth"] }
+wallet = { version = "0.1.0", path = "./libs/wallet", features = [
+  "default",
+  "pyth",
+  "helius",
+] }
 cutil = { version = "0.1.0", path = "./libs/cutil", features = [
   "default",
   "crypto",
   "time",
+  "http",
 ] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

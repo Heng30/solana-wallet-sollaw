@@ -52,7 +52,9 @@ export global Logic {
     callback switch-account(string, string);
 
     pure callback qr-code(string) -> image;
-    qr-code => { return Icons.no-data; }
+    qr-code => {
+        return Icons.no-data;
+    }
 
     callback add-address();
 

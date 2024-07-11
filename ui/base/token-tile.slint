@@ -3,16 +3,19 @@ import { Theme, Icons } from "../theme.slint";
 import { ListTile } from "list-tile.slint";
 import { Label } from "label.slint";
 import { IconBtn } from "icon-btn.slint";
+import { Util } from "../util.slint";
 
 export struct TokenTileEntry {
     uuid: string,
     network: string,
     symbol: string,
+    icon-extension: string,
     account-address: string,
-    token-account-address: string, // for spl token
     mint-address: string,
     balance: string,
     balance-usdt: string,
+
+    token-account-address: string, // for spl token
     decimals: int, // for spl token
 }
 
@@ -65,7 +68,7 @@ component Tile inherits Rectangle {
                     img := Image {
                         height: root.icon-size;
                         width: self.height;
-                        source: Icons.get-solana-token-icon(entry.mint-address);
+                        source: Util.get-token-icon(entry.symbol, entry.mint-address, entry.icon-extension);
                         colorize: root.icon-colorize;
                     }
                 }

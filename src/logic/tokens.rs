@@ -1,5 +1,6 @@
 use super::tr::tr;
 use crate::{
+    config,
     db::{
         self,
         def::{HistoryEntry, TokenTileEntry, TOKENS_TABLE},
@@ -7,17 +8,18 @@ use crate::{
     logic::message::{async_message_info, async_message_warn},
     message_info, message_success, message_warn,
     slint_generatedAppWindow::{
-        AppWindow, HomeIndex, LoadingStatus, Logic, SendTokenProps, Store,
+        AppWindow, HomeIndex, Icons, LoadingStatus, Logic, SendTokenProps, Store,
         TokenTileEntry as UITokenTileEntry, TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry,
         TokensSetting, TransactionTileStatus, Util,
     },
 };
 use anyhow::{bail, Result};
-use cutil::time::local_now;
-use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
-use std::str::FromStr;
+use cutil::{http, time::local_now};
+use slint::{ComponentHandle, Image, Model, SharedString, VecModel, Weak};
+use std::{fs, str::FromStr};
 use uuid::Uuid;
 use wallet::{
+    helius::{self, AssetResult},
     network::{NetworkType, RpcUrlType},
     prelude::*,
     transaction::{self, SendLamportsProps, DEFAULT_TIMEOUT_SECS, DEFAULT_TRY_COUNTS},
@@ -182,7 +184,8 @@ pub fn init(ui: &AppWindow) {
 
         message_info!(ui, tr("正在刷新..."));
         for entry in ui.global::<TokensSetting>().get_entries().iter() {
-            _update_token_info(ui.as_weak(), network.clone(), entry);
+            _update_token_balance(&ui, network.clone(), entry.uuid.clone());
+            _update_symbol_and_icon(&ui, entry.uuid);
         }
     });
 
@@ -190,9 +193,8 @@ pub fn init(ui: &AppWindow) {
     ui.global::<Logic>()
         .on_update_token_info(move |network, uuid| {
             let ui = ui_handle.unwrap();
-            if let Some((_, entry)) = get_entry(&ui, &uuid) {
-                _update_token_info(ui.as_weak(), network, entry);
-            }
+            _update_token_balance(&ui, network, uuid.clone());
+            _update_symbol_and_icon(&ui, uuid);
         });
 
     let ui_handle = ui.as_weak();
@@ -208,6 +210,14 @@ pub fn init(ui: &AppWindow) {
                 store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
                 _update_token_db(entry);
             }
+        });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Util>()
+        .on_spl_token_icon(move |mint_address, icon_extension| {
+            let ui = ui_handle.unwrap();
+            let filepath = config::cache_dir().join(format!("{}.{}", mint_address, icon_extension));
+            Image::load_from_path(&filepath).unwrap_or(ui.global::<Icons>().get_token())
         });
 
     let ui_handle = ui.as_weak();
@@ -299,20 +309,32 @@ fn _update_token_in_event_loop(ui: Weak<AppWindow>, entry: UITokenTileEntry) {
     });
 }
 
-fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UITokenTileEntry) {
-    let rpc_url_ty = RpcUrlType::from_str(&network).unwrap_or(RpcUrlType::Main);
+fn _update_token_balance(ui: &AppWindow, network: SharedString, uuid: SharedString) {
+    let entry = get_entry(&ui, &uuid);
+    if entry.is_none() {
+        return;
+    }
+    let (_, entry) = entry.unwrap();
 
+    let rpc_url_ty = RpcUrlType::from_str(&network).unwrap_or(RpcUrlType::Main);
     if entry.symbol == "SOL" {
-        let account_address = ui.unwrap().global::<Store>().get_current_account().pubkey;
+        let account_address = ui.global::<Store>().get_current_account().pubkey;
+
+        let ui_handle = ui.as_weak();
         tokio::spawn(async move {
             if let Ok(lamports) =
                 transaction::get_balance(rpc_url_ty, &account_address, Some(DEFAULT_TIMEOUT_SECS))
                     .await
             {
-                entry.balance = wallet::util::lamports_to_sol_str(lamports).into();
-                entry.balance_usdt = "$0.00".into();
-                _update_token_in_event_loop(ui, entry.clone());
-                _update_token_db(entry);
+                _ = slint::invoke_from_event_loop(move || {
+                    let ui = ui_handle.unwrap();
+                    if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
+                        entry.balance = wallet::util::lamports_to_sol_str(lamports).into();
+                        entry.balance_usdt = "$0.00".into();
+                        store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
+                        _update_token_db(entry);
+                    }
+                });
             }
         });
         return;
@@ -322,6 +344,7 @@ fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UIT
         return;
     }
 
+    let ui_handle = ui.as_weak();
     tokio::spawn(async move {
         if let Ok(Some(ta)) = transaction::fetch_token_account(
             rpc_url_ty,
@@ -330,11 +353,15 @@ fn _update_token_info(ui: Weak<AppWindow>, network: SharedString, mut entry: UIT
         )
         .await
         {
-            entry.balance = ta.token_amount.ui_amount_string.into();
-            entry.balance_usdt = "$0.00".into();
-
-            _update_token_in_event_loop(ui, entry.clone());
-            _update_token_db(entry);
+            _ = slint::invoke_from_event_loop(move || {
+                let ui = ui_handle.unwrap();
+                if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
+                    entry.balance = ta.token_amount.ui_amount_string.into();
+                    entry.balance_usdt = "$0.00".into();
+                    store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
+                    _update_token_db(entry);
+                }
+            });
         }
     });
 }
@@ -347,6 +374,65 @@ fn _update_token_db(entry: UITokenTileEntry) {
             &serde_json::to_string::<TokenTileEntry>(&entry.into()).unwrap(),
         )
         .await;
+    });
+}
+
+async fn _update_fetch_assets(
+    ui: Weak<AppWindow>,
+    uuid: SharedString,
+    item: AssetResult,
+) -> Result<()> {
+    let url = &item.content.links.image;
+    let image_data = http::get_bytes(url, None).await?;
+
+    http::file_extension(url)?.and_then(|extension| {
+        let cache_file = config::cache_dir().join(format!("{}.{extension}", item.id));
+        _ = fs::write(cache_file, image_data);
+
+        _ = slint::invoke_from_event_loop(move || {
+            let ui = ui.unwrap();
+
+            if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
+                entry.symbol = item.content.metadata.symbol.into();
+                entry.icon_extension = extension.into();
+                store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
+                _update_token_db(entry);
+            }
+        });
+
+        None::<()>
+    });
+
+    Ok(())
+}
+
+fn _is_icon_exist(entry: &UITokenTileEntry) -> bool {
+    let filepath =
+        config::cache_dir().join(format!("{}.{}", entry.mint_address, entry.icon_extension));
+    filepath.exists()
+}
+
+fn _update_symbol_and_icon(ui: &AppWindow, uuid: SharedString) {
+    let entry = get_entry(&ui, &uuid);
+    if entry.is_none() {
+        return;
+    }
+    let (_, entry) = entry.unwrap();
+
+    if _is_icon_exist(&entry) {
+        return;
+    }
+
+    let ui_handle = ui.as_weak();
+    tokio::spawn(async move {
+        match helius::fetch_asset(entry.mint_address.into()).await {
+            Ok(item) => {
+                if let Err(e) = _update_fetch_assets(ui_handle, entry.uuid, item.result).await {
+                    log::warn!("{e:?}");
+                }
+            }
+            Err(e) => log::warn!("{e:?}"),
+        }
     });
 }
 
@@ -383,7 +469,8 @@ fn _refresh_tokens_management_entries(
                                 entry: UITokenTileEntry {
                                     uuid: Uuid::new_v4().to_string().into(),
                                     network: current_network.clone(),
-                                    symbol: mint_address.clone().into(), // TODO: Get the real token symbol
+                                    symbol: mint_address.clone().into(),
+                                    icon_extension: SharedString::default(),
                                     account_address: account_address.clone(),
                                     token_account_address: token
                                         .token_account_address
@@ -483,6 +570,7 @@ fn _add_sol_token_when_create_account(ui: &AppWindow, account_address: SharedStr
                 uuid: Uuid::new_v4().to_string(),
                 network: item.to_string(),
                 symbol: "SOL".to_string(),
+                icon_extension: String::default(),
                 account_address: account_address.clone().into(),
                 token_account_address: String::default(),
                 mint_address: String::default(),

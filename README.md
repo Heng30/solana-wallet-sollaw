@@ -43,3 +43,4 @@ It's a `Solana` desktop wallet. Based on Rust and Slint-ui. It's under developin
 - [examples](https://github.com/solana-developers/program-examples)
 - [A Complete Guide to Solana Development for Ethereum Developers](https://solana.com/developers/evm-to-svm/complete-guide)
 - [Solana Development Course](https://www.soldev.app/course)
+- [developers.metaplex](https://developers.metaplex.com/token-metadata)

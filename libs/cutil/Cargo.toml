@@ -8,6 +8,8 @@ anyhow = "^1"
 rand = "^0.8"
 hex = "^0.4"
 chrono = "^0.4"
+bytes = "^1"
+
 aes = { version = "^0.7", optional = true }
 block-modes = { version = "^0.8", optional = true }
 crypto-hash = { version = "^0.3", optional = true }
