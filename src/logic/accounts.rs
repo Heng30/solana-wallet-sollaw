@@ -17,12 +17,7 @@ use cutil::crypto;
 use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
 use std::{cmp::Ordering, str::FromStr};
 use uuid::Uuid;
-use wallet::{
-    mnemonic,
-    network::{NetworkType, RpcUrlType},
-    prelude::*,
-    transaction::{self, DEFAULT_TIMEOUT_SECS},
-};
+use wallet::{mnemonic, network::NetworkType, prelude::*};
 
 #[macro_export]
 macro_rules! store_accounts {
@@ -432,12 +427,6 @@ pub fn init(ui: &AppWindow) {
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
-        .on_update_account_balance(move |uuid, network, address| {
-            _update_account_balance(&ui_handle.unwrap(), uuid, network, address);
-        });
-
-    let ui_handle = ui.as_weak();
-    ui.global::<Logic>()
         .on_update_account_avatar_index(move |uuid, avatar_index| {
             let ui = ui_handle.unwrap();
             match get_account(&ui, &uuid) {
@@ -562,7 +551,6 @@ fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
                             pubkey: kp.pubkey().to_string(),
                             derive_index,
                             avatar_index,
-                            balance: String::from("0.00"),
                         };
 
                         let data = serde_json::to_string(&account).unwrap();
@@ -667,45 +655,4 @@ async fn _show_mnemonic(password: SharedString) -> Result<String> {
         }
         Err(e) => anyhow::bail!(format!("Internal error. {e:?}")),
     }
-}
-
-fn _update_account_balance(
-    ui: &AppWindow,
-    uuid: SharedString,
-    network: SharedString,
-    address: SharedString,
-) {
-    let ui_handle = ui.as_weak();
-    tokio::spawn(async move {
-        match transaction::get_balance(
-            RpcUrlType::from_str(&network).unwrap_or(RpcUrlType::Main),
-            &address,
-            Some(DEFAULT_TIMEOUT_SECS),
-        )
-        .await
-        {
-            Ok(lamports) => {
-                _ = slint::invoke_from_event_loop(move || {
-                    let ui = ui_handle.unwrap();
-
-                    match get_account(&ui, &uuid) {
-                        Some((index, mut account)) => {
-                            let sol = wallet::util::lamports_to_sol_str(lamports);
-                            account.balance = slint::format!("{sol} SOL");
-
-                            if ui.global::<Store>().get_current_account().uuid == uuid {
-                                ui.global::<Store>().set_current_account(account.clone());
-                            }
-                            store_accounts!(ui).set_row_data(index, account.clone());
-
-                            _update_account(account.into());
-                            message_success!(ui, tr("更新账户余额成功"));
-                        }
-                        None => message_warn!(ui, "更新账户余额失败. 账户不存在"),
-                    }
-                });
-            }
-            Err(e) => async_message_warn(ui_handle, format!("{e:?}")),
-        }
-    });
 }

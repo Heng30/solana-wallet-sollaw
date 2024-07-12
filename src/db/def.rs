@@ -19,7 +19,6 @@ pub struct AccountEntry {
     pub pubkey: String,
     pub derive_index: i32,
     pub avatar_index: i32,
-    pub balance: String,
 }
 
 impl From<UIAccountEntry> for AccountEntry {
@@ -30,7 +29,6 @@ impl From<UIAccountEntry> for AccountEntry {
             pubkey: entry.pubkey.into(),
             derive_index: entry.derive_index,
             avatar_index: entry.avatar_index,
-            balance: entry.balance.into(),
         }
     }
 }
@@ -43,7 +41,6 @@ impl From<AccountEntry> for UIAccountEntry {
             pubkey: entry.pubkey.into(),
             derive_index: entry.derive_index,
             avatar_index: entry.avatar_index,
-            balance: entry.balance.into(),
         }
     }
 }

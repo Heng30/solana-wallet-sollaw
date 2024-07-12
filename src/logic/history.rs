@@ -44,7 +44,7 @@ async fn add_mock_entries_to_db(count: u32) -> Result<()> {
             network: NetworkType::Test.to_string(),
             hash: "3TLjgoAExvGWPrcPobxJMGrYiKQaHbrQzeG1aCz6A7D4Uz3BT6gXkmD4WYEcamK3aEpRuqoQL2Np64YZBkC2hUwF".to_string(),
             balance: "12.54 lamports".into(),
-            time: local_now("%y-%m-%d %H:%M:%S"),
+            time: local_now("%Y-%m-%d %H:%M:%S"),
             status: if index % 2 == 0 {
                 TransactionTileStatus::Pending
             } else {

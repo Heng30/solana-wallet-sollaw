@@ -6,7 +6,11 @@ db = "/home/blue/.local/share/sollet/sollet.db"
 conn = sqlite3.connect(db)
 cursor = conn.cursor()
 
-tokens = [["USDT", "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"], ["USDC", "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"]]
+tokens = [
+    ["USDT-main", "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"],
+    ["USDC-main", "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"],
+    ["ray-main", "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"],
+]
 
 for token in tokens:
     data_uuid = str(uuid.uuid4())
@@ -23,7 +27,7 @@ for token in tokens:
         "decimals": 6,
     }
     json_string = json.dumps(data)
-    print(json_string)
+    # print(json_string)
 
     cursor.execute(
         "INSERT INTO tokens (uuid, data) VALUES (?, ?)", (data_uuid, json_string)

@@ -82,6 +82,10 @@ export component Login inherits Rectangle {
                         root.error-message = "";
                     }
 
+                    accepted => {
+                        confirm-btn.clicked();
+                    }
+
                     clicked => {
                         parent.is-show-password = !parent.is-show-password;
                     }
@@ -107,7 +111,7 @@ export component Login inherits Rectangle {
                     }
                 }
 
-                ConfirmBtn {
+                confirm-btn := ConfirmBtn {
                     text: Logic.tr(Store.is-cn, "确认");
 
                     clicked => {

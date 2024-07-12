@@ -148,7 +148,8 @@ component Accounts inherits Rectangle {
                     left-icon-hover-background: self.left-icon-background.darker(5%);
 
                     title-text: item.name;
-                    subtitle-text: "$" + item.balance;
+                    subtitle-text: item.pubkey;
+                    subtitle-font-size: Theme.default-font-size - 2px;
                     middle-mouse-cursor: MouseCursor.pointer;
 
                     is-show-right-icon: true;
@@ -393,7 +394,7 @@ component DeveloperMode inherits SettingDetail {
                 text: Logic.tr(Store.is-cn, "请求空投") + " 0.1SOL";
 
                 clicked => {
-                    Logic.request-airdrop-sol(Store.current-account.uuid, root.network, Store.current-account.pubkey);
+                    Logic.request-airdrop-sol(root.network, Store.current-account.pubkey);
                 }
             }
         }

@@ -39,9 +39,6 @@ export global Logic {
     // (uuid, icon-index) -> void
     callback update-account-avatar-index(string, int);
 
-    // (uuid, network, address) -> void
-    callback update-account-balance(string, string, string);
-
     // (password, uuid) -> void
     callback remove-account(string, string);
 
@@ -111,6 +108,9 @@ export global Logic {
     // (uuid, name) -> void
     callback update-token-name(string, string);
 
+    // (sol-amount) -> string
+    pure callback calculate-price-of-sol(string) -> string;
+
     // (network, address) -> void
     callback refresh-tokens-management-entries(string, string);
 
@@ -118,7 +118,7 @@ export global Logic {
     callback open-token-detail(string, string);
 
     // (uuid, network, address) -> void
-    callback request-airdrop-sol(string, string, string);
+    callback request-airdrop-sol(string, string);
 
     // (password, props) -> void
     callback evaluate-transaction-fee(string, SendTokenProps);

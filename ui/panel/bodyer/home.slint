@@ -102,7 +102,7 @@ component TopHead inherits Head {
 
 component AccountDetail inherits AccountBalance {
     account-name: Store.current-account.name;
-    balance: Store.current-account.balance;
+    balance: TokensSetting.entries.length > 0 ? TokensSetting.entries[0].balance + " SOL" : "0.00 SOL";
 
     account-clicked => {
         Logic.open-account-detail(Logic.get-current-network(), Store.current-account.pubkey);
@@ -147,7 +147,6 @@ component Body inherits Rectangle {
         icon: Icons.refresh;
 
         clicked => {
-            Logic.update-account-balance(Store.current-account.uuid, Logic.get-current-network(), Store.current-account.pubkey);
             Logic.update-tokens-info(Logic.get-current-network());
         }
     }
@@ -266,8 +265,11 @@ export component Home inherits Rectangle {
         send-address: Store.current-account.pubkey;
         recipient-address: TokensSetting.sender.recipient-address;
         send-amount: TokensSetting.sender.send-amount;
-        fee: TokensSetting.sender.transaction-fee;
-        create-token-account-fee: TokensSetting.sender.create-token-account-fee;
+        send-amount-usdt: root.selected-entry.symbol == "SOL" ? "$" + Logic.calculate-price-of-sol(TokensSetting.sender.send-amount) : "";
+        fee: TokensSetting.sender.transaction-fee + "SOL";
+        fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.transaction-fee);
+        create-token-account-fee: TokensSetting.sender.create-token-account-fee != "" ? TokensSetting.sender.create-token-account-fee + "SOL" : "";
+        create-token-account-fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.create-token-account-fee);
 
         loading-status: TokensSetting.sender.transaction-fee-loading-status;
 

@@ -5,7 +5,7 @@ use crate::{
         self,
         def::{HistoryEntry, TokenTileEntry, TOKENS_TABLE},
     },
-    logic::message::{async_message_info, async_message_warn},
+    logic::message::{async_message_info, async_message_success, async_message_warn},
     message_info, message_success, message_warn,
     slint_generatedAppWindow::{
         AppWindow, HomeIndex, Icons, LoadingStatus, Logic, SendTokenProps, Store,
@@ -15,15 +15,19 @@ use crate::{
 };
 use anyhow::{bail, Result};
 use cutil::{http, time::local_now};
+use once_cell::sync::Lazy;
 use slint::{ComponentHandle, Image, Model, SharedString, VecModel, Weak};
-use std::{fs, str::FromStr};
+use std::{fs, str::FromStr, sync::Mutex};
 use uuid::Uuid;
 use wallet::{
     helius::{self, AssetResult},
     network::{NetworkType, RpcUrlType},
     prelude::*,
+    pyth,
     transaction::{self, SendLamportsProps, DEFAULT_TIMEOUT_SECS, DEFAULT_TRY_COUNTS},
 };
+
+static SOL_PRICE: Lazy<Mutex<f64>> = Lazy::new(|| Mutex::new(0.0));
 
 #[macro_export]
 macro_rules! store_tokens_setting_entries {
@@ -45,6 +49,14 @@ macro_rules! store_tokens_setting_management_entries {
             .downcast_ref::<VecModel<UITokenTileWithSwitchEntry>>()
             .expect("We know we set a VecModel earlier")
     };
+}
+
+pub fn get_sol_price_cache() -> f64 {
+    *SOL_PRICE.lock().unwrap()
+}
+
+pub fn set_sol_price_cache(v: f64) {
+    *SOL_PRICE.lock().unwrap() = v;
 }
 
 async fn get_from_db(network: &str, account_address: &str) -> Vec<UITokenTileEntry> {
@@ -140,6 +152,11 @@ pub fn init_tokens(ui: &AppWindow) {
             let ui = ui_handle.unwrap();
             store_tokens_setting_entries!(ui).set_vec(entries);
         });
+
+        match pyth::sol(Some(transaction::DEFAULT_TIMEOUT_SECS)).await {
+            Ok(price) => set_sol_price_cache(price),
+            Err(e) => log::warn!("{e:?}"),
+        }
     });
 }
 
@@ -212,6 +229,12 @@ pub fn init(ui: &AppWindow) {
             }
         });
 
+    ui.global::<Logic>()
+        .on_calculate_price_of_sol(move |sol_amount| {
+            let amount = sol_amount.parse::<f64>().unwrap_or(0.0_f64);
+            slint::format!("{:.3}", amount * get_sol_price_cache())
+        });
+
     let ui_handle = ui.as_weak();
     ui.global::<Util>()
         .on_spl_token_icon(move |mint_address, icon_extension| {
@@ -240,8 +263,8 @@ pub fn init(ui: &AppWindow) {
 
     let ui_handle = ui.as_weak();
     ui.global::<Logic>()
-        .on_request_airdrop_sol(move |uuid, network, address| {
-            _request_airdrop_sol(ui_handle.clone(), uuid, network, address);
+        .on_request_airdrop_sol(move |network, address| {
+            _request_airdrop_sol(ui_handle.clone(), network, address);
         });
 
     let ui_handle = ui.as_weak();
@@ -317,11 +340,17 @@ fn _update_token_balance(ui: &AppWindow, network: SharedString, uuid: SharedStri
     let (_, entry) = entry.unwrap();
 
     let rpc_url_ty = RpcUrlType::from_str(&network).unwrap_or(RpcUrlType::Main);
+
     if entry.symbol == "SOL" {
         let account_address = ui.global::<Store>().get_current_account().pubkey;
 
         let ui_handle = ui.as_weak();
         tokio::spawn(async move {
+            match pyth::sol(Some(transaction::DEFAULT_TIMEOUT_SECS)).await {
+                Ok(price) => set_sol_price_cache(price),
+                Err(e) => log::warn!("{e:?}"),
+            }
+
             if let Ok(lamports) =
                 transaction::get_balance(rpc_url_ty, &account_address, Some(DEFAULT_TIMEOUT_SECS))
                     .await
@@ -330,7 +359,13 @@ fn _update_token_balance(ui: &AppWindow, network: SharedString, uuid: SharedStri
                     let ui = ui_handle.unwrap();
                     if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
                         entry.balance = wallet::util::lamports_to_sol_str(lamports).into();
-                        entry.balance_usdt = "$0.00".into();
+
+                        if get_sol_price_cache() > 0.0 {
+                            entry.balance_usdt = slint::format!(
+                                "${:.2}",
+                                lamports_to_sol(lamports) * get_sol_price_cache()
+                            );
+                        }
                         store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
                         _update_token_db(entry);
                     }
@@ -517,12 +552,7 @@ fn _refresh_tokens_management_entries(
     });
 }
 
-fn _request_airdrop_sol(
-    ui_handle: Weak<AppWindow>,
-    uuid: SharedString,
-    network: SharedString,
-    address: SharedString,
-) {
+fn _request_airdrop_sol(ui_handle: Weak<AppWindow>, network: SharedString, address: SharedString) {
     tokio::spawn(async move {
         async_message_info(ui_handle.clone(), tr("请耐心等待..."));
 
@@ -542,17 +572,7 @@ fn _request_airdrop_sol(
                     Err(e) => {
                         async_message_warn(ui_handle, format!("{}. {e:?}", tr("请求空投失败")))
                     }
-                    _ => {
-                        _ = slint::invoke_from_event_loop(move || {
-                            let ui = ui_handle.unwrap();
-                            let current_uuid = ui.global::<Store>().get_current_account().uuid;
-                            if current_uuid == uuid {
-                                ui.global::<Logic>()
-                                    .invoke_update_account_balance(uuid, network, address);
-                                message_success!(ui, tr("请求空投成功"));
-                            }
-                        });
-                    }
+                    _ => async_message_success(ui_handle, tr("请求空投成功")),
                 }
             }
             Err(e) => async_message_warn(ui_handle, format!("{}. {e:?}", tr("请求空投失败"))),
@@ -625,7 +645,7 @@ async fn _evaluate_sol_transaction_fee(
     _ = slint::invoke_from_event_loop(move || {
         let ui = ui.unwrap();
         let mut sender = ui.global::<TokensSetting>().get_sender();
-        sender.transaction_fee = slint::format!("{fee} SOL");
+        sender.transaction_fee = slint::format!("{fee}");
         sender.password = password;
         ui.global::<TokensSetting>().set_sender(sender);
     });
@@ -696,7 +716,7 @@ async fn _evaluate_spl_token_transaction_fee(
             _ = slint::invoke_from_event_loop(move || {
                 let ui = ui.unwrap();
                 let mut sender = ui.global::<TokensSetting>().get_sender();
-                sender.transaction_fee = slint::format!("{fee} SOL");
+                sender.transaction_fee = slint::format!("{fee}");
                 sender.password = password;
                 sender.create_token_account_fee = SharedString::new();
                 sender.is_token_account_exist = true;
@@ -707,10 +727,10 @@ async fn _evaluate_spl_token_transaction_fee(
             _ = slint::invoke_from_event_loop(move || {
                 let ui = ui.unwrap();
                 let mut sender = ui.global::<TokensSetting>().get_sender();
-                sender.transaction_fee = slint::format!("{fee} SOL");
+                sender.transaction_fee = slint::format!("{fee}");
                 sender.password = password;
                 sender.create_token_account_fee = slint::format!(
-                    "{} SOL",
+                    "{}",
                     lamports_to_sol(transaction::DEFAULT_CREATE_TOKEN_ACCOUNT_RENT_LAMPORTS)
                 );
                 sender.is_token_account_exist = false;
@@ -761,7 +781,7 @@ async fn _send_sol(
         network: props.network.clone().into(),
         hash,
         balance: props.amount.clone().into(),
-        time: local_now("%y-%m-%d %H:%M:%S"),
+        time: local_now("%Y-%m-%d %H:%M:%S"),
         status: TransactionTileStatus::Pending,
     };
 
@@ -843,7 +863,7 @@ async fn _send_spl_token(
         network: props.network.clone().into(),
         hash,
         balance: props.amount.clone().into(),
-        time: local_now("%y-%m-%d %H:%M:%S"),
+        time: local_now("%Y-%m-%d %H:%M:%S"),
         status: TransactionTileStatus::Pending,
     };
 
@@ -994,13 +1014,6 @@ fn _send_token(
 
                             ui.global::<Logic>()
                                 .invoke_update_token_info(props.network.clone(), props.token_uuid);
-
-                            let account = ui.global::<Store>().get_current_account();
-                            ui.global::<Logic>().invoke_update_account_balance(
-                                account.uuid,
-                                props.network,
-                                account.pubkey,
-                            );
 
                             message_success!(ui, tr("交易已经确认"));
                         });
