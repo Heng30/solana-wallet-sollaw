@@ -125,7 +125,7 @@ export component TransactionFee inherits SettingDetail {
 
         if loading-status == LoadingStatus.Success && root.create-token-account-fee != "": SettingDetailInnerVbox {
             SettingDetailLabel {
-                text: Logic.tr(Store.is-cn, "创建用户费用");
+                text: Logic.tr(Store.is-cn, "创建账户费用");
             }
 
             LineInput {

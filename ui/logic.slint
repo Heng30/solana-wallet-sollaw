@@ -129,6 +129,9 @@ export global Logic {
     // (network) -> void
     callback open-blockchain-network(string);
 
+    // (address) -> (error_message)
+    pure callback is-valid-address(string) -> string;
+
     callback update-cache-size();
     callback remove-all-cache();
 

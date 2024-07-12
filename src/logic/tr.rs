@@ -247,7 +247,7 @@ pub fn tr(text: &str) -> String {
     items.insert("请耐心等待...", "It may takes a long time. Please wait...");
     items.insert("估计交易费用失败", "Evaluating transaction fee failed");
     items.insert("正在估计交易费用...", "Evaluating gas fee...");
-    items.insert("交易记录", "Transaction history");
+    items.insert("交易记录", "Transaction signature");
     items.insert("区块网络", "Blockchain network");
     items.insert("发送数量", "Send amount");
     items.insert("交易记录", "Transaction history");
@@ -260,6 +260,11 @@ pub fn tr(text: &str) -> String {
     items.insert("交易费用", "Transaction fee");
     items.insert("交易已经确认", "Transaction has been confirmed");
     items.insert("交易成功", "Transaction success");
+    items.insert("非法地址", "Invalid address");
+    items.insert("账户", "Account");
+    items.insert("创建账户费用", "Create token account fee");
+    items.insert("创建组记词", "Create mnemonic");
+    items.insert("恢复账户", "Recover account");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",

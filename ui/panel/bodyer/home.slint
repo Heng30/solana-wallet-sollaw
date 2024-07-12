@@ -223,6 +223,11 @@ export component Home inherits Rectangle {
             Logic.open-blockchain-network(self.network);
         }
 
+
+        recipient-address-edited(text) => {
+            self.recipient-address-error-message = Logic.is-valid-address(text);
+        }
+
         cancel => {
             self.back();
         }

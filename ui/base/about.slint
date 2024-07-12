@@ -77,8 +77,10 @@ export component About inherits SettingDetail {
 
         HorizontalLayout {
             alignment: center;
+            padding-top: Theme.padding * 5;
+
             Brand {
-                width: 35%;
+                width: Math.min(root.width * 50%, 300px);
             }
         }
     }

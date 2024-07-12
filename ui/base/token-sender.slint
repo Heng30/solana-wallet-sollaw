@@ -17,10 +17,12 @@ export component TokenSender inherits SettingDetail {
     in-out property send-amount <=> amount-input.text;
     in property total-balance <=> total-balance-label.text;
     in property total-balance-usdt <=> total-balance-usdt-label.text;
+    in property <string> recipient-address-error-message;
 
     private property <bool> is-token-edit;
 
     callback update-send-token-name();
+    callback recipient-address-edited(string);
     callback copy-send-address <=> send-address-input.clicked;
     callback open-address-book <=> recipient-address-input.clicked;
     callback open-network <=> network-input.clicked;
@@ -108,6 +110,15 @@ export component TokenSender inherits SettingDetail {
                 width: root.width - Theme.spacing * 4;
                 text: "GEScvfEF1Xt2oyrnJij5V5DYSmPjuUt45DfUs3VFrsED";
                 icon: Icons.address-book;
+
+                edited => {
+                    root.recipient-address-edited(self.text);
+                }
+            }
+
+            if root.recipient-address-error-message != "": SettingDetailLabel {
+                color: Theme.danger-color;
+                text: root.recipient-address-error-message;
             }
         }
 

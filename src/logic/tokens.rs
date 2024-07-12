@@ -289,6 +289,12 @@ pub fn init(ui: &AppWindow) {
         .on_send_token(move |password, props, is_token_account_exist| {
             _send_token(ui_handle.clone(), password, props, is_token_account_exist);
         });
+
+    ui.global::<Logic>()
+        .on_is_valid_address(move |address| match Pubkey::from_str(&address) {
+            Err(_) => tr("非法地址").into(),
+            _ => SharedString::default(),
+        });
 }
 
 fn _add_token(entry: TokenTileEntry) {
