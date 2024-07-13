@@ -14,6 +14,7 @@ export enum SettingDetailIndex {
     Donate,
 
     Accounts,
+    AccountQrcode,
     AccountDetail,
     AccountMnemonic,
     SecurityAndPrivacy,
@@ -90,7 +91,6 @@ export global Store {
         pubkey: "pubkey-test",
         derive-index: 0,
         avatar-index: 0,
-        balance: "100.21 SOL",
     };
 
     in-out property <[AccountEntry]> accounts: [
@@ -100,7 +100,6 @@ export global Store {
             pubkey: "pubkey-test",
             derive-index: 0,
             avatar-index: 0,
-            balance: "$100.21",
         }
     ];
 

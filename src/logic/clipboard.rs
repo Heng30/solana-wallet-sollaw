@@ -34,16 +34,20 @@ fn copy_from_clipboard() -> Result<String> {
     }
 }
 
-// TODO
 #[cfg(target_os = "android")]
-fn copy_to_clipboard(_msg: &str) -> Result<()> {
-    bail!("Not Implemented");
+fn copy_to_clipboard(msg: &str) -> Result<()> {
+    match terminal_clipboard::set_string(msg) {
+        Err(e) => bail!("{e:?}"),
+        _ => Ok(()),
+    }
 }
 
-// TODO
 #[cfg(target_os = "android")]
 fn copy_from_clipboard() -> Result<String> {
-    bail!("Not Implemented");
+    match terminal_clipboard::get_string() {
+        Err(e) => bail!("{e:?}"),
+        Ok(msg) => Ok(msg),
+    }
 }
 
 pub fn init(ui: &AppWindow) {

@@ -80,6 +80,12 @@ export component Mnemonic inherits Rectangle {
         }
     }
 
+    init => {
+        if root.mnemonics.length == 0 {
+            root.reset-mnemonics(12);
+        }
+    }
+
     VerticalLayout {
         if is-show-header: Head {
             title: Logic.tr(Store.is-cn, root.header-title);
@@ -96,36 +102,28 @@ export component Mnemonic inherits Rectangle {
                 alignment: LayoutAlignment.center;
 
                 HorizontalLayout {
-                    alignment: space-between;
+                    alignment: LayoutAlignment.end;
+                    spacing: Theme.padding * 4;
 
-                    Label {
-                        text: Logic.tr(Store.is-cn, "组记词");
-                        font-size: Theme.title3-font-size;
+                    if is-show-refresh-btn: IconBtn {
+                        icon: Icons.refresh;
+
+                        clicked => {
+                            refresh(is-mnemonic-counts-12 ? 12 : 24);
+                        }
                     }
 
-                    HorizontalLayout {
-                        spacing: Theme.padding * 4;
-
-                        if is-show-refresh-btn: IconBtn {
-                            icon: Icons.refresh;
-
-                            clicked => {
-                                refresh(is-mnemonic-counts-12 ? 12 : 24);
-                            }
+                    if is-read-only: IconBtn {
+                        icon: Icons.copy;
+                        clicked => {
+                            copy(mnemonics);
                         }
+                    }
 
-                        if is-read-only: IconBtn {
-                            icon: Icons.copy;
-                            clicked => {
-                                copy(mnemonics);
-                            }
-                        }
-
-                        if !is-read-only: IconBtn {
-                            icon: Icons.paste;
-                            clicked => {
-                                paste();
-                            }
+                    if !is-read-only: IconBtn {
+                        icon: Icons.paste;
+                        clicked => {
+                            paste();
                         }
                     }
                 }

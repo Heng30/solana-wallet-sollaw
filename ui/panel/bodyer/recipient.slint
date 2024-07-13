@@ -2,7 +2,7 @@ import { Theme, Icons } from "../../theme.slint";
 import { Store } from "../../store.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
-import { IconBtn, Head, Label, Link, CenterLayout, SettingDetailInner } from "../../base/widgets.slint";
+import { IconBtn, Head, Label, Link, CenterLayout, TokenRecipient } from "../../base/widgets.slint";
 import { TestModeBanner } from "test-mode-banner.slint";
 
 
@@ -12,52 +12,18 @@ component TopHead inherits Head {
     hbox-alignment: LayoutAlignment.start;
 }
 
-component Body inherits SettingDetailInner {
-    vbox-alignment: LayoutAlignment.center;
-    vbox-spacing: Theme.spacing * 2;
+component Body inherits TokenRecipient {
+    is-show-header: false;
+    account-name: Store.current-account.name;
+    qrcode: Logic.qr-code(Store.current-account.pubkey);
+    address: Store.current-account.pubkey;
 
-    HorizontalLayout {
-        alignment: LayoutAlignment.center;
-
-        Label {
-            font-size: Theme.title2-font-size;
-            font-weight: 0.5;
-            text: Store.current-account.name;
-        }
+    clicked-address => {
+        Logic.open-account-detail(Logic.get-current-network(), Store.current-account.pubkey);
     }
 
-    HorizontalLayout {
-        alignment: LayoutAlignment.center;
-
-        Image {
-            width: Math.min(300px, root.width * 0.8);
-            height: self.width;
-            source: Logic.qr-code(Store.current-account.pubkey);
-        }
-    }
-
-    HorizontalLayout {
-        spacing: Theme.spacing * 2;
-        alignment: LayoutAlignment.center;
-
-        Link {
-            overflow: elide;
-            horizontal-stretch: 1;
-            wrap: TextWrap.no-wrap;
-            text: Store.current-account.pubkey;
-            font-size: Theme.default-font-size;
-            color: self.has-hover ? Theme.link-text-color : Theme.primary-text-color;
-            clicked => {
-                Logic.open-account-detail(Logic.get-current-network(), Store.current-account.pubkey);
-            }
-        }
-
-        IconBtn {
-            icon: Icons.copy;
-            clicked => {
-                Logic.copy-to-clipboard(Store.current-account.pubkey);
-            }
-        }
+    copy-address => {
+        Logic.copy-to-clipboard(Store.current-account.pubkey);
     }
 }
 

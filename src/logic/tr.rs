@@ -163,8 +163,8 @@ pub fn tr(text: &str) -> String {
     items.insert("请输入密码", "Please enter password");
     items.insert("请再次输入密码", "Please enter password again");
     items.insert("至少8个字符", "At least 8 chars");
-    items.insert("创建新账户", "Create a new account");
-    items.insert("使用组记词恢复账户", "Recover account from mnemonic");
+    items.insert("创建账户", "Create account");
+    items.insert("恢复账户", "Recover account");
     items.insert("生成组记词失败", "New mnemonic failed");
     items.insert(
         "组记词数量不对，仅支持12和24个组记词",
@@ -265,6 +265,7 @@ pub fn tr(text: &str) -> String {
     items.insert("创建账户费用", "Create token account fee");
     items.insert("创建组记词", "Create mnemonic");
     items.insert("恢复账户", "Recover account");
+    items.insert("二维码", "QrCode");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",
@@ -280,7 +281,7 @@ pub fn tr(text: &str) -> String {
     );
     items.insert(
         "欢迎使用，享受你的加密之旅",
-        "Welcome! Enjoying you journey of crypto.",
+        "Welcome! Enjoying you journey of crypto",
     );
 
     if let Some(txt) = items.get(text) {
