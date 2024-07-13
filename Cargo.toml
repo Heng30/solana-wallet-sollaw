@@ -47,7 +47,6 @@ platform-dirs = "0.3"
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.13"
 terminal-clipboard = "0.4"
-super_native_extensions = { version = "0.1", path = "./libs/super-native-extensions" }
 
 [build-dependencies]
 cmd_lib = "1.9"

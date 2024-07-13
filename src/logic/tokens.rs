@@ -204,6 +204,7 @@ pub fn init(ui: &AppWindow) {
             _update_token_balance(&ui, network.clone(), entry.uuid.clone());
             _update_symbol_and_icon(&ui, entry.uuid);
         }
+        message_success!(ui, tr("刷新完成"));
     });
 
     let ui_handle = ui.as_weak();
