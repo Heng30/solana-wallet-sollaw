@@ -6,7 +6,7 @@ use crate::{
         def::{HistoryEntry, HISTORY_TABLE},
     },
     logic::message::async_message_success,
-    message_info, message_success, message_warn,
+    message_success, message_warn,
     slint_generatedAppWindow::{
         AppWindow, HistorySetting, Logic, TransactionTileEntry as UIHistoryEntry,
         TransactionTileStatus, Util,
@@ -169,13 +169,10 @@ pub fn init(ui: &AppWindow) {
     ui.global::<Logic>()
         .on_refresh_all_pending_and_error_history(move || {
             let ui = ui_handle.unwrap();
-            for (index, item) in get_pending_and_error_entries(&ui).into_iter().enumerate() {
-                if index == 0 {
-                    message_info!(ui, tr("正在刷新..."));
-                }
-
+            for item in get_pending_and_error_entries(&ui).into_iter() {
                 _refresh_pending_and_error_history(&ui, item);
             }
+            message_success!(ui, tr("刷新完成"));
         });
 
     let ui_handle = ui.as_weak();
