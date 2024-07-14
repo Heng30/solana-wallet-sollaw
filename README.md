@@ -11,13 +11,12 @@
 
 [中文文档](./README.zh-CN.md)
 
-#### Warning
 **If you can't review the source codes, I don't recommand you to use this wallet. If you use this wallet, you take your own risk.**
 
-#### Introduction
-It's a `Solana` wallet. Based on Rust and Slint-ui. You can compile it for Linux, Windows and Android. However, There are some bad user experience on Android platform.
+### Introduction
+It's a `Solana` wallet. Based on Rust and Slint-ui. You can compile it for Linux, Windows and Android. However, There are some bad user experience on Android platform. This wallet uses different algorithm to generate `Seed` with `Phantom`. So the same mnemonic would generate different wallet address.
 
-#### Features
+### Features
 - [x] Create and recover account
 - [x] Derive child accounts
 - [x] Address book
@@ -26,11 +25,11 @@ It's a `Solana` wallet. Based on Rust and Slint-ui. You can compile it for Linux
 - [x] Send SOL and spl token in MainNet
 - [x] Genarate QrCode for address
 
-#### TODO
+### TODO
 - [ ] fetch spl token price
 - [ ] copy and paste text on Android
 
-##### Android platform build information
+### Android platform build information
 - `min-sdk-version = 23`
 - `target-sdk-version = 32`
 
@@ -42,7 +41,7 @@ It's a `Solana` wallet. Based on Rust and Slint-ui. You can compile it for Linux
 - Run `make build-desktop-release` to build a release version desktop APK
 - Refer to [Makefile](./Makefile) for more information
 
-#### Reference
+### Reference
 - [Slint Language Documentation](https://slint-ui.com/releases/1.0.0/docs/slint/)
 - [github/slint-ui](https://github.com/slint-ui/slint)
 - [Viewer for Slint](https://github.com/slint-ui/slint/tree/master/tools/viewer)

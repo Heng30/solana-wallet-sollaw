@@ -1,7 +1,7 @@
-extern crate sollet;
+extern crate sollaw;
 
 #[cfg(not(target_os = "android"))]
 #[tokio::main]
 async fn main() {
-    sollet::desktop_main().await;
+    sollaw::desktop_main().await;
 }

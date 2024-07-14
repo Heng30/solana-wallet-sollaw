@@ -116,13 +116,13 @@ export global Store {
     };
 
     in-out property <[string]> helps: is-cn ? [
-        "配置文件保存目录: ~/.config/sollet",
-        "数据库保存目录: ~/.local/share/sollet",
+        "配置文件保存目录: ~/.config/sollaw",
+        "数据库保存目录: ~/.local/share/sollaw",
         "清空配置目录和数据目录，可以重置整个程序",
         "程序不会保存明文密码，而是通过Hash算法保存密码的Hash值"
     ] : [
-        "Config directory: ~/.config/sollet",
-        "Data directory: ~/.local/share/sollet",
+        "Config directory: ~/.config/sollaw",
+        "Data directory: ~/.local/share/sollaw",
         "Remove all files in config directory and data directory which can reset the application",
         "It don't save your password in plaintext format. However, It will calculate the Hash value of the password and saves it int database"
     ];

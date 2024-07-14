@@ -12,11 +12,11 @@ build:
 
 build-release:
 	$(build-evn) cargo apk build --lib --release
-	cp -f target/release/apk/sollet.apk target/sollet-${version}.apk
+	cp -f target/release/apk/sollaw.apk target/sollaw-${version}.apk
 
 build-release-mold:
 	$(build-evn) mold --run cargo apk build --lib --release
-	cp -f target/release/apk/sollet.apk target/sollet-${version}.apk
+	cp -f target/release/apk/sollaw.apk target/sollaw-${version}.apk
 
 run:
 	RUST_BACKTRACE=1 $(run-evn) cargo apk run --lib
@@ -31,35 +31,35 @@ install:
 	$(build-evn) $(run-evn) cargo apk run --lib --release
 
 debug:
-	$(build-evn) $(run-evn) cargo run --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo run --bin sollaw-desktop --features=desktop
 
 debug-mold:
-	$(build-evn) $(run-evn) mold --run cargo run --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) mold --run cargo run --bin sollaw-desktop --features=desktop
 
 debug-local:
-	$(run-evn) ./target/debug/sollet-desktop
+	$(run-evn) ./target/debug/sollaw-desktop
 
 
 release-local:
-	$(run-evn) ./target/release/sollet-desktop
+	$(run-evn) ./target/release/sollaw-desktop
 
 build-desktop-debug-mold:
-	$(build-evn) $(run-evn) mold --run cargo build --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) mold --run cargo build --bin sollaw-desktop --features=desktop
 
 build-desktop-debug-job1:
-	$(build-evn) $(run-evn) cargo build --jobs 1 --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --jobs 1 --bin sollaw-desktop --features=desktop
 
 build-desktop-debug:
-	$(build-evn) $(run-evn) cargo build --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --bin sollaw-desktop --features=desktop
 
 build-desktop-release:
-	$(build-evn) $(run-evn) cargo build --release --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --release --bin sollaw-desktop --features=desktop
 
 build-desktop-release-job1:
-	$(build-evn) $(run-evn) cargo build --release --jobs 1 --bin sollet-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --release --jobs 1 --bin sollaw-desktop --features=desktop
 
 install-desktop:
-	cp -f target/release/sollet-desktop ~/bin/sollet-desktop
+	cp -f target/release/sollaw-desktop ~/bin/sollaw-desktop
 
 test:
 	$(build-evn) $(run-evn) cargo test -- --nocapture

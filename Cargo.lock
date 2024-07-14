@@ -7151,7 +7151,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sollet"
+name = "sollaw"
 version = "0.1.0"
 dependencies = [
  "android_logger",

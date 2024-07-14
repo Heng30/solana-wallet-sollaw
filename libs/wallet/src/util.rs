@@ -16,5 +16,4 @@ fn pretty_sol_str(sol: f64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 }

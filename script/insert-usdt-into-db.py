@@ -2,7 +2,7 @@ import sqlite3
 import uuid
 import json
 
-db = "/home/blue/.local/share/sollet/sollet.db"
+db = "/home/blue/.local/share/sollaw/sollaw.db"
 conn = sqlite3.connect(db)
 cursor = conn.cursor()
 

@@ -11,13 +11,12 @@
 
 [English Documentation](./README.md)
 
-#### 警告
 **如果你没有审查代码的能力，我不建议你使用这个Solana钱包。如果你一定要使用这个钱包，你自己承担风险。**
 
-#### 简介
-这个一个基于Rust和Slint-ui的`Solana`钱包。你可以编译到Linux、Windows和Android平台。不过，Android 平台的用户体验并不是太友好。
+### 简介
+这个一个基于Rust和Slint-ui的`Solana`钱包。你可以编译到Linux、Windows和Android平台。不过，Android 平台的用户体验并不是太友好。这个钱包使用不同于`Phantom`的Seed生成算法，所以相同的组记词会生成不同的钱包地址。
 
-#### 功能
+### 功能
 - [x] 创建和恢复账户
 - [x] 生成子账户
 - [x] 地址簿
@@ -26,15 +25,15 @@
 - [x] 在主网发送和接收Sol和Token
 - [x] 支持给地址生成QrCode
 
-#### TODO
+### TODO
 - [ ] 获取 spl token 价格
 - [ ] 在Android平台复制和粘贴文本
 
-##### 安卓平台编译信息
+### 安卓平台编译信息
 - `min-sdk-version = 23`
 - `target-sdk-version = 32`
 
-#### 如何构建?
+### 如何构建?
 - 安装 `Rust` 和 `Cargo`
 - 安装 Android `sdk`, `ndk`, `jdk17`, 和设置对应的环境变量
 - 运行 `make` 编译安卓平台程序
@@ -42,7 +41,7 @@
 - 运行 `make build-desktop-release` 编译桌面平台程序
 - 参考 [Makefile](./Makefile) 了解更多信息
 
-#### 参考
+### 参考
 - [Slint Language Documentation](https://slint-ui.com/releases/1.0.0/docs/slint/)
 - [github/slint-ui](https://github.com/slint-ui/slint)
 - [Viewer for Slint](https://github.com/slint-ui/slint/tree/master/tools/viewer)

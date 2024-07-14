@@ -1,13 +1,13 @@
 [package]
-name = "sollet"
+name = "sollaw"
 version = "0.1.0"
 edition = "2021"
 authors = ["Heng30 <rongheng30@gmail.com>"]
-homepage = "https://github.com/Heng30/solana-wallet-sollet"
+homepage = "https://github.com/Heng30/solana-wallet-sollaw"
 readme = "README.md"
 keywords = ["rust", "solana", "wallet", "bip39", "crypto", "blockchain"]
 license = "MIT"
-repository = "https://github.com/Heng30/solana-wallet-sollet"
+repository = "https://github.com/Heng30/solana-wallet-sollaw"
 
 [dependencies]
 log = "0.4"
@@ -64,11 +64,11 @@ crate-type = ["cdylib", "lib"]
 
 [[bin]]
 path = "src/desktop.rs"
-name = "sollet-desktop"
+name = "sollaw-desktop"
 required-features = ["desktop"]
 
 [package.metadata.android]
-package = "xyz.heng30.sollet"
+package = "xyz.heng30.sollaw"
 build_targets = ["aarch64-linux-android"]
 resources = "./res"
 strip = "strip"

@@ -17,7 +17,7 @@ use anyhow::{bail, Result};
 use cutil::{http, time::local_now};
 use once_cell::sync::Lazy;
 use slint::{ComponentHandle, Image, Model, SharedString, VecModel, Weak};
-use std::{fs, str::FromStr, sync::Mutex};
+use std::{collections::HashMap, fs, str::FromStr, sync::Mutex};
 use uuid::Uuid;
 use wallet::{
     helius::{self, AssetResult},
@@ -28,6 +28,72 @@ use wallet::{
 };
 
 static SOL_PRICE: Lazy<Mutex<f64>> = Lazy::new(|| Mutex::new(0.0));
+
+static SPL_TOKENS_PRICE_INFO: Lazy<Mutex<HashMap<&'static str, SplTokenPriceInfo>>> =
+    Lazy::new(|| {
+        let mut prices = HashMap::new();
+
+        for item in [
+            (
+                "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // mint_address
+                "USDT",
+                "3vxLXJqLqF3JG5TCbYycbKWRBbCJQLxQmBGCkyqEEefL",
+            ),
+            (
+                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "USDC",
+                "Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD",
+            ),
+            (
+                "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
+                "PYTH",
+                "nrYkQQQur7z8rYTST3G9GqATviK5SxTDkrqd21MW6Ue",
+            ),
+            (
+                "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+                "JUP",
+                "g6eRCbboSwK4tSWngn773RCMexr1APQr4uA9bGZBYfo",
+            ),
+            (
+                "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
+                "JITO",
+                "7yyaeuJ1GGtVBLT2z2xub5ZWYKaNhF28mj1RdV4VDFVk",
+            ),
+            (
+                "hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux",
+                "HNT",
+                "7moA1i5vQUpfDwSpK6Pw9s56ahB7WFGidtbL2ujWrVvm",
+            ),
+            (
+                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+                "Bonk",
+                "8ihFLu5FimgTQ1Unh4dVyEHUGodJ5gJQCrQf4KUVB9bN",
+            ),
+            (
+                "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+                "RAY",
+                "AnLf8tVYCM816gmBjiy8n53eXKKEDydT5piYjjQDPgTB",
+            ),
+        ] {
+            prices.insert(
+                item.0,
+                SplTokenPriceInfo {
+                    symbol: item.1,
+                    pyth_feed_id: item.2,
+                    price: 0.0f64,
+                },
+            );
+        }
+
+        Mutex::new(prices)
+    });
+
+#[derive(Clone, Default, Debug)]
+pub struct SplTokenPriceInfo {
+    pub symbol: &'static str,
+    pub pyth_feed_id: &'static str,
+    pub price: f64,
+}
 
 #[macro_export]
 macro_rules! store_tokens_setting_entries {
@@ -57,6 +123,66 @@ pub fn get_sol_price_cache() -> f64 {
 
 pub fn set_sol_price_cache(v: f64) {
     *SOL_PRICE.lock().unwrap() = v;
+}
+
+pub async fn update_sol_price() {
+    match pyth::sol(Some(transaction::DEFAULT_TIMEOUT_SECS)).await {
+        Ok(price) => set_sol_price_cache(price),
+        Err(e) => log::warn!("{e:?}"),
+    }
+}
+
+pub fn get_spl_token_price(mint_address: &str) -> Option<f64> {
+    SPL_TOKENS_PRICE_INFO
+        .lock()
+        .unwrap()
+        .get(mint_address)
+        .and_then(|item| Some(item.price))
+}
+
+pub async fn update_spl_token_price(mint_address: &str) {
+    let pyth_feed_id = {
+        match SPL_TOKENS_PRICE_INFO.lock().unwrap().get(mint_address) {
+            None => return,
+            Some(item) => item.pyth_feed_id.to_string(),
+        }
+    };
+
+    match pyth::spl_token(&pyth_feed_id, Some(transaction::DEFAULT_TIMEOUT_SECS)).await {
+        Ok(price) => {
+            if let Some(entry) = SPL_TOKENS_PRICE_INFO.lock().unwrap().get_mut(mint_address) {
+                entry.price = price;
+            }
+        }
+        Err(e) => log::warn!("{e:?}"),
+    }
+}
+
+pub async fn update_spl_tokens_price() {
+    let feed_ids = {
+        SPL_TOKENS_PRICE_INFO
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.pyth_feed_id.to_string()))
+            .collect::<Vec<_>>()
+    };
+
+    for item in feed_ids.into_iter() {
+        tokio::spawn(async move {
+            if let Ok(price) =
+                pyth::spl_token(&item.1, Some(transaction::DEFAULT_TIMEOUT_SECS)).await
+            {
+                if let Some(entry) = SPL_TOKENS_PRICE_INFO
+                    .lock()
+                    .unwrap()
+                    .get_mut(item.0.as_str())
+                {
+                    entry.price = price;
+                }
+            }
+        });
+    }
 }
 
 async fn get_from_db(network: &str, account_address: &str) -> Vec<UITokenTileEntry> {
@@ -153,10 +279,8 @@ pub fn init_tokens(ui: &AppWindow) {
             store_tokens_setting_entries!(ui).set_vec(entries);
         });
 
-        match pyth::sol(Some(transaction::DEFAULT_TIMEOUT_SECS)).await {
-            Ok(price) => set_sol_price_cache(price),
-            Err(e) => log::warn!("{e:?}"),
-        }
+        update_sol_price().await;
+        update_spl_tokens_price().await;
     });
 }
 
@@ -353,10 +477,7 @@ fn _update_token_balance(ui: &AppWindow, network: SharedString, uuid: SharedStri
 
         let ui_handle = ui.as_weak();
         tokio::spawn(async move {
-            match pyth::sol(Some(transaction::DEFAULT_TIMEOUT_SECS)).await {
-                Ok(price) => set_sol_price_cache(price),
-                Err(e) => log::warn!("{e:?}"),
-            }
+            update_sol_price().await;
 
             if let Ok(lamports) =
                 transaction::get_balance(rpc_url_ty, &account_address, Some(DEFAULT_TIMEOUT_SECS))
@@ -388,6 +509,8 @@ fn _update_token_balance(ui: &AppWindow, network: SharedString, uuid: SharedStri
 
     let ui_handle = ui.as_weak();
     tokio::spawn(async move {
+        update_spl_token_price(&entry.mint_address).await;
+
         if let Ok(Some(ta)) = transaction::fetch_token_account(
             rpc_url_ty,
             &entry.token_account_address,
@@ -399,7 +522,18 @@ fn _update_token_balance(ui: &AppWindow, network: SharedString, uuid: SharedStri
                 let ui = ui_handle.unwrap();
                 if let Some((index, mut entry)) = get_entry(&ui, &uuid) {
                     entry.balance = ta.token_amount.ui_amount_string.into();
-                    entry.balance_usdt = "$0.00".into();
+
+                    if let Some(price) = get_spl_token_price(&entry.mint_address) {
+                        if price > 0.0_f64 {
+                            match entry.balance.parse::<f64>() {
+                                Ok(balance) => {
+                                    entry.balance_usdt = slint::format!("${:.2}", price * balance);
+                                }
+                                Err(e) => log::warn!("{e:?}"),
+                            }
+                        }
+                    }
+
                     store_tokens_setting_entries!(ui).set_row_data(index, entry.clone());
                     _update_token_db(entry);
                 }
