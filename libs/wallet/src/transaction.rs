@@ -54,6 +54,7 @@ pub struct SendLamportsProps {
     pub lamports: u64,
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
+    pub memo: Option<String>,
 }
 
 #[derive(Debug)]
@@ -67,6 +68,7 @@ pub struct SendSplTokenProps {
     pub decimals: u8,
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
+    pub memo: Option<String>,
 }
 
 #[derive(Debug)]
@@ -79,6 +81,7 @@ pub struct SendSplTokenWithCreateProps {
     pub decimals: u8,
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
+    pub memo: Option<String>,
 }
 
 #[derive(Debug)]
@@ -163,13 +166,22 @@ pub async fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
         .await
         .with_context(|| "Get latest blockhash failed")?;
 
-    let instruction = system_instruction::transfer(
+    let send_instruction = system_instruction::transfer(
         &props.sender_keypair.pubkey(),
         &props.recipient_pubkey,
         props.lamports,
     );
 
-    let message = Message::new(&[instruction], Some(&props.sender_keypair.pubkey()));
+    let message = if let Some(memo) = props.memo {
+        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
+        Message::new(
+            &[send_instruction, memo_instruction],
+            Some(&props.sender_keypair.pubkey()),
+        )
+    } else {
+        Message::new(&[send_instruction], Some(&props.sender_keypair.pubkey()))
+    };
+
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -270,7 +282,7 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
         );
     }
 
-    let instruction = spl_token::instruction::transfer_checked(
+    let send_instruction = spl_token::instruction::transfer_checked(
         &spl_token::ID,
         &props.sender_token_account_pubkey,
         &props.mint_pubkey,
@@ -286,7 +298,16 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
         .await
         .with_context(|| "Get latest blockhash failed")?;
 
-    let message = Message::new(&[instruction], Some(&props.sender_keypair.pubkey()));
+    let message = if let Some(memo) = props.memo {
+        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
+        Message::new(
+            &[send_instruction, memo_instruction],
+            Some(&props.sender_keypair.pubkey()),
+        )
+    } else {
+        Message::new(&[send_instruction], Some(&props.sender_keypair.pubkey()))
+    };
+
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -348,10 +369,19 @@ pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> R
         .await
         .with_context(|| "Get latest blockhash failed")?;
 
-    let message = Message::new(
-        &[create_instruction, send_instruction],
-        Some(&props.sender_keypair.pubkey()),
-    );
+    let message = if let Some(memo) = props.memo {
+        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
+        Message::new(
+            &[create_instruction, send_instruction, memo_instruction],
+            Some(&props.sender_keypair.pubkey()),
+        )
+    } else {
+        Message::new(
+            &[create_instruction, send_instruction],
+            Some(&props.sender_keypair.pubkey()),
+        )
+    };
+
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -938,6 +968,7 @@ mod tests {
     use rand::distributions::{Alphanumeric, DistString};
     use std::str::FromStr;
 
+    //mnemonic: text rail defense total joke enough question net dance hello health absurd
     const SENDER_KEYPAIR: &[u8] = &[
         82, 58, 225, 224, 31, 242, 176, 82, 123, 252, 190, 95, 252, 168, 178, 81, 25, 117, 29, 235,
         149, 159, 9, 226, 31, 41, 77, 251, 85, 225, 84, 142, 226, 85, 29, 242, 3, 193, 99, 113,
@@ -990,6 +1021,7 @@ mod tests {
             decimals: 6,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
         };
 
         let instructions = send_spl_token_instruction(&props)?;
@@ -1056,6 +1088,7 @@ mod tests {
             decimals: 6,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
         };
         let send_instructions = send_spl_token_instruction(&props)?;
 
@@ -1082,6 +1115,27 @@ mod tests {
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
+        };
+
+        let signature = send_lamports(props).await?;
+        println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_lamports_with_memo() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
+        let props = SendLamportsProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            recipient_pubkey,
+            lamports: 100,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+            memo: Some("Hello World From Sollaw".to_string()),
         };
 
         let signature = send_lamports(props).await?;
@@ -1116,6 +1170,7 @@ mod tests {
             lamports: 1_000_000,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
         };
         let signature = send_lamports(props).await?;
         println!("{signature:?}");
@@ -1153,6 +1208,33 @@ mod tests {
             decimals: 6,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
+        };
+
+        let signature = send_spl_token(props).await?;
+        println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_spl_token_with_memo() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let sender_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_SENDER)?;
+        let recipient_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_RECIPENT)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let props = SendSplTokenProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            sender_token_account_pubkey,
+            recipient_token_account_pubkey,
+            mint_pubkey,
+            amount: 1000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+            memo: Some("Hello World from Sollaw".to_string()),
         };
 
         let signature = send_spl_token(props).await?;
@@ -1177,6 +1259,46 @@ mod tests {
             decimals: 6,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
+        };
+
+        println!(
+            "recipient_pubkey: {}",
+            recipient_keypair.pubkey().to_string()
+        );
+
+        let signature = send_spl_token_with_create(props).await?;
+        println!("{signature:?}");
+
+        let info = fetch_account_token(
+            RpcUrlType::Test,
+            &recipient_pubkey.to_string(),
+            USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS,
+            Some(DEFAULT_TIMEOUT_SECS),
+        )
+        .await?;
+        println!("{info:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_spl_token_with_create_with_memo() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+        let recipient_keypair = Keypair::new();
+        let recipient_pubkey = recipient_keypair.pubkey();
+
+        let props = SendSplTokenWithCreateProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            recipient_pubkey: recipient_pubkey.clone(),
+            mint_pubkey,
+            amount: 1_000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+            memo: Some("Hello World From Sollaw".to_string()),
         };
 
         println!(
@@ -1334,6 +1456,7 @@ mod tests {
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
+            memo: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1356,6 +1479,7 @@ mod tests {
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
+            memo: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1380,6 +1504,7 @@ mod tests {
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
+            memo: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1403,6 +1528,7 @@ mod tests {
             lamports: 100,
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
+            memo: None,
         };
 
         let signature = send_lamports(props).await?;

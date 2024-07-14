@@ -4991,6 +4991,7 @@ dependencies = [
  "solana-transaction-status",
  "solana-zk-token-sdk",
  "spl-associated-token-account 4.0.0",
+ "spl-memo 5.0.0",
  "spl-token 6.0.0",
  "tiny-bip39",
  "tokio",

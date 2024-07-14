@@ -78,7 +78,7 @@ static SPL_TOKENS_PRICE_INFO: Lazy<Mutex<HashMap<&'static str, SplTokenPriceInfo
             prices.insert(
                 item.0,
                 SplTokenPriceInfo {
-                    symbol: item.1,
+                    _symbol: item.1,
                     pyth_feed_id: item.2,
                     price: 0.0f64,
                 },
@@ -90,7 +90,7 @@ static SPL_TOKENS_PRICE_INFO: Lazy<Mutex<HashMap<&'static str, SplTokenPriceInfo
 
 #[derive(Clone, Default, Debug)]
 pub struct SplTokenPriceInfo {
-    pub symbol: &'static str,
+    pub _symbol: &'static str,
     pub pyth_feed_id: &'static str,
     pub price: f64,
 }
@@ -365,7 +365,12 @@ pub fn init(ui: &AppWindow) {
         .on_spl_token_icon(move |mint_address, icon_extension| {
             let ui = ui_handle.unwrap();
             let filepath = config::cache_dir().join(format!("{}.{}", mint_address, icon_extension));
-            Image::load_from_path(&filepath).unwrap_or(ui.global::<Icons>().get_token())
+
+            if filepath.exists() {
+                Image::load_from_path(&filepath).unwrap_or(ui.global::<Icons>().get_token())
+            } else {
+                ui.global::<Icons>().get_token()
+            }
         });
 
     let ui_handle = ui.as_weak();
@@ -804,6 +809,11 @@ async fn _evaluate_spl_token_transaction_fee(
     let sender_pubkey = Pubkey::from_str(&props.send_address)?;
     let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let mint_pubkey = Pubkey::from_str(&props.mint_address)?;
+    let memo = if props.memo.trim().is_empty() {
+        None
+    } else {
+        Some(props.memo.into())
+    };
 
     let info = super::accounts::get_secrect_info().await?;
     let sender_keypair =
@@ -834,6 +844,7 @@ async fn _evaluate_spl_token_transaction_fee(
         decimals: props.spl_token_decimals as u8,
         timeout: Some(DEFAULT_TIMEOUT_SECS),
         is_wait_confirmed: true,
+        memo,
     };
     let instructions = transaction::send_spl_token_instruction(&send_spl_token_props)?;
     let fee = transaction::evaluate_transaction_fee(
@@ -894,6 +905,11 @@ async fn _send_sol(
     let sender_pubkey = Pubkey::from_str(&props.send_address)?;
     let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let amount = props.amount.parse::<f64>()?;
+    let memo = if props.memo.trim().is_empty() {
+        None
+    } else {
+        Some(props.memo.into())
+    };
 
     let info = super::accounts::get_secrect_info().await?;
     let sender_keypair =
@@ -913,6 +929,7 @@ async fn _send_sol(
         lamports: sol_to_lamports(amount),
         timeout: None,
         is_wait_confirmed: false,
+        memo,
     };
     let signature = transaction::send_lamports(send_props).await?;
 
@@ -949,6 +966,11 @@ async fn _send_spl_token(
     let sender_pubkey = Pubkey::from_str(&props.send_address)?;
     let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let mint_pubkey = Pubkey::from_str(&props.mint_address)?;
+    let memo = if props.memo.trim().is_empty() {
+        None
+    } else {
+        Some(props.memo.into())
+    };
 
     let info = super::accounts::get_secrect_info().await?;
     let sender_keypair =
@@ -980,6 +1002,7 @@ async fn _send_spl_token(
             decimals: props.spl_token_decimals as u8,
             timeout: None,
             is_wait_confirmed: false,
+            memo,
         };
 
         transaction::send_spl_token(send_spl_token_props).await?
@@ -993,6 +1016,7 @@ async fn _send_spl_token(
             decimals: props.spl_token_decimals as u8,
             timeout: None,
             is_wait_confirmed: false,
+            memo,
         };
 
         transaction::send_spl_token_with_create(send_spl_token_props).await?
