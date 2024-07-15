@@ -288,9 +288,9 @@ export component Home inherits Rectangle {
         recipient-address: TokensSetting.sender.recipient-address;
         send-amount: TokensSetting.sender.send-amount;
         send-amount-usdt: root.selected-entry.symbol == "SOL" ? "$" + Logic.calculate-price-of-sol(TokensSetting.sender.send-amount) : "";
-        fee: TokensSetting.sender.transaction-fee + "SOL";
+        fee: TokensSetting.sender.transaction-fee + " SOL";
         fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.transaction-fee);
-        create-token-account-fee: TokensSetting.sender.create-token-account-fee != "" ? TokensSetting.sender.create-token-account-fee + "SOL" : "";
+        create-token-account-fee: TokensSetting.sender.create-token-account-fee != "" ? TokensSetting.sender.create-token-account-fee + " SOL" : "";
         create-token-account-fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.create-token-account-fee);
 
         memo: TokensSetting.sender.props.memo;

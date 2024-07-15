@@ -1086,7 +1086,7 @@ async fn _send_spl_token(
             prioritization_fee,
         };
 
-        transaction::send_spl_token(send_spl_token_props).await?
+        transaction::send_spl_token(send_spl_token_props, true).await?
     } else {
         let send_spl_token_props = transaction::SendSplTokenWithCreateProps {
             rpc_url_ty: rpc_url_ty.clone(),
@@ -1101,7 +1101,7 @@ async fn _send_spl_token(
             prioritization_fee,
         };
 
-        transaction::send_spl_token_with_create(send_spl_token_props).await?
+        transaction::send_spl_token_with_create(send_spl_token_props, true).await?
     };
 
     let hash = signature.to_string();
