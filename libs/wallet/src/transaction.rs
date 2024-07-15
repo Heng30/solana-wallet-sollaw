@@ -266,7 +266,10 @@ pub async fn close_spl_token_account(props: CloseSplTokenAccountProps) -> Result
     .with_context(|| "Send and confirm transation failed")
 }
 
-pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
+pub async fn send_spl_token(
+    props: SendSplTokenProps,
+    is_spl_token_2022: bool,
+) -> Result<Signature> {
     let connection = match props.timeout {
         Some(timeout) => {
             RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
@@ -291,16 +294,29 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
     }
 
     let mut instructions = vec![];
-    let send_instruction = spl_token::instruction::transfer_checked(
-        &spl_token::ID,
-        &props.sender_token_account_pubkey,
-        &props.mint_pubkey,
-        &props.recipient_token_account_pubkey,
-        &props.sender_keypair.pubkey(),
-        &[&props.sender_keypair.pubkey()],
-        props.amount,
-        props.decimals,
-    )?;
+    let send_instruction = if is_spl_token_2022 {
+        spl_token_2022::instruction::transfer_checked(
+            &spl_token::ID,
+            &props.sender_token_account_pubkey,
+            &props.mint_pubkey,
+            &props.recipient_token_account_pubkey,
+            &props.sender_keypair.pubkey(),
+            &[&props.sender_keypair.pubkey()],
+            props.amount,
+            props.decimals,
+        )?
+    } else {
+        spl_token::instruction::transfer_checked(
+            &spl_token::ID,
+            &props.sender_token_account_pubkey,
+            &props.mint_pubkey,
+            &props.recipient_token_account_pubkey,
+            &props.sender_keypair.pubkey(),
+            &[&props.sender_keypair.pubkey()],
+            props.amount,
+            props.decimals,
+        )?
+    };
     instructions.push(send_instruction);
 
     if let Some(memo) = props.memo {
@@ -329,7 +345,10 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
     .with_context(|| "Send and confirm transation failed")
 }
 
-pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> Result<Signature> {
+pub async fn send_spl_token_with_create(
+    props: SendSplTokenWithCreateProps,
+    is_spl_token_2022: bool,
+) -> Result<Signature> {
     let connection = match props.timeout {
         Some(timeout) => {
             RpcClient::new_with_timeout(props.rpc_url_ty.to_string(), Duration::from_secs(timeout))
@@ -367,16 +386,29 @@ pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> R
     let recipient_token_account_pubkey =
         derive_token_account_address(&props.recipient_pubkey, &props.mint_pubkey);
 
-    let send_instruction = spl_token::instruction::transfer_checked(
-        &spl_token::ID,
-        &sender_token_account_pubkey,
-        &props.mint_pubkey,
-        &recipient_token_account_pubkey,
-        &props.sender_keypair.pubkey(),
-        &[&props.sender_keypair.pubkey()],
-        props.amount,
-        props.decimals,
-    )?;
+    let send_instruction = if is_spl_token_2022 {
+        spl_token_2022::instruction::transfer_checked(
+            &spl_token::ID,
+            &sender_token_account_pubkey,
+            &props.mint_pubkey,
+            &recipient_token_account_pubkey,
+            &props.sender_keypair.pubkey(),
+            &[&props.sender_keypair.pubkey()],
+            props.amount,
+            props.decimals,
+        )?
+    } else {
+        spl_token::instruction::transfer_checked(
+            &spl_token::ID,
+            &sender_token_account_pubkey,
+            &props.mint_pubkey,
+            &recipient_token_account_pubkey,
+            &props.sender_keypair.pubkey(),
+            &[&props.sender_keypair.pubkey()],
+            props.amount,
+            props.decimals,
+        )?
+    };
     instructions.push(send_instruction);
 
     if let Some(memo) = props.memo {
@@ -1008,6 +1040,19 @@ pub fn send_spl_token_instruction(props: &SendSplTokenProps) -> Result<[Instruct
     )?])
 }
 
+pub fn send_spl_token_instruction_2022(props: &SendSplTokenProps) -> Result<[Instruction; 1]> {
+    Ok([spl_token_2022::instruction::transfer_checked(
+        &spl_token::ID,
+        &props.sender_token_account_pubkey,
+        &props.mint_pubkey,
+        &props.recipient_token_account_pubkey,
+        &props.sender_keypair.pubkey(),
+        &[&props.sender_keypair.pubkey()],
+        props.amount,
+        props.decimals,
+    )?])
+}
+
 pub fn create_spl_token_account_instruction(
     payer_address: &Pubkey,
     wallet_address: &Pubkey,
@@ -1339,7 +1384,34 @@ mod tests {
             prioritization_fee: None,
         };
 
-        let signature = send_spl_token(props).await?;
+        let signature = send_spl_token(props, false).await?;
+        println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_spl_token_2022() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let sender_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_SENDER)?;
+        let recipient_token_account_pubkey = Pubkey::from_str(TOKEN_ACCOUNT_ADDRESS_RECIPENT)?;
+        let mint_pubkey = Pubkey::from_str(USDC_TOKEN_CONTRACT_TEST_NET_ADDRESS)?;
+
+        let props = SendSplTokenProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            sender_token_account_pubkey,
+            recipient_token_account_pubkey,
+            mint_pubkey,
+            amount: 1000_000,
+            decimals: 6,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+            memo: None,
+            prioritization_fee: None,
+        };
+
+        let signature = send_spl_token(props, true).await?;
         println!("{signature:?}");
 
         Ok(())
@@ -1366,7 +1438,7 @@ mod tests {
             prioritization_fee: None,
         };
 
-        let signature = send_spl_token(props).await?;
+        let signature = send_spl_token(props, false).await?;
         println!("{signature:?}");
 
         Ok(())
@@ -1397,7 +1469,7 @@ mod tests {
             recipient_keypair.pubkey().to_string()
         );
 
-        let signature = send_spl_token_with_create(props).await?;
+        let signature = send_spl_token_with_create(props, false).await?;
         println!("{signature:?}");
 
         let info = fetch_account_token(
@@ -1437,7 +1509,7 @@ mod tests {
             recipient_keypair.pubkey().to_string()
         );
 
-        let signature = send_spl_token_with_create(props).await?;
+        let signature = send_spl_token_with_create(props, false).await?;
         println!("{signature:?}");
 
         let info = fetch_account_token(
