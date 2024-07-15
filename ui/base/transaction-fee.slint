@@ -29,13 +29,14 @@ export component TransactionFee inherits SettingDetail {
 
     title: Logic.tr(Store.is-cn, "交易信息");
 
-    if loading-status == LoadingStatus.Loading: Loading {
-        loading-text: Logic.tr(Store.is-cn, "正在估计交易费用...");
-        colorize: Theme.secondary-brand-color;
-        icon-size: Theme.icon-size * 2;
-    }
-
     SettingDetailInner {
+        if loading-status == LoadingStatus.Loading: Loading {
+            height: 150px;
+            loading-text: Logic.tr(Store.is-cn, "正在估计交易费用...");
+            colorize: Theme.secondary-brand-color;
+            icon-size: Theme.icon-size * 2;
+        }
+
         SettingDetailInnerVbox {
             SettingDetailLabel {
                 text: Logic.tr(Store.is-cn, "区块网络");
@@ -171,6 +172,7 @@ export component TransactionFee inherits SettingDetail {
 
         HorizontalLayout {
             padding-top: Theme.padding * 5;
+            padding-bottom: Theme.padding * 5;
 
             if loading-status == LoadingStatus.Loading: CancelBtn {
                 border-radius: Theme.border-radius;

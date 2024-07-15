@@ -271,6 +271,7 @@ pub fn tr(text: &str) -> String {
     items.insert("优先费用", "Prioritization fee");
     items.insert("基础费用", "Base fee");
     items.insert("最大优先费用", "Max prioritization fee");
+    items.insert("最大优先费用为", "Max prioritization fee is");
     items.insert("慢", "Slow");
     items.insert("正常", "Normal");
     items.insert("快", "Fast");

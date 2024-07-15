@@ -24,6 +24,7 @@ It's a `Solana` wallet. Based on Rust and Slint-ui. You can compile it for Linux
 - [x] Development mode of TestNet and DevNet
 - [x] Send SOL and spl token in MainNet
 - [x] Genarate QrCode for address
+- [x] Support sending token with memo and setting prioritization fee
 
 ### TODO
 - [ ] fetch spl token price

@@ -462,12 +462,7 @@ pub fn init(ui: &AppWindow) {
                     if v <= max_prioritization_fee {
                         SharedString::default()
                     } else {
-                        slint::format!(
-                            "{}{}, {}",
-                            tr("最大优先费用"),
-                            max_prioritization_fee,
-                            tr("请设置更大的优先费用")
-                        )
+                        slint::format!("{} {}", tr("最大优先费用为"), max_prioritization_fee)
                     }
                 }
             }
