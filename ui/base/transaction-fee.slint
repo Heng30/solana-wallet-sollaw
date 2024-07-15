@@ -19,6 +19,8 @@ export component TransactionFee inherits SettingDetail {
     in property <string> fee-usdt;
     in property <string> create-token-account-fee;
     in property <string> create-token-account-fee-usdt;
+    in property <string> memo;
+    in property <string> prioritization-fee;
 
     in property <LoadingStatus> loading-status;
 
@@ -107,7 +109,7 @@ export component TransactionFee inherits SettingDetail {
 
         if loading-status == LoadingStatus.Success: SettingDetailInnerVbox {
             SettingDetailLabel {
-                text: Logic.tr(Store.is-cn, "交易费用");
+                text: Logic.tr(Store.is-cn, "基础费用");
             }
 
             LineInput {
@@ -120,6 +122,19 @@ export component TransactionFee inherits SettingDetail {
             if fee-usdt != "": Label {
                 text: root.fee-usdt;
                 color: Theme.have-read-text-color;
+            }
+        }
+
+        if root.prioritization-fee != "": SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "优先费用");
+            }
+
+            LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: root.prioritization-fee;
+                is-show-icon: false;
+                enabled: false;
             }
         }
 
@@ -138,6 +153,19 @@ export component TransactionFee inherits SettingDetail {
             if root.create-token-account-fee-usdt != "": Label {
                 text: root.create-token-account-fee-usdt;
                 color: Theme.have-read-text-color;
+            }
+        }
+
+        if root.memo != "": SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "备注");
+            }
+
+            LineInput {
+                width: root.width - Theme.spacing * 4;
+                text: root.memo;
+                is-show-icon: false;
+                enabled: false;
             }
         }
 

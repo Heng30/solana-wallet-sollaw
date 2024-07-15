@@ -1,8 +1,8 @@
 use super::tr::tr;
 use crate::{
     config,
-    slint_generatedAppWindow::SettingDeveloperMode,
     slint_generatedAppWindow::{AppWindow, Logic, Store, Theme},
+    slint_generatedAppWindow::{SettingDeveloperMode, SettingSecurityPrivacy},
 };
 use slint::ComponentHandle;
 
@@ -65,6 +65,25 @@ pub fn init(ui: &AppWindow) {
             let mut all = config::all();
             all.developer_mode.enabled = setting.enabled;
             all.developer_mode.network = setting.network.into();
+            _ = config::save(all);
+        });
+
+    ui.global::<Logic>()
+        .on_get_setting_security_privacy(move || {
+            let setting = config::security_privacy();
+
+            SettingSecurityPrivacy {
+                max_prioritization_fee: slint::format!("{}", setting.max_prioritization_fee),
+            }
+        });
+
+    ui.global::<Logic>()
+        .on_set_setting_security_privacy(move |setting| {
+            let mut all = config::all();
+            all.security_privacy.max_prioritization_fee = setting
+                .max_prioritization_fee
+                .parse::<u64>()
+                .unwrap_or(1000_u64);
             _ = config::save(all);
         });
 }

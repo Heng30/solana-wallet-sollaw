@@ -4,8 +4,9 @@ import { Store } from "../store.slint";
 import { Label } from "label.slint";
 import { Avatar } from "avatar.slint";
 import { LineInput } from "line-input.slint";
-import { CancelBtn, ConfirmBtn } from "btn.slint";
+import { CancelBtn, ConfirmBtn, TextBtn } from "btn.slint";
 import { SettingDetail, SettingDetailInner, SettingDetailInnerVbox, SettingDetailLabel } from "setting-detail.slint";
+import { PrioritizationFeeStatus } from "def.slint";
 
 export component TokenSender inherits SettingDetail {
     in property avatar <=> ava.icon;
@@ -17,17 +18,30 @@ export component TokenSender inherits SettingDetail {
     in-out property send-amount <=> amount-input.text;
     in property total-balance <=> total-balance-label.text;
     in property total-balance-usdt <=> total-balance-usdt-label.text;
+
     in property <string> recipient-address-error-message;
+    in property <string> prioritization-fee-error-message;
+    in-out property <string> memo;
+    in-out property <string> prioritization-fee;
+    in-out property <bool> is-show-advance-setting;
 
     private property <bool> is-token-edit;
 
     callback update-send-token-name();
     callback recipient-address-edited(string);
+    callback prioritization-fee-edited(string);
     callback copy-send-address <=> send-address-input.clicked;
     callback open-address-book <=> recipient-address-input.clicked;
     callback open-network <=> network-input.clicked;
     callback cancel <=> cancel-btn.clicked;
     callback confirm <=> confirm-btn.clicked;
+
+    callback get-prioritization-fee(PrioritizationFeeStatus) -> int;
+
+    public function reset-advance-setting() {
+        root.memo = "";
+        root.prioritization-fee = "";
+    }
 
     title: Logic.tr(Store.is-cn, "发送代币");
 
@@ -153,6 +167,102 @@ export component TokenSender inherits SettingDetail {
                     text: "$0.00";
                     color: Theme.have-read-text-color;
                 }
+            }
+        }
+
+        TextBtn {
+            text: Logic.tr(Store.is-cn, "高级设置");
+            icon: Icons.advance-setting;
+
+            clicked => {
+                root.is-show-advance-setting = !root.is-show-advance-setting;
+            }
+        }
+
+        if is-show-advance-setting: SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "备注");
+            }
+
+            memo-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                icon: Icons.cancel;
+                text: root.memo;
+
+                clicked => {
+                    self.text = "";
+                }
+
+                edited => {
+                    root.memo = self.text;
+                }
+            }
+        }
+
+        if is-show-advance-setting: SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "优先费用");
+            }
+
+            prioritization-fee-input := LineInput {
+                width: root.width - Theme.spacing * 4;
+                icon: Icons.cancel;
+                input-type: InputType.number;
+                placeholder-text: "micro lamports";
+                text: root.prioritization-fee;
+
+                clicked => {
+                    self.text = "";
+                }
+
+                edited => {
+                    root.prioritization-fee = self.text;
+                    root.prioritization-fee-edited(self.text);
+                }
+            }
+
+            HorizontalLayout {
+                alignment: LayoutAlignment.start;
+                spacing: Theme.spacing * 2;
+
+                TextBtn {
+                    text: Logic.tr(Store.is-cn, "慢");
+                    bg-color: Theme.info-color;
+                    use-auto-size: true;
+                    icon: Icons.turtle;
+
+                    clicked => {
+                        prioritization-fee-input.text = root.get-prioritization-fee(PrioritizationFeeStatus.Slow);
+                        root.prioritization-fee = prioritization-fee-input.text;
+                    }
+                }
+
+                TextBtn {
+                    text: Logic.tr(Store.is-cn,"正常");
+                    use-auto-size: true;
+                    icon: Icons.rabbit;
+
+                    clicked => {
+                        prioritization-fee-input.text = root.get-prioritization-fee(PrioritizationFeeStatus.Normal);
+                        root.prioritization-fee = prioritization-fee-input.text;
+                    }
+                }
+
+                TextBtn {
+                    text: Logic.tr(Store.is-cn,"快");
+                    use-auto-size: true;
+                    icon: Icons.horse;
+
+                    clicked => {
+                        prioritization-fee-input.text = root.get-prioritization-fee(PrioritizationFeeStatus.Fast);
+                        root.prioritization-fee = prioritization-fee-input.text;
+                    }
+                }
+            }
+
+            if root.prioritization-fee-error-message != "": SettingDetailLabel {
+                color: Theme.danger-color;
+                text: root.prioritization-fee-error-message;
             }
         }
 

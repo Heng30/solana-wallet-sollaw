@@ -8,9 +8,10 @@ use crate::{
     logic::message::{async_message_info, async_message_success, async_message_warn},
     message_info, message_success, message_warn,
     slint_generatedAppWindow::{
-        AppWindow, HomeIndex, Icons, LoadingStatus, Logic, SendTokenProps, Store,
-        TokenTileEntry as UITokenTileEntry, TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry,
-        TokensSetting, TransactionTileStatus, Util,
+        AppWindow, HomeIndex, Icons, LoadingStatus, Logic, PrioritizationFeeStatus, SendTokenProps,
+        Store, TokenTileEntry as UITokenTileEntry,
+        TokenTileWithSwitchEntry as UITokenTileWithSwitchEntry, TokensSetting,
+        TransactionTileStatus, Util,
     },
 };
 use anyhow::{bail, Result};
@@ -26,6 +27,8 @@ use wallet::{
     pyth,
     transaction::{self, SendLamportsProps, DEFAULT_TIMEOUT_SECS, DEFAULT_TRY_COUNTS},
 };
+
+static PRIORITIZATION_FEES: Lazy<Mutex<(u64, u64, u64)>> = Lazy::new(|| Mutex::new((0, 0, 0)));
 
 static SOL_PRICE: Lazy<Mutex<f64>> = Lazy::new(|| Mutex::new(0.0));
 
@@ -185,6 +188,18 @@ pub async fn update_spl_tokens_price() {
     }
 }
 
+pub async fn update_prioritization_fees(network: &str) {
+    let rpc_url_ty = RpcUrlType::from_str(network).unwrap_or(RpcUrlType::Main);
+    match transaction::prioritization_fees(rpc_url_ty, Some(transaction::DEFAULT_TIMEOUT_SECS))
+        .await
+    {
+        Err(e) => log::warn!("{e:?}"),
+        Ok(v) => {
+            *PRIORITIZATION_FEES.lock().unwrap() = v;
+        }
+    }
+}
+
 async fn get_from_db(network: &str, account_address: &str) -> Vec<UITokenTileEntry> {
     match db::entry::select_all(TOKENS_TABLE).await {
         Ok(items) => items
@@ -281,6 +296,7 @@ pub fn init_tokens(ui: &AppWindow) {
 
         update_sol_price().await;
         update_spl_tokens_price().await;
+        update_prioritization_fees(&network).await;
     });
 }
 
@@ -424,6 +440,37 @@ pub fn init(ui: &AppWindow) {
         .on_is_valid_address(move |address| match Pubkey::from_str(&address) {
             Err(_) => tr("非法地址").into(),
             _ => SharedString::default(),
+        });
+
+    ui.global::<Logic>()
+        .on_prioritization_fee(move |ty| match ty {
+            PrioritizationFeeStatus::Slow => PRIORITIZATION_FEES.lock().unwrap().0 as i32,
+            PrioritizationFeeStatus::Normal => PRIORITIZATION_FEES.lock().unwrap().1 as i32,
+            PrioritizationFeeStatus::Fast => PRIORITIZATION_FEES.lock().unwrap().2 as i32,
+        });
+
+    ui.global::<Logic>()
+        .on_is_valid_prioritization_fee(move |fee| {
+            if fee.trim().is_empty() {
+                return SharedString::default();
+            }
+
+            match fee.parse::<u64>() {
+                Err(_) => tr("非法优先费用").into(),
+                Ok(v) => {
+                    let max_prioritization_fee = config::security_privacy().max_prioritization_fee;
+                    if v <= max_prioritization_fee {
+                        SharedString::default()
+                    } else {
+                        slint::format!(
+                            "{}{}, {}",
+                            tr("最大优先费用"),
+                            max_prioritization_fee,
+                            tr("请设置更大的优先费用")
+                        )
+                    }
+                }
+            }
         });
 }
 
@@ -817,7 +864,12 @@ async fn _evaluate_spl_token_transaction_fee(
     };
 
     let prioritization_fee = if !props.prioritization_fee.trim().is_empty() {
-        Some(props.prioritization_fee.trim().parse::<u64>()?)
+        let fee = props.prioritization_fee.trim().parse::<u64>()?;
+        if fee == 0 {
+            None
+        } else {
+            Some(fee)
+        }
     } else {
         None
     };
@@ -921,7 +973,12 @@ async fn _send_sol(
     };
 
     let prioritization_fee = if !props.prioritization_fee.trim().is_empty() {
-        Some(props.prioritization_fee.trim().parse::<u64>()?)
+        let fee = props.prioritization_fee.trim().parse::<u64>()?;
+        if fee == 0 {
+            None
+        } else {
+            Some(fee)
+        }
     } else {
         None
     };
@@ -990,7 +1047,12 @@ async fn _send_spl_token(
     };
 
     let prioritization_fee = if !props.prioritization_fee.trim().is_empty() {
-        Some(props.prioritization_fee.trim().parse::<u64>()?)
+        let fee = props.prioritization_fee.trim().parse::<u64>()?;
+        if fee == 0 {
+            None
+        } else {
+            Some(fee)
+        }
     } else {
         None
     };
@@ -1129,6 +1191,11 @@ fn _send_token(
     props: SendTokenProps,
     is_token_account_exist: bool,
 ) {
+    let network = props.network.clone();
+    tokio::spawn(async move {
+        update_prioritization_fees(&network).await;
+    });
+
     tokio::spawn(async move {
         match super::accounts::is_valid_password_in_secret_info(&password).await {
             Err(e) => {

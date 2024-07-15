@@ -69,6 +69,10 @@ pub fn developer_mode() -> data::DeveloperMode {
     CONFIG.lock().unwrap().developer_mode.clone()
 }
 
+pub fn security_privacy() -> data::SecurityPrivacy {
+    CONFIG.lock().unwrap().security_privacy.clone()
+}
+
 pub fn db_path() -> PathBuf {
     CONFIG.lock().unwrap().db_path.clone()
 }
@@ -125,6 +129,7 @@ impl Config {
                     self.appid = c.appid;
                     self.ui = c.ui;
                     self.developer_mode = c.developer_mode;
+                    self.security_privacy = c.security_privacy;
                     Ok(())
                 }
                 Err(_) => {

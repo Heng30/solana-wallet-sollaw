@@ -492,6 +492,11 @@ pub fn init(ui: &AppWindow) {
         });
 
     let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_update_home_page(move || {
+        super::tokens::init_tokens(&ui_handle.unwrap());
+    });
+
+    let ui_handle = ui.as_weak();
     ui.global::<Logic>().on_show_mnemonic(move |password| {
         let ui_handle = ui_handle.clone();
         tokio::spawn(async move {

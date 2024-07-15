@@ -266,6 +266,16 @@ pub fn tr(text: &str) -> String {
     items.insert("创建组记词", "Create mnemonic");
     items.insert("恢复账户", "Recover account");
     items.insert("二维码", "QrCode");
+    items.insert("高级设置", "Advance setting");
+    items.insert("备注", "Memo");
+    items.insert("优先费用", "Prioritization fee");
+    items.insert("基础费用", "Base fee");
+    items.insert("最大优先费用", "Max prioritization fee");
+    items.insert("慢", "Slow");
+    items.insert("正常", "Normal");
+    items.insert("快", "Fast");
+    items.insert("非法优先费用", "Invalid prioritization fee");
+    items.insert("请设置更大的优先费用", "Please setting max prioritization fee");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",

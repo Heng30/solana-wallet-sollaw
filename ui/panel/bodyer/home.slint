@@ -223,9 +223,16 @@ export component Home inherits Rectangle {
             Logic.open-blockchain-network(self.network);
         }
 
-
         recipient-address-edited(text) => {
             self.recipient-address-error-message = Logic.is-valid-address(text);
+        }
+
+        prioritization-fee-edited(text) => {
+            self.prioritization-fee-error-message = Logic.is-valid-prioritization-fee(text);
+        }
+
+        get-prioritization-fee(ty) => {
+            return Logic.prioritization-fee(ty);
         }
 
         cancel => {
@@ -233,6 +240,13 @@ export component Home inherits Rectangle {
         }
 
         confirm => {
+            self.recipient-address-error-message = Logic.is-valid-address(self.recipient-address);
+
+            self.prioritization-fee-error-message = Logic.is-valid-prioritization-fee(self.prioritization-fee);
+
+            if (self.prioritization-fee-error-message != "" || self.recipient-address-error-message != "") {
+                return;
+            }
             TokensSetting.sender.send-amount = self.send-amount;
 
             TokensSetting.sender.props = {
@@ -244,10 +258,13 @@ export component Home inherits Rectangle {
                 mint_address: root.selected-entry.mint-address,
                 symbol: root.selected-entry.symbol,
                 amount: self.send-amount,
+                memo: self.memo,
+                prioritization-fee: self.prioritization-fee,
                 spl-token-account-address: root.selected-entry.token-account-address,
                 spl-token-decimals: root.selected-entry.decimals,
             };
 
+            self.reset-advance-setting();
             TokensSetting.sender.signature = "";
             PasswordSetting.set(true, "evaluate-transaction-fee", "");
         }
@@ -275,6 +292,9 @@ export component Home inherits Rectangle {
         fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.transaction-fee);
         create-token-account-fee: TokensSetting.sender.create-token-account-fee != "" ? TokensSetting.sender.create-token-account-fee + "SOL" : "";
         create-token-account-fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.create-token-account-fee);
+
+        memo: TokensSetting.sender.props.memo;
+        prioritization-fee: TokensSetting.sender.props.prioritization-fee;
 
         loading-status: TokensSetting.sender.transaction-fee-loading-status;
 

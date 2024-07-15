@@ -2,7 +2,7 @@ import { LineEdit, CheckBox, ComboBox } from "std-widgets.slint";
 import { Theme, Icons } from "../../theme.slint";
 import { Logic } from "../../logic.slint";
 import { Util } from "../../util.slint";
-import { Store,  SettingUI, SettingDeveloperMode, SettingDetailIndex, AccountEntry } from "../../store.slint";
+import { Store,  SettingUI, SettingDeveloperMode, SettingDetailIndex, AccountEntry, SettingSecurityPrivacy } from "../../store.slint";
 import { LineInput, CenterLayout, OkCancelDialogSetting, Divider, Link, Brand, IconBtn, Label, Mnemonic, Head, SettingEntry, SettingDetail, SettingDetailInner, TabBtn, SettingDetailInnerVbox, SettingDetailLabel, TxtEdit, CancelBtn, ConfirmBtn, NoDataImg, Tag, RadioBtn, TokenRecipient, SlideCard, ListTile, IconsDialogSetting, ElevatedBtn, PasswordSetting, Avatar, Help, AddressBook, AddressBookDetail, AddressBookEntry, SettingDetailSwitch, AddressBookSetting, About, ResetPassword } from "../../base/widgets.slint";
 
 export global AccountMnemonicSetting {
@@ -313,7 +313,31 @@ component AccountMnemonic inherits SettingDetailInner {
 
 component SecurityAndPrivacy inherits SettingDetail {
     title: Logic.tr(Store.is-cn, "安全与隐私");
+
+    public function get() -> SettingSecurityPrivacy {
+        return {
+            max-prioritization-fee: prioritization-fee-input.text,
+        };
+    }
+
+    public function set(setting: SettingSecurityPrivacy) {
+        prioritization-fee-input.text = setting.max-prioritization-fee;
+    }
+
     SettingDetailInner {
+        SettingDetailInnerVbox {
+            SettingDetailLabel {
+                text: Logic.tr(Store.is-cn, "最大优先费用");
+            }
+
+            prioritization-fee-input := LineInput {
+                width: root.width - Theme.padding * 4;
+                is-show-icon: false;
+                input-type: InputType.number;
+                placeholder-text: "micro lamports";
+            }
+        }
+
         SettingEntry {
             icon: Icons.password;
             text: Logic.tr(Store.is-cn, "更改密码");
@@ -612,8 +636,13 @@ export component Setting inherits Rectangle {
         }
 
         if Store.current-setting-detail-index == SettingDetailIndex.SecurityAndPrivacy: SecurityAndPrivacy {
+            init => {
+                self.set(Logic.get-setting-security-privacy());
+            }
+
             back => {
                 Store.current-setting-detail-index = SettingDetailIndex.Home;
+                Logic.set-setting-security-privacy(self.get());
             }
         }
 
@@ -651,6 +680,7 @@ export component Setting inherits Rectangle {
             back => {
                 Store.current-setting-detail-index = SettingDetailIndex.Home;
                 Logic.set-setting-developer-mode(self.get());
+                Logic.update-home-page();
             }
         }
 

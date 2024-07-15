@@ -21,10 +21,7 @@ pub struct Config {
 
     pub ui: UI,
     pub developer_mode: DeveloperMode,
-}
-
-pub fn appid_default() -> String {
-    Uuid::new_v4().to_string()
+    pub security_privacy: SecurityPrivacy,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Derivative)]
@@ -45,4 +42,20 @@ pub struct DeveloperMode {
     pub enabled: bool,
     #[derivative(Default(value = "\"test\".to_string()"))]
     pub network: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Derivative)]
+#[derivative(Default)]
+pub struct SecurityPrivacy {
+    #[serde(default = "prioritization_fee_default")]
+    #[derivative(Default(value = "1000"))]
+    pub max_prioritization_fee: u64,
+}
+
+pub fn appid_default() -> String {
+    Uuid::new_v4().to_string()
+}
+
+pub fn prioritization_fee_default() -> u64 {
+    1000
 }

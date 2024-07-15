@@ -1,7 +1,8 @@
-import { Store, SetupIndex, SettingUI, SettingDeveloperMode, AccountEntry, SendTokenProps } from "store.slint";
+import { Store, SetupIndex, SettingUI, SettingDeveloperMode, AccountEntry, SendTokenProps, SettingSecurityPrivacy } from "store.slint";
 import { Icons } from "theme.slint";
 import { TransactionTileEntry, TransactionTileStatus } from "base/transaction-tile.slint";
 import { TokenTileEntry } from "base/token-tile.slint";
+import { PrioritizationFeeStatus } from "base/def.slint";
 
 export global Logic {
     pure callback new-mnemonics(int) -> [string];
@@ -47,6 +48,8 @@ export global Logic {
 
     // (old-uuid, new-uuid) -> void
     callback switch-account(string, string);
+
+    callback update-home-page();
 
     pure callback qr-code(string) -> image;
     qr-code => {
@@ -132,6 +135,20 @@ export global Logic {
     // (address) -> (error_message)
     pure callback is-valid-address(string) -> string;
 
+    pure callback prioritization-fee(PrioritizationFeeStatus) -> int;
+    prioritization-fee(ty) => {
+        if (ty == PrioritizationFeeStatus.Slow) {
+            return 0;
+        } else if (ty == PrioritizationFeeStatus.Normal) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    // (prioritization-fee) => string
+    pure callback is-valid-prioritization-fee(string) -> string;
+
     callback update-cache-size();
     callback remove-all-cache();
 
@@ -142,6 +159,9 @@ export global Logic {
 
     callback get-setting-ui() -> SettingUI;
     callback set-setting-ui(SettingUI);
+
+    callback get-setting-security-privacy() -> SettingSecurityPrivacy;
+    callback set-setting-security-privacy(SettingSecurityPrivacy);
 
     pure callback get-current-network() -> string;
     callback get-setting-developer-mode() -> SettingDeveloperMode;
