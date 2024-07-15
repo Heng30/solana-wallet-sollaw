@@ -809,10 +809,17 @@ async fn _evaluate_spl_token_transaction_fee(
     let sender_pubkey = Pubkey::from_str(&props.send_address)?;
     let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let mint_pubkey = Pubkey::from_str(&props.mint_address)?;
+
     let memo = if props.memo.trim().is_empty() {
         None
     } else {
         Some(props.memo.into())
+    };
+
+    let prioritization_fee = if !props.prioritization_fee.trim().is_empty() {
+        Some(props.prioritization_fee.trim().parse::<u64>()?)
+    } else {
+        None
     };
 
     let info = super::accounts::get_secrect_info().await?;
@@ -845,6 +852,7 @@ async fn _evaluate_spl_token_transaction_fee(
         timeout: Some(DEFAULT_TIMEOUT_SECS),
         is_wait_confirmed: true,
         memo,
+        prioritization_fee,
     };
     let instructions = transaction::send_spl_token_instruction(&send_spl_token_props)?;
     let fee = transaction::evaluate_transaction_fee(
@@ -905,10 +913,17 @@ async fn _send_sol(
     let sender_pubkey = Pubkey::from_str(&props.send_address)?;
     let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let amount = props.amount.parse::<f64>()?;
+
     let memo = if props.memo.trim().is_empty() {
         None
     } else {
         Some(props.memo.into())
+    };
+
+    let prioritization_fee = if !props.prioritization_fee.trim().is_empty() {
+        Some(props.prioritization_fee.trim().parse::<u64>()?)
+    } else {
+        None
     };
 
     let info = super::accounts::get_secrect_info().await?;
@@ -930,6 +945,7 @@ async fn _send_sol(
         timeout: None,
         is_wait_confirmed: false,
         memo,
+        prioritization_fee,
     };
     let signature = transaction::send_lamports(send_props).await?;
 
@@ -966,10 +982,17 @@ async fn _send_spl_token(
     let sender_pubkey = Pubkey::from_str(&props.send_address)?;
     let recipient_pubkey = Pubkey::from_str(&props.recipient_address)?;
     let mint_pubkey = Pubkey::from_str(&props.mint_address)?;
+
     let memo = if props.memo.trim().is_empty() {
         None
     } else {
         Some(props.memo.into())
+    };
+
+    let prioritization_fee = if !props.prioritization_fee.trim().is_empty() {
+        Some(props.prioritization_fee.trim().parse::<u64>()?)
+    } else {
+        None
     };
 
     let info = super::accounts::get_secrect_info().await?;
@@ -1003,6 +1026,7 @@ async fn _send_spl_token(
             timeout: None,
             is_wait_confirmed: false,
             memo,
+            prioritization_fee,
         };
 
         transaction::send_spl_token(send_spl_token_props).await?
@@ -1017,6 +1041,7 @@ async fn _send_spl_token(
             timeout: None,
             is_wait_confirmed: false,
             memo,
+            prioritization_fee,
         };
 
         transaction::send_spl_token_with_create(send_spl_token_props).await?

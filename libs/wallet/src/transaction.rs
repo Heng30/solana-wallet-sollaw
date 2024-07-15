@@ -13,6 +13,7 @@ use solana_client::{
 use solana_sdk::{
     account::Account,
     commitment_config::CommitmentConfig,
+    compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
     message::Message,
     program_pack::Pack,
@@ -55,6 +56,7 @@ pub struct SendLamportsProps {
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
     pub memo: Option<String>,
+    pub prioritization_fee: Option<u64>, // micro_lamports
 }
 
 #[derive(Debug)]
@@ -69,6 +71,7 @@ pub struct SendSplTokenProps {
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
     pub memo: Option<String>,
+    pub prioritization_fee: Option<u64>, // micro_lamports
 }
 
 #[derive(Debug)]
@@ -82,6 +85,7 @@ pub struct SendSplTokenWithCreateProps {
     pub timeout: Option<u64>,
     pub is_wait_confirmed: bool,
     pub memo: Option<String>,
+    pub prioritization_fee: Option<u64>, // micro_lamports
 }
 
 #[derive(Debug)]
@@ -161,27 +165,31 @@ pub async fn send_lamports(props: SendLamportsProps) -> Result<Signature> {
         None => RpcClient::new(props.rpc_url_ty.to_string()),
     };
 
-    let recent_blockhash = connection
-        .get_latest_blockhash()
-        .await
-        .with_context(|| "Get latest blockhash failed")?;
-
+    let mut instructions = vec![];
     let send_instruction = system_instruction::transfer(
         &props.sender_keypair.pubkey(),
         &props.recipient_pubkey,
         props.lamports,
     );
+    instructions.push(send_instruction);
 
-    let message = if let Some(memo) = props.memo {
+    if let Some(memo) = props.memo {
         let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
-        Message::new(
-            &[send_instruction, memo_instruction],
-            Some(&props.sender_keypair.pubkey()),
-        )
-    } else {
-        Message::new(&[send_instruction], Some(&props.sender_keypair.pubkey()))
+        instructions.push(memo_instruction);
     };
 
+    if let Some(prioritization_fee) = props.prioritization_fee {
+        let prioritization_fee_instruction =
+            ComputeBudgetInstruction::set_compute_unit_price(prioritization_fee);
+        instructions.push(prioritization_fee_instruction);
+    }
+
+    let recent_blockhash = connection
+        .get_latest_blockhash()
+        .await
+        .with_context(|| "Get latest blockhash failed")?;
+
+    let message = Message::new(&instructions[..], Some(&props.sender_keypair.pubkey()));
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -282,6 +290,7 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
         );
     }
 
+    let mut instructions = vec![];
     let send_instruction = spl_token::instruction::transfer_checked(
         &spl_token::ID,
         &props.sender_token_account_pubkey,
@@ -292,22 +301,25 @@ pub async fn send_spl_token(props: SendSplTokenProps) -> Result<Signature> {
         props.amount,
         props.decimals,
     )?;
+    instructions.push(send_instruction);
+
+    if let Some(memo) = props.memo {
+        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
+        instructions.push(memo_instruction);
+    };
+
+    if let Some(prioritization_fee) = props.prioritization_fee {
+        let prioritization_fee_instruction =
+            ComputeBudgetInstruction::set_compute_unit_price(prioritization_fee);
+        instructions.push(prioritization_fee_instruction);
+    }
 
     let recent_blockhash = connection
         .get_latest_blockhash()
         .await
         .with_context(|| "Get latest blockhash failed")?;
 
-    let message = if let Some(memo) = props.memo {
-        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
-        Message::new(
-            &[send_instruction, memo_instruction],
-            Some(&props.sender_keypair.pubkey()),
-        )
-    } else {
-        Message::new(&[send_instruction], Some(&props.sender_keypair.pubkey()))
-    };
-
+    let message = Message::new(&instructions[..], Some(&props.sender_keypair.pubkey()));
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -341,12 +353,14 @@ pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> R
         );
     }
 
+    let mut instructions = vec![];
     let create_instruction = create_associated_token_account(
         &props.sender_keypair.pubkey(),
         &props.recipient_pubkey,
         &props.mint_pubkey,
         &spl_token::ID,
     );
+    instructions.push(create_instruction);
 
     let sender_token_account_pubkey =
         derive_token_account_address(&props.sender_keypair.pubkey(), &props.mint_pubkey);
@@ -363,25 +377,25 @@ pub async fn send_spl_token_with_create(props: SendSplTokenWithCreateProps) -> R
         props.amount,
         props.decimals,
     )?;
+    instructions.push(send_instruction);
+
+    if let Some(memo) = props.memo {
+        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
+        instructions.push(memo_instruction);
+    };
+
+    if let Some(prioritization_fee) = props.prioritization_fee {
+        let prioritization_fee_instruction =
+            ComputeBudgetInstruction::set_compute_unit_price(prioritization_fee);
+        instructions.push(prioritization_fee_instruction);
+    }
 
     let recent_blockhash = connection
         .get_latest_blockhash()
         .await
         .with_context(|| "Get latest blockhash failed")?;
 
-    let message = if let Some(memo) = props.memo {
-        let memo_instruction = spl_memo::build_memo(memo.as_bytes(), &[]);
-        Message::new(
-            &[create_instruction, send_instruction, memo_instruction],
-            Some(&props.sender_keypair.pubkey()),
-        )
-    } else {
-        Message::new(
-            &[create_instruction, send_instruction],
-            Some(&props.sender_keypair.pubkey()),
-        )
-    };
-
+    let message = Message::new(&instructions[..], Some(&props.sender_keypair.pubkey()));
     let transaction = Transaction::new(&[props.sender_keypair], message, recent_blockhash);
 
     match props.is_wait_confirmed {
@@ -924,6 +938,41 @@ pub async fn create_online_account_with_seed(
     Ok((derived_pubkey, sig))
 }
 
+// return: (low, middle, high) micro_lamports
+pub async fn prioritization_fees(
+    rpc_url_ty: RpcUrlType,
+    timeout: Option<u64>,
+) -> Result<(u64, u64, u64)> {
+    let connection = match timeout {
+        Some(timeout) => {
+            RpcClient::new_with_timeout(rpc_url_ty.to_string(), Duration::from_secs(timeout))
+        }
+        None => RpcClient::new(rpc_url_ty.to_string()),
+    };
+
+    let fees = connection.get_recent_prioritization_fees(&[]).await?;
+    let mut fees = fees
+        .into_iter()
+        .filter_map(|item| {
+            if item.prioritization_fee == 0 {
+                None
+            } else {
+                Some(item.prioritization_fee)
+            }
+        })
+        .collect::<Vec<_>>();
+
+    fees.sort();
+
+    match fees.len() {
+        0 => Ok((0, 0, 0)),
+        1 => Ok((fees[0], fees[0], fees[0])),
+        2 => Ok((fees[0], fees[0], fees[1])),
+        3 => Ok((fees[0], fees[1], fees[2])),
+        _ => Ok((fees[0], fees[fees.len() / 2], fees[fees.len() - 1])),
+    }
+}
+
 pub fn send_lamports_instruction(
     sender_pubkey: &Pubkey,
     recipient_pubkey: &Pubkey,
@@ -933,6 +982,16 @@ pub fn send_lamports_instruction(
         sender_pubkey,
         recipient_pubkey,
         lamports,
+    )]
+}
+
+pub fn memo_instruction(memo: &str) -> [Instruction; 1] {
+    [spl_memo::build_memo(memo.as_bytes(), &[])]
+}
+
+pub fn compute_unit_price_instruction(micro_lamports: u64) -> [Instruction; 1] {
+    [ComputeBudgetInstruction::set_compute_unit_price(
+        micro_lamports,
     )]
 }
 
@@ -1022,6 +1081,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
         };
 
         let instructions = send_spl_token_instruction(&props)?;
@@ -1033,6 +1093,48 @@ mod tests {
         )
         .await?;
         println!("fee: {fee}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_transaction_fee_memo() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let instructions = memo_instruction("Hello World From Sollaw");
+
+        let fee = evaluate_transaction_fee(
+            RpcUrlType::Test,
+            &instructions,
+            &sender_keypair.pubkey(),
+            None,
+        )
+        .await?;
+        println!("fee: {fee}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_transaction_fee_compute_unit_price() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let instructions = compute_unit_price_instruction(10);
+
+        let fee = evaluate_transaction_fee(
+            RpcUrlType::Test,
+            &instructions,
+            &sender_keypair.pubkey(),
+            None,
+        )
+        .await?;
+        println!("fee: {fee}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_prioritization_fees() -> Result<()> {
+        let fees = prioritization_fees(RpcUrlType::Main, Some(DEFAULT_TIMEOUT_SECS)).await?;
+        println!("{fees:?}");
 
         Ok(())
     }
@@ -1089,6 +1191,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
         };
         let send_instructions = send_spl_token_instruction(&props)?;
 
@@ -1105,7 +1208,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_send_lamports() -> Result<()> {
+    async fn test_send_lamports_only() -> Result<()> {
         let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
         let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
         let props = SendLamportsProps {
@@ -1116,6 +1219,28 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
+        };
+
+        let signature = send_lamports(props).await?;
+        println!("{signature:?}");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_lamports_with_prioritization_fee() -> Result<()> {
+        let sender_keypair = Keypair::from_bytes(SENDER_KEYPAIR)?;
+        let recipient_pubkey = Pubkey::from_str(RECIPIENT_WALLET_ADDRESS)?;
+        let props = SendLamportsProps {
+            rpc_url_ty: RpcUrlType::Test,
+            sender_keypair,
+            recipient_pubkey,
+            lamports: 100,
+            timeout: Some(DEFAULT_TIMEOUT_SECS),
+            is_wait_confirmed: true,
+            memo: None,
+            prioritization_fee: Some(2),
         };
 
         let signature = send_lamports(props).await?;
@@ -1136,6 +1261,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: Some("Hello World From Sollaw".to_string()),
+            prioritization_fee: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1171,6 +1297,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
         };
         let signature = send_lamports(props).await?;
         println!("{signature:?}");
@@ -1209,6 +1336,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
         };
 
         let signature = send_spl_token(props).await?;
@@ -1235,6 +1363,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: Some("Hello World from Sollaw".to_string()),
+            prioritization_fee: None,
         };
 
         let signature = send_spl_token(props).await?;
@@ -1260,6 +1389,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
         };
 
         println!(
@@ -1299,6 +1429,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: Some("Hello World From Sollaw".to_string()),
+            prioritization_fee: None,
         };
 
         println!(
@@ -1457,6 +1588,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
             memo: None,
+            prioritization_fee: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1480,6 +1612,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
             memo: None,
+            prioritization_fee: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1505,6 +1638,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: false,
             memo: None,
+            prioritization_fee: None,
         };
 
         let signature = send_lamports(props).await?;
@@ -1529,6 +1663,7 @@ mod tests {
             timeout: Some(DEFAULT_TIMEOUT_SECS),
             is_wait_confirmed: true,
             memo: None,
+            prioritization_fee: None,
         };
 
         let signature = send_lamports(props).await?;
