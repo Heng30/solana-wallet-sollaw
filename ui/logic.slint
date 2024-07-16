@@ -149,6 +149,9 @@ export global Logic {
     // (prioritization-fee) => string
     pure callback is-valid-prioritization-fee(string) -> string;
 
+    // (password) -> void
+    callback login(string);
+
     callback update-cache-size();
     callback remove-all-cache();
 

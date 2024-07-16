@@ -277,6 +277,9 @@ pub fn tr(text: &str) -> String {
     items.insert("快", "Fast");
     items.insert("非法优先费用", "Invalid prioritization fee");
     items.insert("请设置更大的优先费用", "Please setting max prioritization fee");
+    items.insert("登出账户", "Logout account");
+    items.insert("密码错误", "Wrong password");
+    items.insert("内部错误. 密码不存在", "Internal error. Password not exist");
     items.insert(
         "更新账户余额失败. 账户不存在",
         "Refresh account balance failed. The account is not found",

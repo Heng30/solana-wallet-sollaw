@@ -87,7 +87,6 @@ export struct SendTokenProps {
 
 export global Store {
     in-out property <TabIndex> current-tab-index: TabIndex.Home;
-    private property <TabIndex> current-tab-index-tmp: TabIndex.None;
     in-out property <HomeIndex> current-home-index: HomeIndex.Home;
     in-out property <SetupIndex> current-setup-index: SetupIndex.SetupType;
     in-out property <SettingDetailIndex> current-setting-detail-index: SettingDetailIndex.Home;
@@ -114,6 +113,7 @@ export global Store {
     in-out property <bool> is-first-run;
     in-out property <bool> is-show-landing-page;
     in-out property <bool> is-show-setup-page;
+    in-out property <bool> is-login;
     in-out property <bool> is-cn: setting-ui.language == "cn";
     in-out property <SettingUI> setting-ui: {
         font-size: "16",
@@ -136,11 +136,5 @@ export global Store {
 
     public function switch-tab(tab-index: TabIndex) {
         current-tab-index = tab-index;
-    }
-
-    public function refresh-current-tab() {
-        current-tab-index-tmp = current-tab-index;
-        current-tab-index = TabIndex.None;
-        current-tab-index = current-tab-index-tmp;
     }
 }

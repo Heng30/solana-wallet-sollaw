@@ -348,10 +348,22 @@ component SecurityAndPrivacy inherits SettingDetail {
 
         VerticalLayout {
             padding-top: Theme.padding * 5;
+            spacing: Theme.spacing * 4;
+
+            ConfirmBtn {
+                icon: Icons.logout;
+                border-radius: Theme.border-radius;
+                font-size: Theme.title3-font-size;
+                text: Logic.tr(Store.is-cn, "登出账户");
+                clicked => {
+                    Store.is-login = true;
+                    PasswordSetting.set(true, "login", "");
+                }
+            }
+
             CancelBtn {
                 icon: Icons.reset-in-trash;
                 colorize: Theme.danger-color;
-                text-color: Theme.danger-color;
                 border-radius: Theme.border-radius;
                 font-size: Theme.title3-font-size;
                 text: Logic.tr(Store.is-cn, "重置账户");

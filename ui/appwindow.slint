@@ -20,6 +20,13 @@ export component AppWindow inherits Window {
     icon: Icons.brand;
     title: "sollaw";
 
+    public function show-login-page() {
+        if (!Store.is-first-run && !Store.is-show-setup-page && !Store.is-show-landing-page) {
+            Store.is-login = true;
+            PasswordSetting.set(true, "login", "");
+        }
+    }
+
     if !Store.is-show-setup-page: Panel { }
     if Store.is-show-setup-page: Setup { }
 
@@ -42,6 +49,7 @@ export component AppWindow inherits Window {
 
     if PasswordSetting.show: Password {
         private property <string> err;
+        is-show-header: !Store.is-login;
 
         init => {
             self.focus();
@@ -52,7 +60,11 @@ export component AppWindow inherits Window {
         }
 
         cancel => {
-            PasswordSetting.show = false;
+            if (Store.is-login) {
+                Logic.show-message(Logic.tr(Store.is-cn, "请输入密码"), "info");
+            } else {
+                PasswordSetting.show = false;
+            }
         }
 
         confirm(handle-type, password, user-data) => {
@@ -71,6 +83,9 @@ export component AppWindow inherits Window {
                 Logic.remove-all-accounts(password);
             } else if (handle-type == "evaluate-transaction-fee") {
                 Logic.evaluate-transaction-fee(password, TokensSetting.sender.props);
+            } else if (handle-type == "login") {
+                Logic.login(password);
+                return "";
             }
             PasswordSetting.show = false;
             return "";

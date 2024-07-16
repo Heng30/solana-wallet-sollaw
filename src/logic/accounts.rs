@@ -9,7 +9,7 @@ use crate::{
     message_success, message_warn,
     slint_generatedAppWindow::{
         AccountEntry as UIAccountEntry, AccountMnemonicSetting, AppWindow, IconsDialogSetting,
-        Logic, SettingDetailIndex, Store, Util,
+        Logic, PasswordSetting, SettingDetailIndex, Store, TabIndex, Util,
     },
 };
 use anyhow::{bail, Context, Result};
@@ -205,6 +205,7 @@ fn init_accounts_in_event_loop(
         Some((_, account)) => {
             ui.global::<Store>().set_is_show_setup_page(false);
             ui.global::<Store>().set_current_account(account.into());
+            ui.invoke_show_login_page();
         }
         None => {
             if store_accounts!(ui).row_count() > 0 {
@@ -212,6 +213,7 @@ fn init_accounts_in_event_loop(
                 ui.global::<Store>().set_current_account(account);
                 ui.global::<Store>().set_is_show_setup_page(false);
                 ui.global::<Logic>().invoke_update_current_derive_index(0);
+                ui.invoke_show_login_page();
             }
         }
     }
@@ -529,6 +531,34 @@ pub fn init(ui: &AppWindow) {
                 Err(e) => message_warn!(ui, format!("{}. {e:?}", tr("打开失败"))),
             }
         });
+
+    let ui_handle = ui.as_weak();
+    ui.global::<Logic>().on_login(move |password| {
+        let ui_handle = ui_handle.clone();
+        tokio::spawn(async move {
+            match get_secrect_info().await {
+                Ok(info) => {
+                    if crypto::hash(&password) != info.password {
+                        async_message_warn(ui_handle.clone(), tr("密码错误"));
+                    } else {
+                        let ui_handle = ui_handle.clone();
+                        _ = slint::invoke_from_event_loop(move || {
+                            let ui = ui_handle.unwrap();
+                            ui.global::<PasswordSetting>().set_show(false);
+                            ui.global::<Store>().set_is_login(false);
+                            ui.global::<Store>().set_current_tab_index(TabIndex::Home);
+                            ui.global::<Store>()
+                                .set_current_setting_detail_index(SettingDetailIndex::Home);
+                        });
+                    }
+                }
+                Err(e) => async_message_warn(
+                    ui_handle.clone(),
+                    format!("{}. {e:?}", tr("内部错误. 密码不存在")),
+                ),
+            }
+        });
+    });
 }
 
 fn _new_account(ui: &AppWindow, name: SharedString, password: SharedString) {
@@ -636,9 +666,13 @@ fn _remove_all_accounts(ui_handle: Weak<AppWindow>, password: SharedString) {
                     let ui = ui_handle.unwrap();
                     ui.global::<Logic>().invoke_remove_all_history();
                     ui.global::<Logic>().invoke_remove_all_tokens();
+                    ui.global::<Store>().set_is_show_setup_page(true);
+                    ui.global::<Store>().set_current_tab_index(TabIndex::Home);
+                    ui.global::<Store>()
+                        .set_current_setting_detail_index(SettingDetailIndex::Home);
+
                     store_accounts!(ui).set_vec(vec![]);
                     message_success!(ui, tr("删除所有账户成功"));
-                    ui.global::<Store>().set_is_show_setup_page(true);
                 });
             }
         }
