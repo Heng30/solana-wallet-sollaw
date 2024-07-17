@@ -770,6 +770,7 @@ fn _request_airdrop_sol(ui_handle: Weak<AppWindow>, network: SharedString, addre
 
 fn _add_sol_token_when_create_account(ui: &AppWindow, account_address: SharedString) {
     let current_network = ui.global::<Logic>().invoke_get_current_network();
+    let current_account_address = ui.global::<Store>().get_current_account().pubkey;
 
     let entries = ["main", "test", "dev"]
         .into_iter()
@@ -787,7 +788,7 @@ fn _add_sol_token_when_create_account(ui: &AppWindow, account_address: SharedStr
                 decimals: 0,
             };
 
-            if current_network == item {
+            if current_network == item && current_account_address == account_address {
                 store_tokens_setting_entries!(ui).set_vec(vec![entry.clone().into()]);
             }
 

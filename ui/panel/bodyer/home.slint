@@ -6,12 +6,9 @@ import { TestModeBanner } from "test-mode-banner.slint";
 
 struct SenderSetting {
     props: SendTokenProps,
-
-    recipient-address: string,
     transaction-fee: string,
     create-token-account-fee: string,
     is-token-account-exist: bool,
-    send-amount: string,
     password: string,
     signature: string,
 
@@ -199,7 +196,7 @@ export component Home inherits Rectangle {
         network: Logic.get-current-network();
         send-token: root.selected-entry.symbol;
         send-address: Store.current-account.pubkey;
-        recipient-address: TokensSetting.sender.recipient-address;
+        recipient-address: TokensSetting.sender.props.recipient-address;
         total-balance: root.selected-entry.balance;
         total-balance-usdt: root.selected-entry.balance-usdt;
 
@@ -247,7 +244,6 @@ export component Home inherits Rectangle {
             if (self.prioritization-fee-error-message != "" || self.recipient-address-error-message != "") {
                 return;
             }
-            TokensSetting.sender.send-amount = self.send-amount;
 
             TokensSetting.sender.props = {
                 token-uuid: root.selected-entry.uuid,
@@ -276,7 +272,7 @@ export component Home inherits Rectangle {
         }
 
         tap(entry) => {
-            TokensSetting.sender.recipient-address = entry.address;
+            TokensSetting.sender.props.recipient-address = entry.address;
             self.back();
         }
     }
@@ -285,16 +281,16 @@ export component Home inherits Rectangle {
         network: Logic.get-current-network();
         send-token: root.selected-entry.symbol;
         send-address: Store.current-account.pubkey;
-        recipient-address: TokensSetting.sender.recipient-address;
-        send-amount: TokensSetting.sender.send-amount;
-        send-amount-usdt: root.selected-entry.symbol == "SOL" ? "$" + Logic.calculate-price-of-sol(TokensSetting.sender.send-amount) : "";
+        recipient-address: TokensSetting.sender.props.recipient-address;
+        send-amount: TokensSetting.sender.props.amount;
+        send-amount-usdt: root.selected-entry.symbol == "SOL" ? "$" + Logic.calculate-price-of-sol(TokensSetting.sender.props.amount) : "";
         fee: TokensSetting.sender.transaction-fee + " SOL";
         fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.transaction-fee);
         create-token-account-fee: TokensSetting.sender.create-token-account-fee != "" ? TokensSetting.sender.create-token-account-fee + " SOL" : "";
         create-token-account-fee-usdt: "$" + Logic.calculate-price-of-sol(TokensSetting.sender.create-token-account-fee);
 
         memo: TokensSetting.sender.props.memo;
-        prioritization-fee: TokensSetting.sender.props.prioritization-fee;
+        prioritization-fee: TokensSetting.sender.props.prioritization-fee != "" ? TokensSetting.sender.props.prioritization-fee + " micro lamports" : "";
 
         loading-status: TokensSetting.sender.transaction-fee-loading-status;
 
@@ -315,7 +311,7 @@ export component Home inherits Rectangle {
     if Store.current-home-index == HomeIndex.WaitTransactionConfirmed: WaitTransactionConfirmed {
         network: Logic.get-current-network();
         send-token: root.selected-entry.symbol;
-        send-amount: TokensSetting.sender.send-amount;
+        send-amount: TokensSetting.sender.props.amount;
         signature: TokensSetting.sender.signature;
 
         loading-status: TokensSetting.sender.waiting-transaction-confirmed-loading-status;

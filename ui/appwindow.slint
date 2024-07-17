@@ -50,6 +50,7 @@ export component AppWindow inherits Window {
     if PasswordSetting.show: Password {
         private property <string> err;
         is-show-header: !Store.is-login;
+        confirm-btn-text: !Store.is-login ? Logic.tr(Store.is-cn, "确认") : Logic.tr(Store.is-cn, "登录");
 
         init => {
             self.focus();

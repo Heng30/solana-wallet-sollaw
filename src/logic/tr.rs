@@ -166,6 +166,7 @@ pub fn tr(text: &str) -> String {
     items.insert("创建账户", "Create account");
     items.insert("恢复账户", "Recover account");
     items.insert("生成组记词失败", "New mnemonic failed");
+    items.insert("登录", "Login");
     items.insert(
         "组记词数量不对，仅支持12和24个组记词",
         "Mnemonic counts is no correct. Only support 12 or 24 word counts mnemonic",
