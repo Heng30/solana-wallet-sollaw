@@ -12,7 +12,7 @@ repository = "https://github.com/Heng30/solana-wallet-sollaw"
 [dependencies]
 log = "0.4"
 toml = "0.8"
-slint = "1.6"
+slint = "1.7"
 image = "0.24"
 qrcode = "0.13"
 anyhow = "1.0"
@@ -50,7 +50,7 @@ terminal-clipboard = "0.4"
 
 [build-dependencies]
 cmd_lib = "1.9"
-slint-build = "1.6"
+slint-build = "1.7"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 embed-resource = "2.4"
