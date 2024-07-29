@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 pwd=${shell pwd}
 build-evn=SLINT_STYLE=material
@@ -31,10 +31,10 @@ install:
 	$(build-evn) $(run-evn) cargo apk run --lib --release
 
 debug:
-	$(build-evn) $(run-evn) cargo run --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo run --features=desktop
 
 debug-mold:
-	$(build-evn) $(run-evn) mold --run cargo run --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) mold --run cargo run --features=desktop
 
 debug-local:
 	$(run-evn) ./target/debug/sollaw-desktop
@@ -44,22 +44,25 @@ release-local:
 	$(run-evn) ./target/release/sollaw-desktop
 
 build-desktop-debug-mold:
-	$(build-evn) $(run-evn) mold --run cargo build --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) mold --run cargo build --features=desktop
 
 build-desktop-debug-job1:
-	$(build-evn) $(run-evn) cargo build --jobs 1 --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --jobs 1 --features=desktop
 
 build-desktop-debug:
-	$(build-evn) $(run-evn) cargo build --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --features=desktop
 
 build-desktop-release:
-	$(build-evn) $(run-evn) cargo build --release --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --release --features=desktop
 
 build-desktop-release-job1:
-	$(build-evn) $(run-evn) cargo build --release --jobs 1 --bin sollaw-desktop --features=desktop
+	$(build-evn) $(run-evn) cargo build --release --jobs 1  --features=desktop
+
+build-desktop-release-nixos:
+	nix-shell --run "$(build-evn) $(run-evn) cargo build --release --features=desktop"
 
 install-desktop:
-	cp -f target/release/sollaw-desktop ~/bin/sollaw-desktop
+	cp -f target/release/sollaw ~/bin/sollaw
 
 test:
 	$(build-evn) $(run-evn) cargo test -- --nocapture

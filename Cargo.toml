@@ -64,7 +64,7 @@ crate-type = ["cdylib", "lib"]
 
 [[bin]]
 path = "src/desktop.rs"
-name = "sollaw-desktop"
+name = "sollaw"
 required-features = ["desktop"]
 
 [package.metadata.android]
